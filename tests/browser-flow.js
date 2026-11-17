@@ -91,7 +91,7 @@ try {
   assert.equal(await page.locator('#time').innerText(), time);
   await click('[data-action=resume]');
   await key('Tab');
-  await advance(180500);
+  await advance(120500);
   await page.waitForSelector('.score');
   assert.match(await page.locator('.score').innerText(), /72점/);
   await page.locator('.review-list summary').first().click({ force: true });
@@ -113,9 +113,9 @@ try {
   await page.goto(origin);
   await click('[data-action=start]');
   await page.waitForSelector('#time');
-  assert.equal(await page.locator('#time').innerText(), '03:00');
+  assert.equal(await page.locator('#time').innerText(), '02:00');
   await key('Tab');
-  await advance(77000);
+  await advance(61000);
   await key('Escape');
   console.log('Checking the full exam curtain request');
   await walk('w', 14);
@@ -132,7 +132,7 @@ try {
     await walk('a', 10);
   }
   await key('Tab');
-  await advance(180000);
+  await advance(120000);
   await page.waitForSelector('.score');
   assert.match(await page.locator('.stats').innerText(), /1\/2/);
   assert.match(await page.locator('.modal').textContent(), /발소리로 시험에 집중하기 어렵습니다/);

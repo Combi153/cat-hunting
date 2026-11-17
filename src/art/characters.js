@@ -1,9 +1,9 @@
 import * as THREE from 'three';
+import { STUDENT_DESK_TOP } from './dimensions.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Metres. Every character looks along +Z. Furniture belongs to the classroom.
-// Seated hips are at .52; the writing surface is y=.78, z=.51.
 const ball = new THREE.SphereGeometry(1, 14, 10);
 const softBox = new RoundedBoxGeometry(1, 1, 1, 2, 0.15);
 const ring = new THREE.TorusGeometry(1, 0.085, 5, 18);
@@ -244,7 +244,7 @@ function makeArm(parent, knit, rib, skin, side) {
     shoulder: v(side * 0.222, 0.428, 0),
   };
 }
-function setArm(arm, elbow, wrist, alpha, raised = false) {
+function setArm(arm, elbow, wrist, alpha, raised = false, onDesk = false) {
   arm.elbow.lerp(elbow, alpha);
   arm.wrist.lerp(wrist, alpha);
   segment(arm.upper, arm.shoulder, arm.elbow, 0.085, 0.083);
@@ -254,7 +254,8 @@ function setArm(arm, elbow, wrist, alpha, raised = false) {
   arm.cuff.scale.set(0.078, 0.044, 0.073);
   arm.cuff.quaternion.setFromUnitVectors(axisY, temp);
   arm.hand.position.copy(arm.wrist).addScaledVector(temp, 0.025);
-  arm.hand.rotation.set(raised ? 0 : 0.9, 0, raised ? 0 : -0.2);
+  if (onDesk) arm.hand.position.y -= 0.018;
+  arm.hand.rotation.set(raised ? 0 : onDesk ? 1.94 : 0.9, 0, raised ? 0 : -0.2);
 }
 function makePencil() {
   const p = new THREE.Group();
@@ -281,9 +282,11 @@ function makeProps() {
   clearGlasses.rotation.copy(glasses.rotation);
   props.add(clearGlasses);
   const ear = new THREE.Group();
-  box(ear, M.case, [0.255, 0.285, 0.53], [0.14, 0.048, 0.09]);
-  box(ear, M.case, [0.255, 0.334, 0.503], [0.14, 0.063, 0.018], [-0.3, 0, 0]);
-  lump(ear, M.device, [0.227, 0.311, 0.535], [0.023, 0.009, 0.023]);
+  const earCase = new THREE.Group();
+  box(earCase, M.case, [0, 0.024, 0], [0.14, 0.048, 0.09]);
+  box(earCase, M.case, [0, 0.073, -0.027], [0.14, 0.063, 0.018], [-0.3, 0, 0]);
+  lump(earCase, M.device, [-0.028, 0.05, 0.005], [0.023, 0.009, 0.023]);
+  earCase.position.set(0.255, STUDENT_DESK_TOP + 0.012, 0.53);
   lump(ear, M.case, [0.248, 0.566, 0.18], [0.018, 0.026, 0.013]);
   box(ear, M.case, [0.248, 0.542, 0.18], [0.014, 0.035, 0.013]);
   props.add(bake(ear));
@@ -317,7 +320,7 @@ function makeProps() {
   box(eraser, M.trim, [0.15, 0.3, 0.57], [0.035, 0.027, 0.042]);
   props.add(bake(eraser));
   for (const p of props.children) p.visible = false;
-  return { group: props, glasses, clearGlasses, ear, camera, note, id, eraser };
+  return { group: props, glasses, clearGlasses, ear, earCase: bake(earCase), camera, note, id, eraser };
 }
 function instanceParts(parent, parts) {
   const batch = new THREE.InstancedMesh(parts[0].geometry, parts[0].material, parts.length);
@@ -363,6 +366,8 @@ function makeCharacter(index, proctor = false) {
   upper.add(pencil);
   const props = makeProps();
   upper.add(props.group);
+  props.earCase.visible = false;
+  root.add(props.earCase);
   const clipboard = new THREE.Group();
   box(clipboard, clay('#b19978'), [0, 0, 0], [0.24, 0.34, 0.034]);
   box(clipboard, M.paper, [0, 0, 0.022], [0.21, 0.29, 0.009]);
@@ -435,6 +440,12 @@ function updateLegs(rig, time, walking, quiet = false) {
   }
 }
 
+// Arms are posed inside the breathing, forward-leaning torso. The paper stays still in world space.
+function aboveDesk(upper, z, clearance) {
+  const tilt = upper.rotation.x;
+  return (STUDENT_DESK_TOP + clearance - upper.position.y + z * Math.sin(tilt)) / Math.cos(tilt);
+}
+
 export function updateStudent(group, { time = 0, pose = 'write', walking = false } = {}) {
   const r = group.userData.clay;
   if (!r) return;
@@ -458,6 +469,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   const re = v(0.285, 0.18, 0.27),
     rw = v(0.13 + Math.sin(f * 6) * 0.009, 0.298, 0.56 + Math.cos(f * 4) * 0.012);
   for (const prop of r.props.group.children) prop.visible = false;
+  r.props.earCase.visible = pose === 'proof-ear' && !stand;
   r.pencil.visible = !stand && (pose === 'write' || pose === 'rest');
   r.head.userData.glasses.visible = r.normalGlasses || pose === 'glasses';
   if (pose === 'glasses') {
@@ -492,7 +504,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   } else if (pose === 'rest') {
     rw.set(0.2, 0.3, 0.41);
     lw.set(-0.2, 0.3, 0.43);
-    r.pencil.position.set(0.06, 0.272, 0.65);
+    r.pencil.position.set(0.06, aboveDesk(r.upper, 0.65, 0.019), 0.65);
     r.pencil.rotation.set(0, 0, Math.PI / 2);
   }
   if (stand) {
@@ -502,11 +514,23 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     re.set(0.25, 0.2, swing);
     rw.set(0.25, -0.045, swing * 1.6);
   }
-  setArm(r.left, le, lw, a);
-  setArm(r.right, re, rw, a, pose === 'hand');
+  const leftOnDesk = !stand && !pose.endsWith('note');
+  const rightOnDesk = !stand && (pose === 'write' || pose === 'rest');
+  if (!stand) {
+    if (le.z > 0.13) le.y = Math.max(le.y, aboveDesk(r.upper, le.z, 0.092));
+    if (re.z > 0.13) re.y = Math.max(re.y, aboveDesk(r.upper, re.z, 0.092));
+    if (leftOnDesk) lw.y = aboveDesk(r.upper, lw.z, 0.081);
+    if (rightOnDesk) rw.y = aboveDesk(r.upper, rw.z, 0.081);
+  }
+  setArm(r.left, le, lw, a, false, leftOnDesk);
+  setArm(r.right, re, rw, a, pose === 'hand', rightOnDesk);
   if (pose === 'write') {
-    r.pencil.position.copy(r.right.wrist).add(v(-0.018, 0.049, -0.004));
+    r.pencil.position.copy(r.right.hand.position);
+    r.pencil.position.x -= 0.027;
+    r.pencil.position.z += 0.032;
     r.pencil.rotation.set(-0.9, 0, -0.24);
+    const tip = temp.set(0, -0.117, 0).applyQuaternion(r.pencil.quaternion);
+    r.pencil.position.y = aboveDesk(r.upper, r.pencil.position.z + tip.z, 0.012) - tip.y;
   }
   updateLegs(r, time, walking);
   syncInstances(r);

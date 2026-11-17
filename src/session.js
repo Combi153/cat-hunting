@@ -24,7 +24,7 @@ export const TYPES = {
     clear: '수험번호와 사진이 있는 수험표를 책상에 다시 놓았다.',
   },
 };
-export const EXAM_DURATION = 180;
+export const EXAM_DURATION = 120;
 export const DESK = { x: 0, z: 4.55 };
 export const WINDOW = { x: -4.85, z: -0.5 };
 export const EXIT = { x: 4.75, z: -4.5 };
@@ -79,7 +79,7 @@ export class Exam {
     const count = 1 + Math.floor(random() * 3);
     ordered.slice(0, count).forEach((s) => (s.guilty = true));
     const neutral = ordered.filter((s) => !s.guilty);
-    this.requests = [this.newRequest(neutral[0], 'paper', 16), this.newRequest(neutral[1], 'curtain', 76)];
+    this.requests = [this.newRequest(neutral[0], 'paper', 16), this.newRequest(neutral[1], 'curtain', 60)];
   }
   newRequest(seat, type, start) {
     return {

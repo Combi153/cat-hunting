@@ -66,8 +66,10 @@ test('delay and repeated noise are charged once per episode; quiet walking reduc
 });
 test('the bell ends a session and blocks additional observations', () => {
   const e = new Exam(() => 0.2);
-  e.step(181, still, 0, false);
+  e.step(119, still, 0, false);
+  assert.equal(e.over, false);
+  e.step(1, still, 0, false);
   assert.ok(e.over);
-  assert.equal(e.time, 180);
+  assert.equal(e.time, 120);
   assert.equal(e.record(e.seats[0], { key: 'cue', text: '관찰' }), false);
 });
