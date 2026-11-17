@@ -186,22 +186,28 @@ try {
     x = pad.x + pad.width / 2,
     y = pad.y + pad.height / 2;
   const touch = await mobile.context().newCDPSession(mobile);
+  // Chromium can coalesce real touch moves while the game's animation clock is paused.
+  const waitForGait = async (expected) => {
+    for (let i = 0; i < 30; i++) {
+      await mobile.clock.fastForward(125);
+      if (await mobile.locator('#gait').textContent() === expected) return;
+      await new Promise((resolve) => setTimeout(resolve, 35));
+    }
+    assert.equal(await mobile.locator('#gait').textContent(), expected);
+  };
   await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
   await touch.send('Input.dispatchTouchEvent', {
     type: 'touchMove',
     touchPoints: [{ x, y: y - pad.width * 0.16 }],
   });
-  await mobile.clock.fastForward(250);
-  assert.equal(await mobile.locator('#gait').textContent(), '살금살금');
+  await waitForGait('살금살금');
   await touch.send('Input.dispatchTouchEvent', {
     type: 'touchMove',
     touchPoints: [{ x, y: y - pad.width * 0.37 }],
   });
-  await mobile.clock.fastForward(250);
-  assert.equal(await mobile.locator('#gait').textContent(), '보통 걸음');
+  await waitForGait('보통 걸음');
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await mobile.clock.fastForward(200);
-  assert.equal(await mobile.locator('#gait').textContent(), '이동');
+  await waitForGait('이동');
   const aButton = mobile.locator('#touch-action');
   const buttonBefore = await aButton.boundingBox();
   await aButton.tap();
