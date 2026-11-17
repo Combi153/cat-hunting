@@ -183,9 +183,9 @@ export function createClassroom(seats = []) {
     if (!cache.has(key)) cache.set(key, new THREE.CylinderGeometry(radius, radius, height, 10));
     add(cache.get(key), material, x, y, z, rx, 0, rz);
   }
-  function plane(w, h, material, x, y, z, rx = 0, ry = 0) {
+  function plane(w, h, material, x, y, z, rx = 0, ry = 0, rz = 0) {
     const geometry = new THREE.PlaneGeometry(w, h);
-    add(geometry, material, x, y, z, rx, ry);
+    add(geometry, material, x, y, z, rx, ry, rz);
     geometry.dispose();
   }
   function lettering(text, w, h, options = {}) {
@@ -388,9 +388,10 @@ export function createClassroom(seats = []) {
     }
     plane(1.14, 1.13, 'shadow', x, 0.001, z + 0.25, -Math.PI / 2);
     // Examination sheets, a soft fold down the center, eraser, capped sign pen.
-    box(0.7, 0.009, 0.425, 'paper', x - 0.01, top + 0.005, dz + 0.015, 0.008, -0.025);
-    plane(0.69, 0.418, 'paperPrint', x - 0.01, top + 0.011, dz + 0.015, -Math.PI / 2);
-    box(0.004, 0.003, 0.418, 'ivory', x + 0.075, top + 0.014, dz + 0.015, 0.001);
+    box(0.7, 0.009, 0.425, 'paper', x - 0.01, top + 0.005, dz + 0.015, 0.008);
+    // Students look toward +Z. The title goes on the far edge and the OMR sheet on their right (−X).
+    plane(0.69, 0.418, 'paperPrint', x - 0.01, top + 0.011, dz + 0.015, -Math.PI / 2, 0, Math.PI);
+    box(0.004, 0.003, 0.418, 'ivory', x - 0.1, top + 0.014, dz + 0.015, 0.001);
     box(0.065, 0.026, 0.034, 'paper', x + 0.402, top + 0.016, dz - 0.18, 0.009);
     cylinder(0.009, 0.18, 'charcoal', x - 0.412, top + 0.015, dz + 0.035, Math.PI / 2, -0.13);
     cylinder(0.011, 0.045, 'sage', x - 0.412, top + 0.016, dz - 0.078, Math.PI / 2, -0.13);

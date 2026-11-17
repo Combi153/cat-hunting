@@ -20,6 +20,26 @@ try {
   );
   await page.clock.install({ time: new Date('2026-01-01T12:00:00Z') });
   await page.goto(origin + '/?oneCase');
+  // The title (UV top) is farther from the seated reader and the answer grid is on their right.
+  const readableSheets = await page.evaluate(async () => {
+    const { createClassroom } = await import('/src/art/classroom.js');
+    const { Exam } = await import('/src/session.js');
+    const seats = new Exam().seats;
+    const print = createClassroom(seats).getObjectByName('Room surface · paperPrint');
+    const { position, uv } = print.geometry.attributes;
+    return seats.filter((seat) => {
+      let corners = 0;
+      for (let i = 0; i < position.count; i++) {
+        const x = position.getX(i) - (seat.x - 0.01);
+        const z = position.getZ(i) - (seat.z + 0.515);
+        if (Math.abs(x) > 0.36 || Math.abs(z) > 0.22) continue;
+        if ((uv.getX(i) > 0.5) !== (x < 0) || (uv.getY(i) > 0.5) !== (z > 0)) return false;
+        corners++;
+      }
+      return corners === 6 && print.material.map.flipY;
+    }).length;
+  });
+  assert.equal(readableSheets, 12);
   await page.clock.pauseAt(new Date('2026-01-01T12:01:00Z'));
   const click = (selector) => page.locator(selector).first().click({ force: true });
   const key = (name) => page.keyboard.press(name);
