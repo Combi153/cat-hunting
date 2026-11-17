@@ -33,7 +33,7 @@ try {
         const x = position.getX(i) - (seat.x - 0.01);
         const z = position.getZ(i) - (seat.z + 0.515);
         if (Math.abs(x) > 0.36 || Math.abs(z) > 0.22) continue;
-        if ((uv.getX(i) > 0.5) !== (x < 0) || (uv.getY(i) > 0.5) !== (z > 0)) return false;
+        if (uv.getX(i) > 0.5 !== x < 0 || uv.getY(i) > 0.5 !== z > 0) return false;
         corners++;
       }
       return corners === 6 && print.material.map.flipY;
@@ -82,8 +82,8 @@ try {
   for (let i = 0; i < 25 && !(await page.locator('#context').innerText()).includes('문항 번호가 바뀌는'); i++)
     await advance(600);
   assert.match(await page.locator('#context').innerText(), /문항 번호가 바뀌는/);
-  await key('f');
-  await click('[data-action=journal]');
+  await key('e');
+  await click('#touch-action');
   await page.locator('#kind').selectOption('glasses');
   await click('[data-action=accuse]');
   assert.match(await page.locator('#notice').innerText(), /퇴실 조치/);
@@ -144,7 +144,7 @@ try {
   console.log('Checking the full exam curtain request');
   await walk('w', 14);
   await turn(-155);
-  assert.match(await page.locator('#touch-action').innerText(), /05번 요청 듣기/);
+  assert.equal(await page.locator('#touch-action').getAttribute('aria-label'), '05번 학생 · 요청 듣기');
   await key('e');
   await turn(155);
   await walk('a', 10);
@@ -182,28 +182,41 @@ try {
   await mobile.locator('.start-btn').tap();
   await mobile.waitForSelector('#time');
   assert.ok(await mobile.locator('#stick').isVisible());
-  await mobile.locator('[data-action=quiet]').tap();
-  assert.equal(await mobile.locator('[data-action=quiet]').getAttribute('aria-pressed'), 'true');
   const pad = await mobile.locator('#stick').boundingBox(),
     x = pad.x + pad.width / 2,
     y = pad.y + pad.height / 2;
   const touch = await mobile.context().newCDPSession(mobile);
   await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - 35 }] });
-  await mobile.clock.fastForward(650);
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x, y: y - pad.width * 0.16 }],
+  });
+  await mobile.clock.fastForward(250);
+  assert.equal(await mobile.locator('#gait').textContent(), '살금살금');
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x, y: y - pad.width * 0.37 }],
+  });
+  await mobile.clock.fastForward(250);
+  assert.equal(await mobile.locator('#gait').textContent(), '보통 걸음');
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await mobile.clock.resume();
-  await mobile.locator('#touch [data-action=action]').tap();
+  await mobile.clock.fastForward(200);
+  assert.equal(await mobile.locator('#gait').textContent(), '이동');
+  const aButton = mobile.locator('#touch-action');
+  const buttonBefore = await aButton.boundingBox();
+  await aButton.tap();
   await mobile.waitForSelector('.focus-card', { timeout: 5000 });
-  assert.ok(await mobile.locator('[data-action=record]').isVisible());
-  assert.equal(await mobile.locator('#touch').isVisible(), false);
-  await mobile.getByRole('button', { name: '행동 기록', exact: true }).tap();
-  await mobile.getByRole('button', { name: '지목하기', exact: true }).tap();
+  const buttonAfter = await aButton.boundingBox();
+  assert.equal(buttonBefore.x + buttonBefore.width, buttonAfter.x + buttonAfter.width);
+  assert.equal(buttonBefore.y, buttonAfter.y);
+  assert.equal(await mobile.locator('#action-verb').textContent(), '행동 기록');
+  await aButton.tap();
+  assert.equal(await mobile.locator('#action-verb').textContent(), '일지 열기');
+  await aButton.tap();
   await mobile.locator('#kind').selectOption('glasses');
   assert.ok(await mobile.locator('[data-action=accuse]').isEnabled());
   await mobile.locator('.close-x').tap();
   await mobile.getByRole('button', { name: '관찰 끝내기' }).tap();
-  assert.equal(await mobile.locator('[data-action=quiet]').getAttribute('aria-pressed'), 'true');
   await mobile.setViewportSize({ width: 844, height: 390 });
   const bounds = async (sel) => mobile.locator(sel).boundingBox();
   const landscapeRoom = await bounds('#room');
@@ -216,12 +229,16 @@ try {
   assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 
   await mobile.setViewportSize({ width: 390, height: 844 });
+  await mobile.clock.resume();
   await mobile.goto(origin);
   await mobile.locator('.start-btn').tap();
   await mobile.waitForSelector('#time');
   const scene = await bounds('#room');
   // The left-hand student in the middle row, beyond the initial observation radius.
   await mobile.touchscreen.tap(scene.x + scene.width * 0.29, scene.y + scene.height * 0.36);
+  await mobile.getByRole('button', { name: '05번 학생 · 관찰하기' }).waitFor({ timeout: 15000 });
+  assert.equal(await mobile.locator('.focus-card').count(), 0);
+  await aButton.tap();
   await mobile.waitForSelector('.focus-card', { timeout: 12000 });
   assert.match(await mobile.locator('.focus-title').innerText(), /05번 좌석/);
   const card = await bounds('.focus-card');

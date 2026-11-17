@@ -180,7 +180,7 @@ async function start() {
     previous = performance.now();
     updateHUD();
     if (!saved.muted) bell();
-    notice('학생을 톡 눌러 관찰하세요. 쓸면 둘러볼 수 있어요.');
+    notice('학생을 톡 눌러 다가간 뒤 A를 누르세요.');
   } catch (err) {
     console.error(err);
     home();
@@ -262,43 +262,71 @@ function record() {
 }
 function serviceObject() {
   const reqs = exam.liveRequests();
-  if (reqs.some((r) => r.type === 'paper' && r.ack) && !exam.carrying && room.nearbyAction('desk', DESK))
+  if (reqs.some((r) => r.type === 'paper' && r.ack) && !exam.carrying && room.withinReach(DESK))
     return 'desk';
-  if (reqs.some((r) => r.type === 'curtain' && r.ack) && room.nearbyAction('window', WINDOW)) return 'window';
+  if (reqs.some((r) => r.type === 'curtain' && r.ack) && room.withinReach(WINDOW)) return 'window';
   return null;
 }
 function useObject(type) {
-  if (type === 'desk' && room.nearbyAction('desk', DESK) && exam.takePaper())
+  if (type === 'desk' && room.withinReach(DESK) && exam.takePaper())
     notice('새 답안지를 챙겼습니다. 요청한 학생에게 전달하세요.');
-  if (type === 'window' && room.nearbyAction('window', WINDOW)) {
+  if (type === 'window' && room.withinReach(WINDOW)) {
     const r = exam.liveRequests().find((r) => r.type === 'curtain');
     if (r && exam.serve(r)) notice('커튼을 닫았습니다. 학생이 다시 시험에 집중합니다.');
   }
   updateHUD();
 }
-function nearbyAction() {
-  const obj = serviceObject();
-  if (obj) return { type: obj, label: obj === 'desk' ? '새 답안지 챙기기' : '커튼 닫기' };
+let shownAction = null;
+let pressedAction = null;
+function currentAction() {
+  if (room.approach) return { type: 'stop', id: room.approach.id, label: '이동 멈추기' };
   const target = room.target();
+  if (!room.focus && !(target && target.id === room.pointedSeat)) {
+    const obj = serviceObject();
+    if (obj) return { type: obj, label: obj === 'desk' ? '답안지 챙기기' : '커튼 닫기' };
+  }
   if (!target) return null;
-  const req = exam.requestFor(target.id);
-  const prefix = seatNo(target.id) + '번 ';
-  if (req && !req.ack) return { type: 'respond', id: target.id, label: prefix + '요청 듣기' };
-  if (req?.type === 'paper' && exam.carrying)
-    return { type: 'respond', id: target.id, label: prefix + '답안지 건네기' };
-  return { type: 'seat', id: target.id, label: prefix + '관찰하기' };
+  const id = target.id;
+  const req = exam.requestFor(id);
+  if (req && !req.ack) return { type: 'listen', id, label: '요청 듣기' };
+  if (req?.type === 'paper' && exam.carrying) return { type: 'deliver', id, label: '답안지 건네기' };
+  if (!room.focus) return { type: 'observe', id, label: '관찰하기' };
+  const seat = exam.seat(id);
+  const clue = clueFor(seat);
+  if (seat.notes.some((note) => note.key === clue.key)) return { type: 'journal', id, label: '일지 열기' };
+  return { type: 'record', id, key: clue.key, label: '행동 기록' };
 }
-function interact() {
-  if (room.approach) {
-    room.approach = null;
-  } else if (room.focus) {
-    room.focus = null;
-  } else {
-    const action = nearbyAction();
-    if (!action) return;
-    if (action.type === 'seat') focusSeat(action.id);
-    else if (action.type === 'respond') respond(action.id);
-    else useObject(action.type);
+function interact(prompt = shownAction) {
+  const action = currentAction();
+  // A moving student or a new clue can change the prompt between touch-down and release.
+  if (
+    !action ||
+    !prompt ||
+    prompt.type !== action.type ||
+    prompt.id !== action.id ||
+    prompt.key !== action.key
+  ) {
+    updateHUD();
+    return;
+  }
+  switch (action.type) {
+    case 'stop':
+      room.approach = null;
+      break;
+    case 'observe':
+      focusSeat(action.id);
+      break;
+    case 'listen':
+    case 'deliver':
+      respond(action.id);
+      break;
+    case 'record':
+      record();
+      break;
+    case 'journal':
+      return openJournal(action.id);
+    default:
+      useObject(action.type);
   }
   updateHUD();
 }
@@ -364,62 +392,43 @@ function updateHUD() {
   const s = exam.seat(room.focus);
   const observing = Boolean(s && !s.caught);
   play.classList.toggle('observing', observing);
-  const marker = $('#seat-marker');
+  const marker = $('#target-marker');
   marker.hidden = true;
+  const action = currentAction();
+  shownAction = action;
   if (observing) {
-    const clue = clueFor(s),
-      req = exam.requestFor(s.id);
-    const recorded = s.notes.some((n) => n.key === clue.key);
-    const canRespond = req && (!req.ack || (req.type === 'paper' && exam.carrying));
     put(
       '#context',
       `<div class="focus-card">
-      <div class="focus-title">${ui.icon('eye', 16)} ${seatNo(s.id)}번 좌석 · 관찰 중<button data-action="unfocus">관찰 끝내기</button></div>
-      <p></p><small hidden>손이 가려지면 옆에서 다시 살펴보세요.</small>
-      <div class="actions">
-      <button class="em" data-action="respond" hidden></button>
-      <button data-action="record">행동 기록</button>
-      <button data-action="journal" hidden>지목하기</button></div></div>`,
+      <div class="focus-title">${ui.icon('eye', 16)} ${seatNo(s.id)}번 좌석 · 관찰 중</div>
+      <p></p><small hidden>손이 가려지면 옆에서 다시 살펴보세요.</small></div>`,
     );
-    put('.focus-card p', clue.text);
+    put('.focus-card p', clueFor(s).text);
     $('.focus-card small').hidden = room.side(s);
-    const respondButton = $('.focus-card [data-action="respond"]');
-    respondButton.hidden = !canRespond;
-    if (canRespond) put('.focus-card [data-action="respond"]', req.ack ? '답안지 건네기' : '요청 듣기');
-    const recordButton = $('.focus-card [data-action="record"]');
-    recordButton.disabled = recorded;
-    recordButton.classList.toggle('em', !canRespond);
-    put('.focus-card [data-action="record"]', recorded ? '기록 완료' : '행동 기록');
-    $('.focus-card [data-action="journal"]').hidden = !s.notes.length;
   } else {
-    const action = nearbyAction();
-    const button = $('#touch-action');
-    if (action?.id && !room.approach) {
-      const anchor = room.seatMarker(action.id);
-      if (anchor) {
-        marker.hidden = false;
-        marker.textContent = seatNo(action.id) + '번';
-        marker.setAttribute('aria-label', action.label);
-        marker.style.left = anchor.left + '%';
-        marker.style.top = anchor.top + '%';
-      }
-    }
-    button.disabled = !action && !room.approach;
-    const label = room.approach
-      ? seatNo(room.approach.id) + '번 이동 중 · 멈추기'
-      : (action?.label ?? '학생을 눌러 이동');
-    const actionIcon = room.approach
-      ? 'pause'
-      : ({ desk: 'paper', window: 'hand', respond: 'hand', seat: 'eye' }[action?.type] ?? 'hand');
-    put('#touch-action', ui.icon(actionIcon) + label);
     put('#context', '');
+    const place = { desk: DESK, window: WINDOW }[action?.type];
+    const target = place ?? exam.seat(action?.id);
+    const height = action?.type === 'desk' ? 1.05 : 1.58;
+    const anchor = target && room.markerAt(target, height);
+    if (anchor) {
+      marker.hidden = false;
+      marker.textContent = place ? (action.type === 'desk' ? '교탁' : '창가') : seatNo(action.id) + '번';
+      marker.style.left = anchor.left + '%';
+      marker.style.top = anchor.top + '%';
+    }
   }
-  const quietBtn = $('#touch [data-action="quiet"]');
-  quietBtn.setAttribute('aria-pressed', String(room.touchQuiet));
-  put(
-    '#touch [data-action="quiet"]',
-    ui.icon('foot', 16) + '조용히 걷기<span class="switch" aria-hidden="true"></span>',
-  );
+  const subject = action?.id
+    ? seatNo(action.id) + '번 학생'
+    : ({ desk: '교탁', window: '창가' }[action?.type] ?? '상호작용');
+  const label = action?.label ?? '다가가세요';
+  put('#action-target', subject);
+  put('#action-verb', label);
+  const button = $('#touch-action');
+  button.disabled = !action;
+  button.setAttribute('aria-label', subject + ' · ' + label);
+  put('#gait', { idle: '이동', quiet: '살금살금', walk: '보통 걸음' }[room.gait]);
+  $('#stick').dataset.gait = room.gait;
 }
 function enterReplay(id) {
   if (!roundResult || !exam.seat(id)) return;
@@ -459,7 +468,7 @@ function tick(now) {
   if (screen === 'running' && (!panel || panel === 'journal')) {
     const step = panel ? { meters: 0, quiet: false } : room.move(Math.min(dt, 2, exam.duration - exam.time));
     exam.step(dt, room.player, step.meters, step.quiet);
-    if (step.arrived && !exam.over) focusSeat(step.arrived);
+    if (step.arrived && !exam.over) room.selectSeat(step.arrived);
     if (priorComplaint < exam.complaints.length) {
       const c = exam.complaints.at(-1);
       notice('민원 접수 · ' + seatNo(c.id) + '번 ' + c.text);
@@ -524,22 +533,21 @@ function userAction(action) {
     return;
   }
   if (panel) return;
-  if (action === 'quiet') {
-    room.touchQuiet = !room.touchQuiet;
-    updateHUD();
-  }
-  if (action === 'action') interact();
   if (action === 'unfocus') {
     room.focus = null;
     updateHUD();
   }
-  if (action === 'record') record();
-  if (action === 'respond') respond();
 }
+$('#touch-action').addEventListener('pointerdown', () => {
+  pressedAction = shownAction;
+});
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b || b.disabled || (!overlay.hidden && !overlay.contains(b))) return;
-  if (b.dataset.seat) openJournal(Number(b.dataset.seat));
+  if (b.id === 'touch-action') {
+    if (screen === 'running' && !panel) interact(e.detail ? pressedAction : shownAction);
+    pressedAction = null;
+  } else if (b.dataset.seat) openJournal(Number(b.dataset.seat));
   else if (b.dataset.history !== undefined) showResult(saved.history[Number(b.dataset.history)]);
   else if (b.dataset.replay) enterReplay(Number(b.dataset.replay));
   else if (b.dataset.action) userAction(b.dataset.action);
@@ -568,6 +576,7 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     if (screen === 'replay') userAction('report');
     else if (panel) close();
+    else if (screen === 'running' && room.focus) userAction('unfocus');
     else if (screen === 'running') openPause();
     return;
   }
@@ -628,7 +637,7 @@ canvas.addEventListener('pointerup', (e) => {
   if (drag.total < 7 && !panel && screen === 'running') {
     const id = room.pickSeat(e.clientX, e.clientY);
     if (id) {
-      if (room.inObservationRange(id)) focusSeat(id);
+      if (room.inObservationRange(id)) room.selectSeat(id);
       else if (!room.approachSeat(id)) notice('이동 패드로 통로에 나와 주세요.');
       updateHUD();
     }
@@ -641,11 +650,12 @@ canvas.addEventListener('pointercancel', () => {
 const stick = $('#stick');
 function stickMove(e) {
   const { x, y, width, height } = stick.getBoundingClientRect(),
-    dx = (e.clientX - x - width / 2) / (width * 0.43),
-    dy = (e.clientY - y - height / 2) / (height * 0.43),
+    dx = (e.clientX - x - width / 2) / (width * 0.38),
+    dy = (e.clientY - y - height / 2) / (height * 0.38),
     m = Math.max(1, Math.hypot(dx, dy));
   room.stick = { x: dx / m, y: dy / m };
-  stick.firstElementChild.style.transform = 'translate(' + (dx / m) * 24 + 'px,' + (dy / m) * 24 + 'px)';
+  stick.firstElementChild.style.transform =
+    'translate(' + room.stick.x * width * 0.38 + 'px,' + room.stick.y * height * 0.38 + 'px)';
 }
 stick.addEventListener('pointerdown', (e) => {
   if (!panel && room && stickPointer === null) {

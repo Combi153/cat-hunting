@@ -42,7 +42,6 @@ export class Room {
     this.screenPoint = new THREE.Vector3();
     this.keys = new Set();
     this.stick = { x: 0, y: 0 };
-    this.touchQuiet = false;
     this.resize();
   }
   reset(session) {
@@ -97,7 +96,7 @@ export class Room {
     this.footShadow.rotation.x = -Math.PI / 2;
     scene.add(this.footShadow);
     this.renderer.shadowMap.needsUpdate = true;
-    this.touchQuiet = false;
+    this.pointedSeat = null;
     this.player = { x: -2.24, z: 3.7 };
     this.yaw = 0;
     this.pitch = 0.06;
@@ -141,17 +140,26 @@ export class Room {
     this.keys.clear();
     this.stick = { x: 0, y: 0 };
     this.approach = null;
+    this.gait = 'idle';
   }
   spin(dx, dy) {
     if (this.focus || this.replay) return;
+    this.pointedSeat = null;
     this.yaw -= dx * 0.005;
     this.pitch = clamp(this.pitch + dy * 0.004, -0.3, 0.55);
   }
   approachSeat(id) {
+    this.pointedSeat = null;
     const seat = this.session.seat(id);
     const points = approachPath(this.session.seats, this.player, seat);
     this.approach = points?.length ? { id, points } : null;
     return Boolean(this.approach);
+  }
+  selectSeat(id) {
+    const s = this.session.seat(id);
+    this.approach = null;
+    this.pointedSeat = id;
+    this.yaw = Math.atan2(this.player.x - s.x, this.player.z - s.z);
   }
   move(dt) {
     // Keep walking speed tied to exam time on slower GPUs, with short collision steps.
@@ -167,7 +175,7 @@ export class Room {
   }
   moveStep(dt) {
     const keys = this.keys;
-    const quiet = keys.has('ShiftLeft') || keys.has('ShiftRight') || this.touchQuiet;
+    const slowKey = keys.has('ShiftLeft') || keys.has('ShiftRight');
     let side =
       Number(keys.has('KeyD') || keys.has('ArrowRight')) -
       Number(keys.has('KeyA') || keys.has('ArrowLeft')) +
@@ -179,16 +187,24 @@ export class Room {
     if (keys.has('KeyQ')) this.yaw += dt * 1.6;
     if (keys.has('KeyR')) this.yaw -= dt * 1.6;
     const length = Math.hypot(side, forward);
-    if (length > 0.05 && this.focus) this.focus = null;
+    const moving = length > 0.12;
+    if (moving) {
+      this.approach = null;
+      this.focus = null;
+    }
+    if (moving || keys.has('KeyQ') || keys.has('KeyR')) this.pointedSeat = null;
     if (length > 1) {
       side /= length;
       forward /= length;
     }
     const p = this.player;
-    const step = (quiet ? 1.05 : 2.25) * dt;
+    const nearDestination = this.approach && dist(p, this.session.seat(this.approach.id)) <= 1.85;
+    // Use two thresholds so a thumb resting on the ring doesn't alternate between gaits.
+    const gentleStick = moving && length <= (this.gait === 'quiet' ? 0.66 : 0.61);
+    const quiet = Boolean(slowKey || nearDestination || gentleStick);
+    const step = (slowKey || nearDestination ? 1.05 : 2.25) * dt;
     const prev = { ...p };
     let arrived = null;
-    if (length > 0.05) this.approach = null;
     if (this.approach) {
       const next = this.approach.points[0];
       const remaining = dist(next, p);
@@ -203,7 +219,7 @@ export class Room {
         p.x += ((next.x - p.x) / remaining) * step;
         p.z += ((next.z - p.z) / remaining) * step;
       }
-    } else {
+    } else if (moving) {
       const dx = (side * Math.cos(this.yaw) - forward * Math.sin(this.yaw)) * step;
       const dz = (-forward * Math.cos(this.yaw) - side * Math.sin(this.yaw)) * step;
       if (!blocked(this.session.seats, p.x + dx, p.z)) p.x += dx;
@@ -219,10 +235,17 @@ export class Room {
       this.proctor.rotation.y += turn * smooth(16, dt);
     }
     this.proctor.position.set(p.x, 0, p.z);
+    this.gait = meters < 0.0001 ? 'idle' : quiet ? 'quiet' : 'walk';
     return { meters, quiet, arrived };
   }
   target() {
     if (this.focus) return { type: 'seat', id: this.focus };
+    if (
+      this.pointedSeat &&
+      !this.session.seat(this.pointedSeat).caught &&
+      this.inObservationRange(this.pointedSeat)
+    )
+      return { type: 'seat', id: this.pointedSeat };
     const candidates = [];
     const push = (type, p, id) => {
       const dx = p.x - this.player.x,
@@ -234,12 +257,11 @@ export class Room {
     for (const s of this.session.seats) if (!s.caught) push('seat', s, s.id);
     return candidates.sort((a, b) => a.rank - b.rank)[0] ?? null;
   }
-  nearbyAction(type, p) {
+  withinReach(p) {
     return dist(this.player, p) < 2.05;
   }
-  seatMarker(id) {
-    const s = this.session.seat(id);
-    const v = this.screenPoint.set(s.x, 1.58, s.z).project(this.camera);
+  markerAt(target, height) {
+    const v = this.screenPoint.set(target.x, height, target.z).project(this.camera);
     if (v.z < 0 || v.z > 1 || Math.abs(v.x) > 0.89 || Math.abs(v.y) > 0.74) return null;
     return { left: (1 + v.x) * 50, top: (1 - v.y) * 50 };
   }

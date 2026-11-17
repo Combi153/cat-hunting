@@ -46,7 +46,7 @@ export function lobby(history, muted) {
       <button class="primary start-btn" data-action="start">${icon('play', 17)} 감독 시작 ${icon('arrow', 19)}</button>
       </div>
     </section>
-    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>학생을 톡 누르면 다가가서 관찰해요. 화면을 쓸어 둘러보고, 이동 패드로 직접 걸을 수도 있어요.</p></div>
+    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>학생을 톡 눌러 다가가고, 오른쪽 A로 관찰하거나 요청을 들어요. 왼쪽 패드를 살짝 밀면 조용히 걸어요.</p></div>
     <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '지난 시험 기록'}</small></div>${icon('arrow')}</button></section>
     </div>`;
 }
@@ -57,10 +57,10 @@ export function hudTop() {
 }
 export function help() {
   return `<div class="modal-icon">${icon('book', 23)}</div><h2>감독관이 하는 일</h2>
-  <div class="help-lines"><p><b>걸으며 살피기</b><span>화면 속 학생을 누르면 감독관이 그 자리로 걸어가요. 화면을 쓸어 둘러보거나 왼쪽 이동 패드로 직접 걸어요. ‘조용히 걷기’를 켜면 발소리가 줄어요.</span></p>
-  <p><b>관찰하고 기록하기</b><span>학생 곁에 도착하면 손동작이 크게 보여요. 직접 걸어왔다면 ‘관찰하기’를 눌러요. ‘행동 기록’을 누르면 그 장면이 일지에 남아요.</span></p>
-  <p><b>근거로 지목하기</b><span>기록한 뒤 ‘지목하기’를 눌러 근거와 의심 유형을 골라요. 오인 지목은 20점 감점돼요.</span></p>
-  <p><b>요청 처리하기</b><span>손을 든 학생에게 다가가 요청을 들어요. 답안지는 교탁에서 챙겨 건네고, 커튼은 창가에서 닫아요.</span></p></div>
+  <div class="help-lines"><p><b>걸으며 살피기</b><span>화면을 쓸어 둘러보고 학생을 톡 눌러 다가가요. 직접 걸을 때는 왼쪽 패드의 안쪽 점선까지 밀면 살금살금, 바깥까지 밀면 보통 걸음이에요.</span></p>
+  <p><b>관찰하고 기록하기</b><span>A 옆에 좌석 번호와 행동이 떠요. ‘관찰하기’에서 A를 누르면 손동작이 크게 보이고, ‘행동 기록’에서 누르면 그 순간이 일지에 남아요.</span></p>
+  <p><b>근거로 지목하기</b><span>같은 행동을 기록하고 나면 A로 일지를 열 수 있어요. 근거와 의심 유형을 골라 제출해요. 오인 지목은 20점 감점돼요.</span></p>
+  <p><b>요청 처리하기</b><span>손을 든 학생 곁에서 A로 요청을 들어요. 교탁에서 답안지를 챙길 때, 학생에게 건넬 때, 창가에서 커튼을 닫을 때도 A를 눌러요.</span></p></div>
   <details><summary>키보드와 마우스 조작</summary><p>WASD·방향키로 이동하고 드래그 또는 Q/R로 둘러봅니다. Shift는 조용히 걷기, E는 상호작용, F는 기록, Tab은 일지, Esc는 닫기·일시정지입니다.</p></details>
   <button class="primary wide" data-action="close">확인</button>`;
 }
