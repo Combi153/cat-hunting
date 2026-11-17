@@ -1,0 +1,50 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { Exam, TYPES } from '../src/session.js';
+const still={x:0,z:5};
+test('one guest exam produces 12 seats, 1–3 cases and independently serviceable requests',()=>{
+  for(let i=0;i<40;i++){
+    const e=new Exam();assert.equal(e.seats.length,12);
+    assert.ok(e.result().total>=1&&e.result().total<=3);
+    assert.ok(e.requests.every(r=>!e.seat(r.id).guilty));
+  }
+});
+test('a clue requires the right angle; valid note pins a single observation and justifies one removal',()=>{
+  const e=new Exam('practice'),s=e.seats.find(s=>s.guilty);
+  e.time=6-s.offset;
+  assert.equal(e.view(s,false).key,'cue');
+  const clue=e.view(s,true);assert.equal(clue.key,'proof');
+  assert.ok(e.record(s,clue));assert.equal(e.record(s,clue),false);
+  assert.equal(e.accuse(s,s.kind,'proof'),true);
+  assert.equal(e.accuse(s,s.kind,'proof'),null);assert.equal(e.result().score,100);
+});
+test('an incorrect accusation costs once per identical submitted evidence combination',()=>{
+  const e=new Exam('practice'),s=e.seats.find(s=>!s.guilty);
+  e.record(s,{key:'cue',text:TYPES.glasses.cue});
+  assert.equal(e.accuse(s,'glasses','cue'),false);
+  assert.equal(e.accuse(s,'glasses','cue'),null);
+  assert.equal(e.result().score,65);assert.equal(s.caught,false);
+});
+test('paper and curtain require an acknowledged request and correct sequence',()=>{
+  const e=new Exam();e.time=80;
+  const [p,c]=e.requests;
+  assert.equal(e.takePaper(),false);assert.equal(e.serve(p),false);
+  e.acknowledge(p);assert.equal(e.serve(p),false);e.takePaper();assert.ok(e.serve(p));
+  assert.equal(e.carrying,false);assert.equal(e.serve(p),false);
+  e.acknowledge(c);assert.ok(e.serve(c));assert.ok(e.curtain);
+});
+test('delay and repeated noise are charged once per episode; quiet walking reduces disturbance',()=>{
+  const e=new Exam('practice'),s=e.seats[0],r=e.requests[0];
+  for(let i=0;i<60;i++)e.step(.5,s,.6,true);
+  assert.ok(!e.complaints.some(c=>c.kind==='noise'));assert.ok(e.complaints.some(c=>c.kind==='delay'));
+  for(let i=0;i<14;i++)e.step(.1,s,.6,false);
+  assert.equal(e.complaints.filter(c=>c.kind==='noise'&&c.id===s.id).length,1);
+  e.acknowledge(r);e.takePaper();e.serve(r);
+  for(let i=0;i<27;i++)e.step(1,still,0,false);
+  assert.ok(e.complaints.filter(c=>c.id===s.id&&c.kind==='noise').every(c=>c.resolved));
+  assert.ok(e.complaints.find(c=>c.kind==='delay').resolved);
+});
+test('the bell ends a session and blocks additional observations',()=>{
+  const e=new Exam('practice');e.step(61,still,0,false);assert.ok(e.over);assert.equal(e.time,60);
+  assert.equal(e.record(e.seats[0],{key:'cue',text:'관찰'}),false);
+});
