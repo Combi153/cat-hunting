@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Exam } from '../src/session.js';
-import { approachPath, blocked } from '../src/walkways.js';
+import { Exam, DESK, WINDOW } from '../src/session.js';
+import { approachPath, blocked, stationPath } from '../src/walkways.js';
 
 test('tapping any desk from a row, an aisle, or behind the teacher’s desk reaches its side by a clear path', () => {
   const { seats } = new Exam();
@@ -26,6 +26,27 @@ test('tapping any desk from a row, an aisle, or behind the teacher’s desk reac
       }
       assert.ok(Math.abs(prev.x - seat.x) > 0.75);
       assert.ok(Math.hypot(prev.x - seat.x, prev.z - seat.z) < 1.5);
+    }
+  }
+});
+
+test('both service stations can be reached from either side of all twelve desks', () => {
+  const { seats } = new Exam();
+  for (const seat of seats) {
+    for (const side of [-1, 1]) {
+      for (const [place, target] of [['window', WINDOW], ['desk', DESK]]) {
+        let prev = { x: seat.x + side * 1.02, z: seat.z + 0.52 };
+        const path = stationPath(seats, prev, place);
+        assert.ok(path?.length);
+        for (const next of path) {
+          assert.ok(prev.x === next.x || prev.z === next.z);
+          for (let i = 0; i <= 32; i++) {
+            assert.equal(blocked(seats, prev.x + (next.x - prev.x) * i / 32, prev.z + (next.z - prev.z) * i / 32), false);
+          }
+          prev = next;
+        }
+        assert.ok(Math.hypot(prev.x - target.x, prev.z - target.z) < 2.05);
+      }
     }
   }
 });

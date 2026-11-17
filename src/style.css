@@ -991,3 +991,25 @@ summary {
 .pair-notes div { display: flex; gap: 8px; padding: 5px 0; }
 .pair-notes dt { font-weight: 700; white-space: nowrap; }
 .pair-notes dd { margin: 0; color: #586358; }
+#tasks { pointer-events: none; }
+.task-card {
+  pointer-events: auto;
+  text-align: left;
+  justify-self: start;
+  min-height: 44px;
+  border-left: 3px solid #759172;
+}
+.task-card time {
+  margin-left: auto;
+  padding-left: 8px;
+  font-variant-numeric: tabular-nums;
+  color: #526b50;
+}
+.task-card.late time { color: #9b5536; }
+@media (orientation: landscape) and (max-height: 540px) {
+  .controls { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .observing .controls, .replay-mode .controls { grid-template-rows: minmax(0, 1fr) auto; }
+  .memo { grid-template-columns: 1fr; padding: 5px 8px; }
+  .memo-seats button { flex: 1; }
+  .memo-heading b { font-size: 13px; }
+}

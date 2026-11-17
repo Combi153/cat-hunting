@@ -1,4 +1,4 @@
-import { DESK } from './session.js';
+import { DESK, WINDOW } from './session.js';
 
 export function blocked(seats, x, z) {
   if (x < -4.77 || x > 4.77 || z < -4.95 || z > 5.52) return true;
@@ -9,6 +9,17 @@ const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 
 // Reach either side of the selected desk via an aisle and a gap between rows.
 export function approachPath(seats, start, seat) {
+  return routeTo(seats, start, seat.z + 0.52, (aisles) => aisles.filter((x) => Math.abs(x - seat.x) < 1.3));
+}
+
+// Stop inside interaction range on the nearest accessible side of the station.
+export function stationPath(seats, start, place) {
+  if (place === 'window') return routeTo(seats, start, WINDOW.z, (aisles) => [aisles[0]]);
+  if (place === 'desk') return routeTo(seats, start, DESK.z, () => [DESK.x - 1.5, DESK.x + 1.5]);
+  return null;
+}
+
+function routeTo(seats, start, goalZ, goalColumns) {
   const columns = [...new Set(seats.map((s) => s.x))].sort((a, b) => a - b);
   const aisles = [
     columns[0] - 1.05,
@@ -16,11 +27,10 @@ export function approachPath(seats, start, seat) {
     columns.at(-1) + 1.05,
   ];
   const rows = [...new Set(seats.map((s) => s.z))];
-  const goalZ = seat.z + 0.52;
   const crossings = [start.z, goalZ, ...rows.map((z) => z - 0.82), Math.max(...rows) + 1.45, 5.35];
   let shortest = Infinity;
   let best = null;
-  for (const endX of aisles.filter((x) => Math.abs(x - seat.x) < 1.3)) {
+  for (const endX of goalColumns(aisles)) {
     for (const crossZ of crossings) {
       for (const startX of [start.x, ...aisles]) {
         const points = [

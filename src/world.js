@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { createStudent, createProctor, updateStudent, updateProctor } from './art/characters.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
-import { EXIT } from './session.js';
-import { approachPath, blocked } from './walkways.js';
+import { EXIT, DESK, WINDOW } from './session.js';
+import { approachPath, blocked, stationPath } from './walkways.js';
 
 const clamp = THREE.MathUtils.clamp;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -152,8 +152,18 @@ export class Room {
     this.pointedSeat = null;
     const seat = this.session.seat(id);
     const points = approachPath(this.session.seats, this.player, seat);
-    this.approach = points?.length ? { id, points } : null;
+    this.approach = points?.length ? { id, target: seat, points } : null;
     return Boolean(this.approach);
+  }
+  approachStation(place) {
+    const target = place === 'desk' ? DESK : WINDOW;
+    this.pointedSeat = null;
+    this.approach = null;
+    if (this.withinReach(target)) return true;
+    const points = stationPath(this.session.seats, this.player, place);
+    if (!points?.length) return false;
+    this.approach = { place, target, points };
+    return true;
   }
   selectSeat(id) {
     const s = this.session.seat(id);
@@ -198,7 +208,7 @@ export class Room {
       forward /= length;
     }
     const p = this.player;
-    const nearDestination = this.approach && dist(p, this.session.seat(this.approach.id)) <= 1.85;
+    const nearDestination = this.approach && dist(p, this.approach.target) <= 1.85;
     // Use two thresholds so a thumb resting on the ring doesn't alternate between gaits.
     const gentleStick = moving && length <= (this.gait === 'quiet' ? 0.66 : 0.61);
     const quiet = Boolean(slowKey || nearDestination || gentleStick);
@@ -212,7 +222,7 @@ export class Room {
         Object.assign(p, next);
         this.approach.points.shift();
         if (!this.approach.points.length) {
-          arrived = this.approach.id;
+          arrived = this.approach;
           this.approach = null;
         }
       } else {

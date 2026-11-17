@@ -282,7 +282,7 @@ function useObject(type) {
 let shownAction = null;
 let pressedAction = null;
 function currentAction() {
-  if (room.approach) return { type: 'stop', id: room.approach.id, label: '이동 멈추기' };
+  if (room.approach) return { type: 'stop', id: room.approach.id, place: room.approach.place, label: '이동 멈추기' };
   const target = room.target();
   if (!room.focus && !(target && target.id === room.pointedSeat)) {
     const obj = serviceObject();
@@ -311,7 +311,8 @@ function interact(prompt = shownAction) {
     !action ||
     !prompt ||
     prompt.type !== action.type ||
-    prompt.id !== action.id
+    prompt.id !== action.id ||
+    prompt.place !== action.place
   ) {
     updateHUD();
     return;
@@ -360,29 +361,22 @@ function updateHUD() {
   }
   put(
     '#tasks',
-    exam
-      .liveRequests()
-      .map(
-        (r) =>
-          '<div class="task-card ' +
-          (r.late ? 'late' : '') +
-          '"><b>' +
-          ui.icon('hand', 14) +
-          seatNo(r.id) +
-          '번 · ' +
-          (r.ack ? ui.requestName(r) : '손을 든 학생') +
-          '</b><small>' +
-          (r.ack
-            ? r.type === 'paper'
-              ? exam.carrying
-                ? '새 답안지를 학생에게 건네세요.'
-                : '칠판 앞 교탁에서 답안지를 받으세요.'
-              : '창가 통로 가운데에서 커튼을 닫으세요.'
-            : '가까이 가서 요청 듣기를 누르세요.') +
-          '</small></div>',
-      )
-      .join(''),
+    exam.liveRequests().map((r) => {
+      const station = r.ack && (r.type === 'curtain' ? 'window' : !exam.carrying && 'desk');
+      const destination = station === 'window' ? '창가' : station === 'desk' ? '교탁' : seatNo(r.id) + '번';
+      const instruction = !r.ack ? '가서 요청 듣기' : station === 'desk' ? '새 답안지 받기' :
+        station === 'window' ? '커튼 닫기' : '새 답안지를 학생에게 건네세요.';
+      return `<button class="task-card ${r.late ? 'late' : ''}" ${station ? 'data-station="' + station + '"' : 'data-walk="' + r.id + '"'}
+        aria-label="${destination}(으)로 이동 · ${instruction}">
+        <b>${ui.icon('hand', 14)} ${seatNo(r.id)}번 · ${r.ack ? ui.requestName(r) : '손을 든 학생'} <time data-deadline="${r.deadline}"></time></b>
+        <small>${destination} · ${instruction} →</small></button>`;
+    }).join(''),
   );
+  for (const timer of $('#tasks').querySelectorAll('time')) {
+    const seconds = Math.ceil(Number(timer.dataset.deadline) - exam.time);
+    const label = seconds > 0 ? seconds + '초' : '지연';
+    if (timer.textContent !== label) timer.textContent = label;
+  }
   const noisy = exam.seats.filter((s) => !s.caught && s.noise > 4.5).sort((a, b) => b.noise - a.noise)[0];
   put(
     '#feedback',
@@ -415,20 +409,21 @@ function updateHUD() {
     $('.focus-card small').hidden = room.side(s);
   } else {
     put('#context', '');
-    const place = { desk: DESK, window: WINDOW }[action?.type];
+    const placeName = action?.place ?? action?.type;
+    const place = { desk: DESK, window: WINDOW }[placeName];
     const target = place ?? exam.seat(action?.id);
-    const height = action?.type === 'desk' ? 1.05 : 1.58;
+    const height = placeName === 'desk' ? 1.05 : 1.58;
     const anchor = target && room.markerAt(target, height);
     if (anchor) {
       marker.hidden = false;
-      marker.textContent = place ? (action.type === 'desk' ? '교탁' : '창가') : seatNo(action.id) + '번';
+      marker.textContent = place ? (placeName === 'desk' ? '교탁' : '창가') : seatNo(action.id) + '번';
       marker.style.left = anchor.left + '%';
       marker.style.top = anchor.top + '%';
     }
   }
   const subject = action?.id
     ? seatNo(action.id) + '번 학생'
-    : ({ desk: '교탁', window: '창가' }[action?.type] ?? '상호작용');
+    : ({ desk: '교탁', window: '창가' }[action?.place ?? action?.type] ?? '상호작용');
   const label = action?.label ?? '다가가세요';
   put('#action-target', subject);
   put('#action-verb', label);
@@ -476,7 +471,10 @@ function tick(now) {
   if (screen === 'running' && (!panel || panel === 'journal')) {
     const step = panel ? { meters: 0, quiet: false } : room.move(Math.min(dt, 2, exam.duration - exam.time));
     exam.step(dt, room.player, step.meters, step.quiet);
-    if (step.arrived && !exam.over) room.selectSeat(step.arrived);
+    if (step.arrived && !exam.over) {
+      if (step.arrived.id) room.selectSeat(step.arrived.id);
+      else room.yaw = Math.atan2(room.player.x - step.arrived.target.x, room.player.z - step.arrived.target.z);
+    }
     if (priorComplaint < exam.complaints.length) {
       const c = exam.complaints.at(-1);
       notice('민원 접수 · ' + seatNo(c.id) + '번 ' + c.text);
@@ -555,6 +553,10 @@ document.addEventListener('click', (e) => {
   if (b.id === 'touch-action') {
     if (screen === 'running' && !panel) interact(e.detail ? pressedAction : shownAction);
     pressedAction = null;
+  } else if (b.dataset.station && screen === 'running') {
+    room.focus = null;
+    if (!room.approachStation(b.dataset.station)) notice('이동 패드로 통로에 나와 주세요.');
+    updateHUD();
   } else if (b.dataset.walk && screen === 'running') {
     const id = Number(b.dataset.walk);
     if (panel) dismiss();
