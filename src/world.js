@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { createStudent, createProctor, updateStudent, updateProctor } from './art/characters.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
-import { DESK, WINDOW, EXIT } from './session.js';
+import { EXIT } from './session.js';
+import { approachPath, blocked } from './walkways.js';
 
 const clamp = THREE.MathUtils.clamp;
 const dist = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -139,18 +140,32 @@ export class Room {
   resetInput() {
     this.keys.clear();
     this.stick = { x: 0, y: 0 };
+    this.approach = null;
   }
   spin(dx, dy) {
     if (this.focus || this.replay) return;
     this.yaw -= dx * 0.005;
     this.pitch = clamp(this.pitch + dy * 0.004, -0.3, 0.55);
   }
-  blocked(x, z) {
-    if (x < -4.77 || x > 4.77 || z < -4.95 || z > 5.52) return true;
-    if (Math.abs(x - DESK.x) < 1.17 && Math.abs(z - DESK.z) < 0.63) return true;
-    return this.session.seats.some((s) => Math.abs(x - s.x) < 0.77 && z > s.z - 0.55 && z < s.z + 1.07);
+  approachSeat(id) {
+    const seat = this.session.seat(id);
+    const points = approachPath(this.session.seats, this.player, seat);
+    this.approach = points?.length ? { id, points } : null;
+    return Boolean(this.approach);
   }
   move(dt) {
+    // Keep walking speed tied to exam time on slower GPUs, with short collision steps.
+    const ticks = Math.max(1, Math.ceil(dt / 0.12));
+    let total = 0;
+    let step;
+    for (let i = 0; i < ticks; i++) {
+      step = this.moveStep(dt / ticks);
+      total += step.meters;
+      if (step.arrived) break;
+    }
+    return { ...step, meters: total };
+  }
+  moveStep(dt) {
     const keys = this.keys;
     const quiet = keys.has('ShiftLeft') || keys.has('ShiftRight') || this.touchQuiet;
     let side =
@@ -171,11 +186,29 @@ export class Room {
     }
     const p = this.player;
     const step = (quiet ? 1.05 : 2.25) * dt;
-    const dx = (side * Math.cos(this.yaw) - forward * Math.sin(this.yaw)) * step;
-    const dz = (-forward * Math.cos(this.yaw) - side * Math.sin(this.yaw)) * step;
     const prev = { ...p };
-    if (!this.blocked(p.x + dx, p.z)) p.x += dx;
-    if (!this.blocked(p.x, p.z + dz)) p.z += dz;
+    let arrived = null;
+    if (length > 0.05) this.approach = null;
+    if (this.approach) {
+      const next = this.approach.points[0];
+      const remaining = dist(next, p);
+      if (remaining <= step) {
+        Object.assign(p, next);
+        this.approach.points.shift();
+        if (!this.approach.points.length) {
+          arrived = this.approach.id;
+          this.approach = null;
+        }
+      } else {
+        p.x += ((next.x - p.x) / remaining) * step;
+        p.z += ((next.z - p.z) / remaining) * step;
+      }
+    } else {
+      const dx = (side * Math.cos(this.yaw) - forward * Math.sin(this.yaw)) * step;
+      const dz = (-forward * Math.cos(this.yaw) - side * Math.sin(this.yaw)) * step;
+      if (!blocked(this.session.seats, p.x + dx, p.z)) p.x += dx;
+      if (!blocked(this.session.seats, p.x, p.z + dz)) p.z += dz;
+    }
     const meters = dist(p, prev);
     if (meters > 0.0005) {
       const face = Math.atan2(p.x - prev.x, p.z - prev.z);
@@ -186,7 +219,7 @@ export class Room {
       this.proctor.rotation.y += turn * smooth(16, dt);
     }
     this.proctor.position.set(p.x, 0, p.z);
-    return { meters, quiet };
+    return { meters, quiet, arrived };
   }
   target() {
     if (this.focus) return { type: 'seat', id: this.focus };
@@ -214,15 +247,25 @@ export class Room {
     const rect = this.canvas.getBoundingClientRect();
     const candidates = [];
     for (const s of this.session.seats) {
-      if (s.caught || dist(this.player, s) > 2.45) continue;
-      const v = this.screenPoint.set(s.x, 1.14, s.z).project(this.camera);
+      if (s.caught) continue;
+      const v = this.screenPoint.set(s.x, 1.22, s.z).project(this.camera);
       if (v.z > 1 || v.z < 0) continue;
       const x = rect.left + (v.x + 1) * rect.width * 0.5,
         y = rect.top + (1 - v.y) * rect.height * 0.5;
-      const delta = Math.hypot(clientX - x, clientY - y);
-      if (delta < Math.max(50, rect.height * 0.125)) candidates.push({ id: s.id, delta });
+      const top = this.screenPoint.set(s.x, 1.55, s.z).project(this.camera);
+      const radius = Math.max(13, y - (rect.top + (1 - top.y) * rect.height * 0.5));
+      const delta = Math.hypot((clientX - x) / radius, (clientY - y) / (radius * 1.35));
+      if (delta < 1)
+        candidates.push({
+          id: s.id,
+          delta,
+          depth: this.camera.position.distanceTo(this.students.get(s.id).position),
+        });
     }
-    return candidates.sort((a, b) => a.delta - b.delta)[0]?.id;
+    return candidates.sort((a, b) => a.depth - b.depth || a.delta - b.delta)[0]?.id;
+  }
+  inObservationRange(id) {
+    return dist(this.player, this.session.seat(id)) < 2.45;
   }
   side(s) {
     if (

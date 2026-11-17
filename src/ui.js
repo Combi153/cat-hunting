@@ -30,36 +30,35 @@ export const icon = (name, size = 19) =>
   '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
   lines[name] +
   '</svg>';
-const key = (k) => '<kbd>' + k + '</kbd>';
-const pill = (a, label, iconName) =>
-  '<button class="pill" data-action="' + a + '">' + icon(iconName) + label + '</button>';
 export const requestName = (r) => (r.type === 'paper' ? '답안지 교체' : '커튼 조정');
 export const reportName = (r) => (r.mode === 'practice' ? '이전 1분 기록' : '시험 감독');
 export function lobby(history, muted) {
   const last = history[0];
   return `<div class="lobby-wrap">
-    <header class="topline"><div class="schoolbrand"><img src="/cat.svg" width="36" height="36" alt=""><span>냥이잡기</span></div><nav>${pill('sound', muted ? '소리 꺼짐' : '소리 켜짐', muted ? 'mute' : 'sound')}${pill('help', '게임 방법', 'help')}</nav></header>
+    <header class="topline"><div class="schoolbrand"><img src="/cat.svg" width="32" height="32" alt=""><span>감독관 수첩</span></div><nav>
+      <button class="icon-btn" data-action="sound" aria-label="${muted ? '소리 켜기' : '소리 끄기'}">${icon(muted ? 'mute' : 'sound')}</button>
+      <button class="icon-btn" data-action="help" aria-label="게임 방법">${icon('help')}</button></nav></header>
     <section class="cover">
-      <div class="cover-art" role="img" aria-label="클레이 시험실에서 안경을 고쳐 쓰는 학생과 순회하는 감독관"></div>
-      <div class="cover-copy"><div class="subject"><span></span>수능 시험 감독 게임</div>
-      <h1>냥이잡기</h1><p class="lead">학생을 살펴 단서를 기록하고,<br>손을 든 학생의 요청을 처리하세요.</p>
-      <button class="primary start-btn" data-action="start">${icon('play', 16)} 감독 시작 ${icon('arrow', 19)}</button>
+      <div class="cover-art" role="img" aria-label="흰 클레이 교실에서 안경을 고쳐 쓰는 학생과 순회하는 감독관"></div>
+      <div class="cover-copy"><div class="subject"><i></i>1교시 · 국어 영역</div>
+      <h1>냥이잡기</h1><p class="lead">수능 시험이 시작됐어요.<br>교실을 걸으며 수상한 손동작을 찾아보세요.</p>
+      <div class="room-strip"><span>${icon('clock', 16)} ${EXAM_DURATION / 60}분</span><span>${icon('seat', 16)} 12석</span></div>
+      <button class="primary start-btn" data-action="start">${icon('play', 17)} 감독 시작 ${icon('arrow', 19)}</button>
       </div>
     </section>
-    <div class="room-strip"><span class="subject-name"><i></i>1교시 · 국어 영역</span><span>${icon('clock', 16)} ${EXAM_DURATION / 60}분</span><span>${icon('seat', 16)} 12석</span></div>
-    <section class="lobby-bottom"><div class="guide"><h2>${icon('eye')}감독관 조작</h2><div class="guide-keys"><span>${key('WASD')} 이동</span><span>드래그로 둘러보기</span><span>${key('E')} 관찰</span><span>${key('F')} 기록</span></div><div class="guide-touch">왼쪽 원을 밀어 걷고, 교실을 쓸어 둘러보세요. 가까운 학생을 누르면 관찰할 수 있어요.</div></div>
-    <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '시험을 마치면 기록이 쌓입니다.'}</small></div>${icon('arrow')}</button></section>
+    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>학생을 톡 누르면 다가가서 관찰해요. 화면을 쓸어 둘러보고, 이동 패드로 직접 걸을 수도 있어요.</p></div>
+    <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '지난 시험 기록'}</small></div>${icon('arrow')}</button></section>
     </div>`;
 }
 export function hudTop() {
   return `<header class="hud-top"><div class="hud-id"><img src="/cat.svg" alt=""><div><b>냥이잡기</b><small>1교시 · 국어</small></div></div>
-  <div class="hud-tools"><div class="timer">${icon('clock')}<strong id="time">${clock(EXAM_DURATION)}</strong></div><button data-action="journal" aria-label="감독 일지">${icon('book')}<span>일지</span></button><button data-action="pause" aria-label="일시정지">${icon('pause')}</button></div></header>
-  <button id="seat-marker" data-action="action" hidden></button><div id="tasks"></div><div id="feedback"></div><div id="context"></div><div id="hints"></div>`;
+  <div class="timer" aria-label="남은 시간">${icon('clock', 18)}<strong id="time">${clock(EXAM_DURATION)}</strong></div>
+  <div class="hud-tools"><button data-action="journal" aria-label="감독 일지">${icon('book')}</button><button data-action="pause" aria-label="일시정지">${icon('pause')}</button></div></header>`;
 }
 export function help() {
   return `<div class="modal-icon">${icon('book', 23)}</div><h2>감독관이 하는 일</h2>
-  <div class="help-lines"><p><b>걸으며 살피기</b><span>왼쪽 원을 밀어 걷고, 화면을 쓸어 시선을 돌려요. ‘조용히 걷기’를 켜면 발소리가 줄어요.</span></p>
-  <p><b>관찰하고 기록하기</b><span>가까운 학생이나 ‘관찰하기’를 눌러 손을 살펴요. ‘행동 기록’을 누르면 그 장면이 일지에 남아요.</span></p>
+  <div class="help-lines"><p><b>걸으며 살피기</b><span>화면 속 학생을 누르면 감독관이 그 자리로 걸어가요. 화면을 쓸어 둘러보거나 왼쪽 이동 패드로 직접 걸어요. ‘조용히 걷기’를 켜면 발소리가 줄어요.</span></p>
+  <p><b>관찰하고 기록하기</b><span>학생 곁에 도착하면 손동작이 크게 보여요. 직접 걸어왔다면 ‘관찰하기’를 눌러요. ‘행동 기록’을 누르면 그 장면이 일지에 남아요.</span></p>
   <p><b>근거로 지목하기</b><span>기록한 뒤 ‘지목하기’를 눌러 근거와 의심 유형을 골라요. 오인 지목은 20점 감점돼요.</span></p>
   <p><b>요청 처리하기</b><span>손을 든 학생에게 다가가 요청을 들어요. 답안지는 교탁에서 챙겨 건네고, 커튼은 창가에서 닫아요.</span></p></div>
   <details><summary>키보드와 마우스 조작</summary><p>WASD·방향키로 이동하고 드래그 또는 Q/R로 둘러봅니다. Shift는 조용히 걷기, E는 상호작용, F는 기록, Tab은 일지, Esc는 닫기·일시정지입니다.</p></details>

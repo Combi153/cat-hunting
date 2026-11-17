@@ -12,23 +12,40 @@
     <title>냥이잡기</title>
   </head>
   <body>
-    <main id="lobby"></main>
-    <section id="play" aria-label="시험 감독" hidden>
-      <canvas id="room" aria-label="움직일 수 있는 3D 시험실"></canvas>
-      <div id="hud"></div>
-      <div id="notice" role="status"></div>
-      <div id="touch">
-        <div class="move-pad">
-          <div id="stick" aria-label="이동 조이스틱"><i></i></div>
-          <span>이동</span>
+    <div id="game">
+      <main id="lobby"></main>
+      <section id="play" aria-label="시험 감독" hidden>
+        <div id="play-header"></div>
+        <div id="viewfinder">
+          <canvas id="room" aria-label="3D 시험실. 학생을 눌러 다가가거나 화면을 쓸어 둘러보세요."></canvas>
+          <div id="hud">
+            <button id="seat-marker" data-action="action" hidden></button>
+            <div class="alerts">
+              <div id="tasks"></div>
+              <div id="feedback"></div>
+            </div>
+          </div>
+          <div id="notice" role="status"></div>
         </div>
-        <div class="thumb-actions">
-          <button data-action="quiet" aria-pressed="false">조용히 걷기</button>
-          <button id="touch-action" data-action="action" disabled>학생에게 다가가세요</button>
+        <div class="controls">
+          <div id="touch">
+            <div class="move-pad">
+              <div id="stick" aria-label="이동 조이스틱">
+                <i></i><span aria-hidden="true">▴</span><span aria-hidden="true">▸</span
+                ><span aria-hidden="true">▾</span><span aria-hidden="true">◂</span>
+              </div>
+              <span class="pad-label">이동</span>
+            </div>
+            <div class="thumb-actions">
+              <button data-action="quiet" aria-pressed="false">조용히 걷기</button>
+              <button id="touch-action" data-action="action" disabled></button>
+            </div>
+          </div>
+          <div id="context"></div>
         </div>
-      </div>
-    </section>
-    <div id="overlay" hidden></div>
+      </section>
+      <div id="overlay" hidden></div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

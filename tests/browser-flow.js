@@ -36,9 +36,12 @@ try {
     await page.keyboard.up(k);
   };
   const turn = async (dx) => {
-    await page.mouse.move(340, 160);
+    const box = await page.locator('#room').boundingBox();
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height * 0.55;
+    await page.mouse.move(x, y);
     await page.mouse.down();
-    await page.mouse.move(340 + dx, 160);
+    await page.mouse.move(x + dx, y);
     await page.mouse.up();
     await advance(160);
   };
@@ -68,7 +71,7 @@ try {
   await turn(210);
   for (let i = 0; i < 70 && !(await page.locator('#tasks').innerText()).includes('손을 든 학생'); i++)
     await advance(300);
-  await click('#context [data-action=action]');
+  await click('#touch-action');
   assert.match(await page.locator('#tasks').innerText(), /교탁/);
   await turn(-122);
   await walk('s', 6);
@@ -78,7 +81,7 @@ try {
   await walk('a', 5);
   await walk('w', 6);
   await turn(120);
-  await click('#context [data-action=action]');
+  await click('#touch-action');
   assert.equal(await page.locator('#tasks').innerText(), '');
   await focus('02');
   await key('f');
@@ -91,7 +94,7 @@ try {
   assert.equal(await page.locator('#time').innerText(), time);
   await click('[data-action=resume]');
   await key('Tab');
-  await advance(120500);
+  await page.clock.fastForward(120500);
   await page.waitForSelector('.score');
   assert.match(await page.locator('.score').innerText(), /72점/);
   await page.locator('.review-list summary').first().click({ force: true });
@@ -115,12 +118,13 @@ try {
   await page.waitForSelector('#time');
   assert.equal(await page.locator('#time').innerText(), '02:00');
   await key('Tab');
-  await advance(61000);
+  await page.clock.fastForward(61000);
+  assert.equal(await page.locator('#time').innerText(), '00:59');
   await key('Escape');
   console.log('Checking the full exam curtain request');
   await walk('w', 14);
   await turn(-155);
-  assert.match(await page.locator('#context').innerText(), /05번 요청 듣기/);
+  assert.match(await page.locator('#touch-action').innerText(), /05번 요청 듣기/);
   await key('e');
   await turn(155);
   await walk('a', 10);
@@ -132,7 +136,7 @@ try {
     await walk('a', 10);
   }
   await key('Tab');
-  await advance(120000);
+  await page.clock.fastForward(120000);
   await page.waitForSelector('.score');
   assert.match(await page.locator('.stats').innerText(), /1\/2/);
   assert.match(await page.locator('.modal').textContent(), /발소리로 시험에 집중하기 어렵습니다/);
@@ -141,14 +145,18 @@ try {
     'Full exam: curtain delivery, delayed request, repeated-footstep complaint and timed report verified.',
   );
   assert.deepEqual(errors, []);
+  await page.close();
 
   const mobile = await browser.newPage({
     viewport: { width: 393, height: 852 },
     isMobile: true,
     hasTouch: true,
   });
+  mobile.setDefaultTimeout(10000);
+  await mobile.clock.install({ time: new Date('2026-01-02T12:00:00Z') });
   mobile.on('pageerror', (e) => errors.push(e.message));
   await mobile.goto(origin);
+  await mobile.clock.pauseAt(new Date('2026-01-02T12:01:00Z'));
   assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   assert.equal(await mobile.title(), '냥이잡기');
   await mobile.locator('.start-btn').tap();
@@ -162,8 +170,9 @@ try {
   const touch = await mobile.context().newCDPSession(mobile);
   await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
   await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - 35 }] });
-  await mobile.waitForTimeout(1400);
+  await mobile.clock.fastForward(650);
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await mobile.clock.resume();
   await mobile.locator('#touch [data-action=action]').tap();
   await mobile.waitForSelector('.focus-card', { timeout: 5000 });
   assert.ok(await mobile.locator('[data-action=record]').isVisible());
@@ -176,9 +185,32 @@ try {
   await mobile.getByRole('button', { name: '관찰 끝내기' }).tap();
   assert.equal(await mobile.locator('[data-action=quiet]').getAttribute('aria-pressed'), 'true');
   await mobile.setViewportSize({ width: 844, height: 390 });
-  assert.ok(await mobile.locator('#touch-action').isVisible());
+  const bounds = async (sel) => mobile.locator(sel).boundingBox();
+  const landscapeRoom = await bounds('#room');
+  assert.ok((await bounds('#stick')).x >= landscapeRoom.x + landscapeRoom.width);
+  await mobile.setViewportSize({ width: 320, height: 568 });
+  const smallRoom = await bounds('#room');
+  assert.ok((await bounds('#stick')).y >= smallRoom.y + smallRoom.height);
+  const smallAction = await bounds('#touch-action');
+  assert.ok(smallAction.y + smallAction.height <= 568);
+  assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+
+  await mobile.setViewportSize({ width: 390, height: 844 });
+  await mobile.goto(origin);
+  await mobile.locator('.start-btn').tap();
+  await mobile.waitForSelector('#time');
+  const scene = await bounds('#room');
+  // The left-hand student in the middle row, beyond the initial observation radius.
+  await mobile.touchscreen.tap(scene.x + scene.width * 0.29, scene.y + scene.height * 0.36);
+  await mobile.waitForSelector('.focus-card', { timeout: 12000 });
+  assert.match(await mobile.locator('.focus-title').innerText(), /05번 좌석/);
+  const card = await bounds('.focus-card');
+  const focusRoom = await bounds('#room');
+  assert.ok(card.y >= focusRoom.y + focusRoom.height);
   assert.deepEqual(errors, []);
-  console.log('Mobile: viewport, touch joystick, quiet walk and observation controls verified.');
+  console.log(
+    'Mobile: touch-to-approach, joystick, quiet walk, evidence and separate portrait/landscape controls verified.',
+  );
 } finally {
   if (browser) await browser.close();
 }

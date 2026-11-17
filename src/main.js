@@ -164,6 +164,9 @@ async function start() {
     lobby.hidden = true;
     play.hidden = false;
     overlay.hidden = true;
+    play.classList.remove('replay-mode', 'observing');
+    put('#context', '');
+    $('#play-header').innerHTML = ui.hudTop();
     if (!room) room = new Room(canvas);
     exam = new Exam();
     room.resize();
@@ -173,13 +176,11 @@ async function start() {
     roundResult = null;
     priorComplaint = 0;
     displayedTime = -1;
-    $('#hud').innerHTML = ui.hudTop();
     $('#notice').textContent = '';
-    play.classList.remove('replay-mode');
     previous = performance.now();
     updateHUD();
     if (!saved.muted) bell();
-    notice('학생에게 다가가 관찰하세요. 손을 든 학생은 도움이 필요해요.');
+    notice('학생을 톡 눌러 관찰하세요. 쓸면 둘러볼 수 있어요.');
   } catch (err) {
     console.error(err);
     home();
@@ -288,7 +289,9 @@ function nearbyAction() {
   return { type: 'seat', id: target.id, label: prefix + '관찰하기' };
 }
 function interact() {
-  if (room.focus) {
+  if (room.approach) {
+    room.approach = null;
+  } else if (room.focus) {
     room.focus = null;
   } else {
     const action = nearbyAction();
@@ -372,17 +375,26 @@ function updateHUD() {
       '#context',
       `<div class="focus-card">
       <div class="focus-title">${ui.icon('eye', 16)} ${seatNo(s.id)}번 좌석 · 관찰 중<button data-action="unfocus">관찰 끝내기</button></div>
-      <p>${clue.text}</p>
-      ${!room.side(s) ? '<small>손이 가려지면 옆에서 다시 살펴보세요.</small>' : ''}
+      <p></p><small hidden>손이 가려지면 옆에서 다시 살펴보세요.</small>
       <div class="actions">
-      ${canRespond ? `<button class="em" data-action="respond">${req.ack ? '답안지 건네기' : '요청 듣기'}</button>` : ''}
-      <button class="${canRespond ? '' : 'em'}" data-action="record" ${recorded ? 'disabled' : ''}>${recorded ? '기록 완료' : '행동 기록'}</button>
-      ${s.notes.length ? '<button data-action="journal">지목하기</button>' : ''}</div></div>`,
+      <button class="em" data-action="respond" hidden></button>
+      <button data-action="record">행동 기록</button>
+      <button data-action="journal" hidden>지목하기</button></div></div>`,
     );
+    put('.focus-card p', clue.text);
+    $('.focus-card small').hidden = room.side(s);
+    const respondButton = $('.focus-card [data-action="respond"]');
+    respondButton.hidden = !canRespond;
+    if (canRespond) put('.focus-card [data-action="respond"]', req.ack ? '답안지 건네기' : '요청 듣기');
+    const recordButton = $('.focus-card [data-action="record"]');
+    recordButton.disabled = recorded;
+    recordButton.classList.toggle('em', !canRespond);
+    put('.focus-card [data-action="record"]', recorded ? '기록 완료' : '행동 기록');
+    $('.focus-card [data-action="journal"]').hidden = !s.notes.length;
   } else {
     const action = nearbyAction();
     const button = $('#touch-action');
-    if (action?.id) {
+    if (action?.id && !room.approach) {
       const anchor = room.seatMarker(action.id);
       if (anchor) {
         marker.hidden = false;
@@ -392,20 +404,22 @@ function updateHUD() {
         marker.style.top = anchor.top + '%';
       }
     }
-    button.disabled = !action;
-    button.textContent = action?.label ?? '학생에게 다가가세요';
-    put(
-      '#context',
-      action ? '<button class="near" data-action="action"><kbd>E</kbd>' + action.label + '</button>' : '',
-    );
+    button.disabled = !action && !room.approach;
+    const label = room.approach
+      ? seatNo(room.approach.id) + '번 이동 중 · 멈추기'
+      : (action?.label ?? '학생을 눌러 이동');
+    const actionIcon = room.approach
+      ? 'pause'
+      : ({ desk: 'paper', window: 'hand', respond: 'hand', seat: 'eye' }[action?.type] ?? 'hand');
+    put('#touch-action', ui.icon(actionIcon) + label);
+    put('#context', '');
   }
-  put(
-    '#hints',
-    '<div class="hints"><span><kbd>WASD</kbd> 이동</span><span>드래그 · 시선</span><span><kbd>Shift</kbd> 조용히</span><span><kbd>Tab</kbd> 일지</span></div>',
-  );
   const quietBtn = $('#touch [data-action="quiet"]');
   quietBtn.setAttribute('aria-pressed', String(room.touchQuiet));
-  quietBtn.textContent = room.touchQuiet ? '✓ 조용히 걷는 중' : '조용히 걷기';
+  put(
+    '#touch [data-action="quiet"]',
+    ui.icon('foot', 16) + '조용히 걷기<span class="switch" aria-hidden="true"></span>',
+  );
 }
 function enterReplay(id) {
   if (!roundResult || !exam.seat(id)) return;
@@ -414,7 +428,6 @@ function enterReplay(id) {
   room.focus = null;
   room.replay = { id, phase: 'cue', time: 0 };
   play.classList.add('replay-mode');
-  $('#hud').innerHTML = '<div id="context"></div>';
   $('#notice').textContent = '';
   room.updateCamera(1, true);
   paintReplay();
@@ -437,15 +450,16 @@ function paintReplay() {
   );
 }
 function tick(now) {
-  const dt = Math.min(2, Math.max(0, (now - previous) / 1000));
+  const dt = Math.max(0, (now - previous) / 1000);
   previous = now;
   if (noticeTime && now > noticeTime) {
     $('#notice').textContent = '';
     noticeTime = 0;
   }
   if (screen === 'running' && (!panel || panel === 'journal')) {
-    const step = panel ? { meters: 0, quiet: false } : room.move(Math.min(dt, 0.12));
+    const step = panel ? { meters: 0, quiet: false } : room.move(Math.min(dt, 2, exam.duration - exam.time));
     exam.step(dt, room.player, step.meters, step.quiet);
+    if (step.arrived && !exam.over) focusSeat(step.arrived);
     if (priorComplaint < exam.complaints.length) {
       const c = exam.complaints.at(-1);
       notice('민원 접수 · ' + seatNo(c.id) + '번 ' + c.text);
@@ -596,7 +610,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('blur', () => room?.resetInput());
 canvas.addEventListener('pointerdown', (e) => {
-  if (panel || screen !== 'running' || drag) return;
+  if (panel || screen !== 'running' || room.focus || drag) return;
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, total: 0 };
   canvas.setPointerCapture(e.pointerId);
 });
@@ -613,7 +627,11 @@ canvas.addEventListener('pointerup', (e) => {
   if (!drag || drag.id !== e.pointerId) return;
   if (drag.total < 7 && !panel && screen === 'running') {
     const id = room.pickSeat(e.clientX, e.clientY);
-    if (id) focusSeat(id);
+    if (id) {
+      if (room.inObservationRange(id)) focusSeat(id);
+      else if (!room.approachSeat(id)) notice('이동 패드로 통로에 나와 주세요.');
+      updateHUD();
+    }
   }
   drag = null;
 });
@@ -646,8 +664,8 @@ for (const t of ['pointerup', 'pointercancel', 'lostpointercapture'])
     if (room) room.stick = { x: 0, y: 0 };
     stick.firstElementChild.style.transform = '';
   });
-window.addEventListener('resize', () => {
+new ResizeObserver(() => {
   if (room && !play.hidden) room.resize();
-});
+}).observe(canvas);
 home();
 requestAnimationFrame(tick);
