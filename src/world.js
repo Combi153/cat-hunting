@@ -22,6 +22,9 @@ export class Room {
     this.canvas=canvas;
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.75));
+    this.renderer.shadowMap.enabled=true;
+    this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.autoUpdate=false;
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.setClearColor(0xf0f0e9);
     this.camera=new THREE.PerspectiveCamera(54,1,.055,44);
@@ -39,8 +42,12 @@ export class Room {
     this.session=session;
     const scene=this.scene=new THREE.Scene();
     scene.background=new THREE.Color(0xf3f2ea);
-    scene.add(new THREE.HemisphereLight(0xfffbf3,0xd6cdc2,1.95));
-    const sun=new THREE.DirectionalLight(0xfff2d9,2.0); sun.position.set(-5,8,3); scene.add(sun);
+    scene.add(new THREE.HemisphereLight(0xfffcf6,0xd6d3d1,1.8));
+    const sun=new THREE.DirectionalLight(0xfff8ed,1.93); sun.position.set(-5,8,3);
+    sun.castShadow=true;
+    Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:.1,far:24});
+    sun.shadow.camera.updateProjectionMatrix();sun.shadow.mapSize.set(1024,1024);
+    sun.shadow.bias=-.0005;sun.shadow.normalBias=.018;scene.add(sun);
     const fill=new THREE.DirectionalLight(0xd6e9f3,.48); fill.position.set(4,4,-3);scene.add(fill);
     this.environment=createClassroom(session.seats);scene.add(this.environment);
     this.students=new Map();
@@ -48,6 +55,14 @@ export class Room {
       const group=createStudent(s.id-1);group.position.set(s.x,0,s.z);scene.add(group);this.students.set(s.id,group);
     }
     this.proctor=createProctor();scene.add(this.proctor);
+    this.proctor.traverse(o=>{o.castShadow=false;});
+    const tile=document.createElement('canvas');tile.width=tile.height=64;
+    const ctx=tile.getContext('2d'),gradient=ctx.createRadialGradient(32,32,0,32,32,32);
+    gradient.addColorStop(0,'rgba(66,58,48,.32)');gradient.addColorStop(1,'rgba(66,58,48,0)');
+    ctx.fillStyle=gradient;ctx.fillRect(0,0,64,64);
+    this.footShadow=new THREE.Mesh(new THREE.PlaneGeometry(.86,.66),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tile),transparent:true,depthWrite:false}));
+    this.footShadow.rotation.x=-Math.PI/2;scene.add(this.footShadow);
+    this.renderer.shadowMap.needsUpdate=true;
     this.player={x:session.mode==='practice'?0:-2.24,z:3.70};
     this.yaw=0; this.pitch=.06; this.focus=null; this.replay=null;this.curtain=false;
     this.proctor.rotation.y=Math.PI;
@@ -65,7 +80,7 @@ export class Room {
         mat.add(m);for(const value of Object.values(m)) if(value?.isTexture)tex.add(value);
       }
     });
-    geo.forEach(g=>g.dispose());mat.forEach(m=>m.dispose());tex.forEach(t=>t.dispose());this.scene.clear();
+    geo.forEach(g=>g.dispose());mat.forEach(m=>m.dispose());tex.forEach(t=>t.dispose());this.scene.traverse(o=>o.shadow?.dispose());this.scene.clear();
   }
   resize() {
     const w=this.canvas.clientWidth||innerWidth,h=this.canvas.clientHeight||innerHeight;
@@ -181,6 +196,11 @@ export class Room {
       updateStudent(g,{time:t+s.offset,pose,walking});
     }
     this.proctor.visible=!this.focus&&!this.replay;
+    this.footShadow.position.set(this.player.x,.003,this.player.z);
+    this.footShadow.visible=this.proctor.visible;
+    // Keep soft room shadows cached between transformations of the large occluders.
+    const shadowKey=exam.seats.filter(s=>s.caught).map(s=>s.id+':'+Math.min(8,Math.floor(exam.time-s.exitAt))).join(',')+exam.curtain;
+    if(shadowKey!==this.shadowKey){this.shadowKey=shadowKey;this.renderer.shadowMap.needsUpdate=true;}
     updateProctor(this.proctor,{time:t,walking:moved>.0002,quiet});
     if(this.curtain!==exam.curtain){this.curtain=exam.curtain;setCurtain(this.environment,this.curtain);}
     this.updateCamera(dt);

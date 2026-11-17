@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f7f2"><meta name="description" content="수능 시험실을 직접 걸으며 학생을 살피는 3D 클레이 감독 게임, 냥이잡기.">
+<link rel="icon" type="image/svg+xml" href="/cat.svg"><title>냥이잡기 · 제3시험실</title>
+</head><body>
+<main id="lobby"></main>
+<section id="play" aria-label="시험 감독" hidden>
+<canvas id="room" aria-label="움직일 수 있는 3D 시험실"></canvas>
+<div id="hud"></div>
+<div id="notice" role="status"></div>
+<div id="touch"><div id="stick" aria-label="이동 조이스틱"><i></i></div><button data-action="quiet" aria-pressed="false">조용히</button><button data-action="action">행동</button></div>
+</section>
+<div id="overlay" hidden></div>
+<script type="module" src="/src/main.js"></script>
+</body></html>
