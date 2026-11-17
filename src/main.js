@@ -1,5 +1,5 @@
 import './style.css';
-import { Exam, MODES, TYPES, DESK, WINDOW, clock, seatNo } from './session.js';
+import { Exam, TYPES, DESK, WINDOW, clock, seatNo } from './session.js';
 import * as ui from './ui.js';
 import { activateSound, bell, soundsForFrame } from './sound.js';
 const $ = (s) => document.querySelector(s);
@@ -15,7 +15,7 @@ function load() {
       history: (Array.isArray(data.history) ? data.history : [])
         .filter(
           (r) =>
-            MODES[r?.mode] &&
+            ['exam', 'practice'].includes(r?.mode) &&
             Array.isArray(r.seats) &&
             Array.isArray(r.log) &&
             Array.isArray(r.complaints) &&
@@ -37,13 +37,11 @@ const save = () => {
     /* A session still works without browser storage. */
   }
 };
-let mode = 'exam',
-  screen = 'home',
+let screen = 'home',
   panel = '',
   room,
   exam,
   roundResult,
-  currentResult,
   returnFromHelp = '',
   loading = false;
 let selectedSeat = 1,
@@ -57,12 +55,11 @@ let selectedSeat = 1,
   drag = null,
   stickPointer = null;
 function renderHome() {
-  lobby.innerHTML = ui.lobby(mode, saved.history, saved.muted);
+  lobby.innerHTML = ui.lobby(saved.history, saved.muted);
 }
 function home() {
   screen = 'home';
   roundResult = null;
-  currentResult = null;
   panel = '';
   overlay.hidden = true;
   play.hidden = true;
@@ -135,7 +132,7 @@ function openHistory() {
                 '<button class="history-row" data-history="' +
                 i +
                 '"><b>' +
-                MODES[r.mode].name +
+                ui.reportName(r) +
                 '</b><small>' +
                 new Date(r.date).toLocaleString('ko-KR', {
                   month: 'short',
@@ -168,22 +165,21 @@ async function start() {
     play.hidden = false;
     overlay.hidden = true;
     if (!room) room = new Room(canvas);
-    exam = new Exam(mode);
+    exam = new Exam();
     room.resize();
     room.reset(exam);
     screen = 'running';
     panel = '';
     roundResult = null;
-    currentResult = null;
     priorComplaint = 0;
     displayedTime = -1;
-    $('#hud').innerHTML = ui.hudTop(mode, saved.muted);
+    $('#hud').innerHTML = ui.hudTop();
     $('#notice').textContent = '';
     play.classList.remove('replay-mode');
     previous = performance.now();
     updateHUD();
     if (!saved.muted) bell();
-    notice('시험 시작 · 학생 옆으로 걸어가 E로 관찰하세요.');
+    notice('학생에게 다가가 관찰하세요. 손을 든 학생은 도움이 필요해요.');
   } catch (err) {
     console.error(err);
     home();
@@ -199,16 +195,14 @@ function finish() {
   screen = 'ended';
   room.resetInput();
   roundResult = exam.result();
-  currentResult = roundResult;
   saved.history.unshift(roundResult);
   saved.history = saved.history.slice(0, 10);
-  saved.best[mode] = Math.max(Number(saved.best[mode]) || 0, roundResult.score);
+  saved.best.exam = Math.max(Number(saved.best.exam) || 0, roundResult.score);
   save();
   if (!saved.muted) bell();
   showResult(roundResult);
 }
 function showResult(r) {
-  currentResult = r;
   modal(
     'result',
     ui.result(r, Math.max(Number(saved.best[r.mode]) || 0, r.score), r === roundResult && screen === 'ended'),
@@ -281,28 +275,36 @@ function useObject(type) {
   }
   updateHUD();
 }
+function nearbyAction() {
+  const obj = serviceObject();
+  if (obj) return { type: obj, label: obj === 'desk' ? '새 답안지 챙기기' : '커튼 닫기' };
+  const target = room.target();
+  if (!target) return null;
+  const req = exam.requestFor(target.id);
+  const prefix = seatNo(target.id) + '번 ';
+  if (req && !req.ack) return { type: 'respond', id: target.id, label: prefix + '요청 듣기' };
+  if (req?.type === 'paper' && exam.carrying)
+    return { type: 'respond', id: target.id, label: prefix + '답안지 건네기' };
+  return { type: 'seat', id: target.id, label: prefix + '관찰하기' };
+}
 function interact() {
   if (room.focus) {
     room.focus = null;
-    updateHUD();
-    return;
+  } else {
+    const action = nearbyAction();
+    if (!action) return;
+    if (action.type === 'seat') focusSeat(action.id);
+    else if (action.type === 'respond') respond(action.id);
+    else useObject(action.type);
   }
-  const obj = serviceObject();
-  if (obj) {
-    useObject(obj);
-    return;
-  }
-  const target = room.target();
-  if (target?.type === 'seat') focusSeat(target.id);
-  else if (target && target.type !== 'seat') useObject(target.type);
-  else notice('학생에게 조금 더 가까이 다가가서 바라보세요.');
+  updateHUD();
 }
-function respond() {
-  const req = exam.requestFor(room.focus);
+function respond(id = room.focus) {
+  const req = exam.requestFor(id);
   if (!req) return;
   if (!req.ack) {
     exam.acknowledge(req);
-    notice('기다려 달라는 뜻으로 고개를 끄덕였습니다.');
+    notice(seatNo(id) + '번 요청 · ' + ui.requestName(req));
   } else if (req.type === 'paper' && exam.carrying && exam.serve(req)) notice('새 답안지를 전달했습니다.');
   updateHUD();
 }
@@ -341,7 +343,7 @@ function updateHUD() {
                 ? '새 답안지를 학생에게 건네세요.'
                 : '칠판 앞 교탁에서 답안지를 받으세요.'
               : '창가 통로 가운데에서 커튼을 닫으세요.'
-            : '학생 곁에서 관찰해 요청을 확인하세요.') +
+            : '가까이 가서 요청 듣기를 누르세요.') +
           '</small></div>',
       )
       .join(''),
@@ -357,47 +359,44 @@ function updateHUD() {
       : '',
   );
   const s = exam.seat(room.focus);
-  if (s && !s.caught) {
+  const observing = Boolean(s && !s.caught);
+  play.classList.toggle('observing', observing);
+  const marker = $('#seat-marker');
+  marker.hidden = true;
+  if (observing) {
     const clue = clueFor(s),
-      req = exam.requestFor(s.id),
-      exists = s.notes.some((n) => n.key === clue.key);
-    const tip = !room.side(s) ? '<small>책상 옆으로 한두 걸음 비켜서면 손이 잘 보입니다.</small>' : '';
+      req = exam.requestFor(s.id);
+    const recorded = s.notes.some((n) => n.key === clue.key);
+    const canRespond = req && (!req.ack || (req.type === 'paper' && exam.carrying));
     put(
       '#context',
-      '<div class="focus-card"><div class="focus-title">' +
-        ui.icon('eye', 16) +
-        seatNo(s.id) +
-        '번 좌석 · 관찰 중<button data-action="unfocus" aria-label="관찰 끝내기">' +
-        ui.icon('x', 16) +
-        '</button></div><p>' +
-        clue.text +
-        '</p>' +
-        tip +
-        (req ? '<small>학생 요청 · ' + ui.requestName(req) + '</small>' : '') +
-        '<div class="actions"><button class="em" data-action="record" ' +
-        (exists ? 'disabled' : '') +
-        '>' +
-        (exists ? '기록됨' : 'F · 행동 기록') +
-        '</button>' +
-        (req && (!req.ack || (req.type === 'paper' && exam.carrying))
-          ? '<button data-action="respond">' + (req.ack ? '답안지 건네기' : '고개 끄덕이기') + '</button>'
-          : '') +
-        '<button data-action="journal">감독 일지</button></div></div>',
+      `<div class="focus-card">
+      <div class="focus-title">${ui.icon('eye', 16)} ${seatNo(s.id)}번 좌석 · 관찰 중<button data-action="unfocus">관찰 끝내기</button></div>
+      <p>${clue.text}</p>
+      ${!room.side(s) ? '<small>손이 가려지면 옆에서 다시 살펴보세요.</small>' : ''}
+      <div class="actions">
+      ${canRespond ? `<button class="em" data-action="respond">${req.ack ? '답안지 건네기' : '요청 듣기'}</button>` : ''}
+      <button class="${canRespond ? '' : 'em'}" data-action="record" ${recorded ? 'disabled' : ''}>${recorded ? '기록 완료' : '행동 기록'}</button>
+      ${s.notes.length ? '<button data-action="journal">지목하기</button>' : ''}</div></div>`,
     );
   } else {
-    const object = serviceObject(),
-      target = room.target();
-    const label =
-      object === 'desk'
-        ? '새 답안지 챙기기'
-        : object === 'window'
-          ? '커튼 닫기'
-          : target?.type === 'seat'
-            ? seatNo(target.id) + '번 좌석 관찰'
-            : '';
+    const action = nearbyAction();
+    const button = $('#touch-action');
+    if (action?.id) {
+      const anchor = room.seatMarker(action.id);
+      if (anchor) {
+        marker.hidden = false;
+        marker.textContent = seatNo(action.id) + '번';
+        marker.setAttribute('aria-label', action.label);
+        marker.style.left = anchor.left + '%';
+        marker.style.top = anchor.top + '%';
+      }
+    }
+    button.disabled = !action;
+    button.textContent = action?.label ?? '학생에게 다가가세요';
     put(
       '#context',
-      label ? '<button class="near" data-action="action"><kbd>E</kbd>' + label + '</button>' : '',
+      action ? '<button class="near" data-action="action"><kbd>E</kbd>' + action.label + '</button>' : '',
     );
   }
   put(
@@ -406,6 +405,7 @@ function updateHUD() {
   );
   const quietBtn = $('#touch [data-action="quiet"]');
   quietBtn.setAttribute('aria-pressed', String(room.touchQuiet));
+  quietBtn.textContent = room.touchQuiet ? '✓ 조용히 걷는 중' : '조용히 걷기';
 }
 function enterReplay(id) {
   if (!roundResult || !exam.seat(id)) return;
@@ -479,10 +479,7 @@ function userAction(action) {
   if (action === 'history') return openHistory();
   if (action === 'home') return home();
   if (action === 'close') return close();
-  if (action === 'again') {
-    mode = currentResult?.mode ?? mode;
-    return start();
-  }
+  if (action === 'again') return start();
   if (action === 'report') {
     room.replay = null;
     screen = 'ended';
@@ -528,10 +525,7 @@ function userAction(action) {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b || b.disabled || (!overlay.hidden && !overlay.contains(b))) return;
-  if (b.dataset.mode) {
-    mode = b.dataset.mode;
-    renderHome();
-  } else if (b.dataset.seat) openJournal(Number(b.dataset.seat));
+  if (b.dataset.seat) openJournal(Number(b.dataset.seat));
   else if (b.dataset.history !== undefined) showResult(saved.history[Number(b.dataset.history)]);
   else if (b.dataset.replay) enterReplay(Number(b.dataset.replay));
   else if (b.dataset.action) userAction(b.dataset.action);
@@ -602,7 +596,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('blur', () => room?.resetInput());
 canvas.addEventListener('pointerdown', (e) => {
-  if (panel || screen !== 'running') return;
+  if (panel || screen !== 'running' || drag) return;
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, total: 0 };
   canvas.setPointerCapture(e.pointerId);
 });
@@ -636,7 +630,7 @@ function stickMove(e) {
   stick.firstElementChild.style.transform = 'translate(' + (dx / m) * 24 + 'px,' + (dy / m) * 24 + 'px)';
 }
 stick.addEventListener('pointerdown', (e) => {
-  if (!panel && room) {
+  if (!panel && room && stickPointer === null) {
     stickPointer = e.pointerId;
     stick.setPointerCapture(e.pointerId);
     stickMove(e);
@@ -646,7 +640,8 @@ stick.addEventListener('pointermove', (e) => {
   if (stickPointer === e.pointerId) stickMove(e);
 });
 for (const t of ['pointerup', 'pointercancel', 'lostpointercapture'])
-  stick.addEventListener(t, () => {
+  stick.addEventListener(t, (e) => {
+    if (e.pointerId !== stickPointer) return;
     stickPointer = null;
     if (room) room.stick = { x: 0, y: 0 };
     stick.firstElementChild.style.transform = '';

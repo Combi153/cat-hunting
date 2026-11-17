@@ -322,7 +322,7 @@ export function createClassroom(seats = []) {
         box(0.19, 0.014, 0.014, 'ivory', x, y + 0.23 - line * 0.038, -4.979, 0.005);
     }
   }
-  const rearSign = lettering('제 3 시험실', 1.4, 0.32, { size: 0.5, weight: 600 });
+  const rearSign = lettering('시험 중', 1.4, 0.32, { size: 0.5, weight: 600 });
   plane(1.4, 0.32, rearSign, -0.65, 2.33, -5.55);
   box(1.62, 0.48, 0.05, 'ivory', -0.65, 2.33, -5.59, 0.035);
 

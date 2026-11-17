@@ -9,7 +9,7 @@
       content="수능 시험실을 직접 걸으며 학생을 살피는 3D 클레이 감독 게임, 냥이잡기."
     />
     <link rel="icon" type="image/svg+xml" href="/cat.svg" />
-    <title>냥이잡기 · 제3시험실</title>
+    <title>냥이잡기</title>
   </head>
   <body>
     <main id="lobby"></main>
@@ -18,9 +18,14 @@
       <div id="hud"></div>
       <div id="notice" role="status"></div>
       <div id="touch">
-        <div id="stick" aria-label="이동 조이스틱"><i></i></div>
-        <button data-action="quiet" aria-pressed="false">조용히</button
-        ><button data-action="action">행동</button>
+        <div class="move-pad">
+          <div id="stick" aria-label="이동 조이스틱"><i></i></div>
+          <span>이동</span>
+        </div>
+        <div class="thumb-actions">
+          <button data-action="quiet" aria-pressed="false">조용히 걷기</button>
+          <button id="touch-action" data-action="action" disabled>학생에게 다가가세요</button>
+        </div>
       </div>
     </section>
     <div id="overlay" hidden></div>

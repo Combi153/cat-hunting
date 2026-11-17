@@ -11,7 +11,7 @@ test('one guest exam produces 12 seats, 1–3 cases and independently serviceabl
   }
 });
 test('a clue requires the right angle; valid note pins a single observation and justifies one removal', () => {
-  const e = new Exam('practice'),
+  const e = new Exam(() => 0.2),
     s = e.seats.find((s) => s.guilty);
   e.time = 6 - s.offset;
   assert.equal(e.view(s, false).key, 'cue');
@@ -24,7 +24,7 @@ test('a clue requires the right angle; valid note pins a single observation and 
   assert.equal(e.result().score, 100);
 });
 test('an incorrect accusation costs once per identical submitted evidence combination', () => {
-  const e = new Exam('practice'),
+  const e = new Exam(() => 0.2),
     s = e.seats.find((s) => !s.guilty);
   e.record(s, { key: 'cue', text: TYPES.glasses.cue });
   assert.equal(e.accuse(s, 'glasses', 'cue'), false);
@@ -49,10 +49,10 @@ test('paper and curtain require an acknowledged request and correct sequence', (
   assert.ok(e.curtain);
 });
 test('delay and repeated noise are charged once per episode; quiet walking reduces disturbance', () => {
-  const e = new Exam('practice'),
+  const e = new Exam(() => 0.2),
     s = e.seats[0],
     r = e.requests[0];
-  for (let i = 0; i < 60; i++) e.step(0.5, s, 0.6, true);
+  for (let i = 0; i < 112; i++) e.step(0.5, s, 0.6, true);
   assert.ok(!e.complaints.some((c) => c.kind === 'noise'));
   assert.ok(e.complaints.some((c) => c.kind === 'delay'));
   for (let i = 0; i < 14; i++) e.step(0.1, s, 0.6, false);
@@ -65,9 +65,9 @@ test('delay and repeated noise are charged once per episode; quiet walking reduc
   assert.ok(e.complaints.find((c) => c.kind === 'delay').resolved);
 });
 test('the bell ends a session and blocks additional observations', () => {
-  const e = new Exam('practice');
-  e.step(61, still, 0, false);
+  const e = new Exam(() => 0.2);
+  e.step(181, still, 0, false);
   assert.ok(e.over);
-  assert.equal(e.time, 60);
+  assert.equal(e.time, 180);
   assert.equal(e.record(e.seats[0], { key: 'cue', text: '관찰' }), false);
 });

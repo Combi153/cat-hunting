@@ -1,4 +1,4 @@
-import { TYPES, MODES, seatNo, clock } from './session.js';
+import { TYPES, EXAM_DURATION, seatNo, clock } from './session.js';
 const lines = {
   book: '<path d="M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm4 0v16m3-11h6m-6 4h5"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -34,35 +34,35 @@ const key = (k) => '<kbd>' + k + '</kbd>';
 const pill = (a, label, iconName) =>
   '<button class="pill" data-action="' + a + '">' + icon(iconName) + label + '</button>';
 export const requestName = (r) => (r.type === 'paper' ? '답안지 교체' : '커튼 조정');
-export function lobby(mode, history, muted) {
-  const exam = MODES[mode],
-    last = history[0];
+export const reportName = (r) => (r.mode === 'practice' ? '이전 1분 기록' : '시험 감독');
+export function lobby(history, muted) {
+  const last = history[0];
   return `<div class="lobby-wrap">
-    <header class="topline"><div class="schoolbrand"><img src="/cat.svg" width="36" height="36" alt=""><span>제3시험실</span></div><nav>${pill('sound', muted ? '소리 꺼짐' : '소리 켜짐', muted ? 'mute' : 'sound')}${pill('help', '게임 방법', 'help')}</nav></header>
+    <header class="topline"><div class="schoolbrand"><img src="/cat.svg" width="36" height="36" alt=""><span>냥이잡기</span></div><nav>${pill('sound', muted ? '소리 꺼짐' : '소리 켜짐', muted ? 'mute' : 'sound')}${pill('help', '게임 방법', 'help')}</nav></header>
     <section class="cover">
-      <div class="cover-art" role="img" aria-label="흰색 클레이 시험실에서 안경을 고쳐 쓰는 학생과 뒤에서 관찰하는 감독관"></div>
-      <div class="cover-copy"><div class="subject"><span></span>수능 시험 감독 시뮬레이션</div>
-      <h1>냥이잡기</h1><p class="lead">조용한 시험실, 수상한 손동작.<br>오늘의 감독관은 당신입니다.</p>
-      <div class="mode-tabs" role="group" aria-label="시험 선택">${['exam', 'practice'].map((m) => `<button data-mode="${m}" aria-pressed="${mode === m}">${MODES[m].name}<small>${m === 'exam' ? '3분' : '1분'}</small></button>`).join('')}</div>
+      <div class="cover-art" role="img" aria-label="클레이 시험실에서 안경을 고쳐 쓰는 학생과 순회하는 감독관"></div>
+      <div class="cover-copy"><div class="subject"><span></span>수능 시험 감독 게임</div>
+      <h1>냥이잡기</h1><p class="lead">학생을 살펴 단서를 기록하고,<br>손을 든 학생의 요청을 처리하세요.</p>
       <button class="primary start-btn" data-action="start">${icon('play', 16)} 감독 시작 ${icon('arrow', 19)}</button>
-      </div><div class="cover-tag">${icon('pin', 14)} 제3시험실</div>
+      </div>
     </section>
-    <div class="room-strip"><span class="subject-name"><i></i>1교시 · 국어 영역</span><span>${icon('clock', 16)} ${exam.duration / 60}분</span><span>${icon('seat', 16)} ${exam.count}석</span><span class="single">싱글플레이</span></div>
-    <section class="lobby-bottom"><div class="guide"><h2>${icon('keys')}기본 조작</h2><div class="guide-keys"><span>${key('WASD')} 이동</span><span>${icon('mouse', 18)} 드래그로 둘러보기</span><span>${key('E')} 관찰</span><span>${key('Tab')} 일지</span></div><div class="guide-touch">왼쪽 엄지로 이동 · 오른쪽 드래그로 시선 회전</div></div>
-    <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + MODES[last.mode].name + ' · ' + last.score + '점' : '시험을 마치면 기록이 쌓입니다.'}</small></div>${icon('arrow')}</button></section>
+    <div class="room-strip"><span class="subject-name"><i></i>1교시 · 국어 영역</span><span>${icon('clock', 16)} ${EXAM_DURATION / 60}분</span><span>${icon('seat', 16)} 12석</span></div>
+    <section class="lobby-bottom"><div class="guide"><h2>${icon('eye')}감독관 조작</h2><div class="guide-keys"><span>${key('WASD')} 이동</span><span>드래그로 둘러보기</span><span>${key('E')} 관찰</span><span>${key('F')} 기록</span></div><div class="guide-touch">왼쪽 원을 밀어 걷고, 교실을 쓸어 둘러보세요. 가까운 학생을 누르면 관찰할 수 있어요.</div></div>
+    <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '시험을 마치면 기록이 쌓입니다.'}</small></div>${icon('arrow')}</button></section>
     </div>`;
 }
-export function hudTop(mode, muted) {
-  return `<header class="hud-top"><div class="hud-id"><img src="/cat.svg" alt=""><div><b>제3시험실</b><small>1교시 · 국어 · ${MODES[mode].name}</small></div></div>
-  <div class="hud-tools"><div class="timer">${icon('clock')}<strong id="time">${clock(MODES[mode].duration)}</strong></div><button data-action="journal" title="감독 일지 (Tab)" aria-label="감독 일지">${icon('book')}</button><button data-action="pause" title="일시정지 (Esc)" aria-label="일시정지">${icon('pause')}</button></div></header>
-  <div id="tasks"></div><div id="feedback"></div><div id="context"></div><div id="hints"></div>`;
+export function hudTop() {
+  return `<header class="hud-top"><div class="hud-id"><img src="/cat.svg" alt=""><div><b>냥이잡기</b><small>1교시 · 국어</small></div></div>
+  <div class="hud-tools"><div class="timer">${icon('clock')}<strong id="time">${clock(EXAM_DURATION)}</strong></div><button data-action="journal" aria-label="감독 일지">${icon('book')}<span>일지</span></button><button data-action="pause" aria-label="일시정지">${icon('pause')}</button></div></header>
+  <button id="seat-marker" data-action="action" hidden></button><div id="tasks"></div><div id="feedback"></div><div id="context"></div><div id="hints"></div>`;
 }
 export function help() {
-  return `<div class="modal-icon">${icon('keys', 23)}</div><h2>감독관 수첩</h2><p class="intro">학생의 손을 살피고, 직접 본 장면을 근거로 판단하세요.</p>
-  <div class="help-lines"><p><b>걷기와 둘러보기</b><span>WASD·방향키로 이동하고 화면을 드래그해 시선을 돌립니다. Q / R로도 좌우를 볼 수 있습니다. Shift를 누르면 조용히 걷습니다.</span></p>
-  <p><b>관찰하고 기록하기</b><span>학생 곁에서 바라보고 E를 누르세요. 책상 옆으로 비켜서면 손에 든 물건이 보입니다. F로 본 행동을 기록하고 Tab으로 일지를 열어 지목하세요.</span></p>
-  <p><b>요청과 민원</b><span>손을 든 학생을 관찰해 요청을 확인하세요. 답안지는 앞쪽 교탁에서, 커튼은 창가 가운데에서 처리합니다. 같은 자리를 자꾸 왕복하면 학생의 집중이 흐트러집니다.</span></p>
-  <p><b>터치 기기</b><span>왼쪽 조이스틱으로 걷고 교실 화면을 드래그하세요. 가까운 학생을 탭하거나 행동 버튼으로 관찰합니다.</span></p></div>
+  return `<div class="modal-icon">${icon('book', 23)}</div><h2>감독관이 하는 일</h2>
+  <div class="help-lines"><p><b>걸으며 살피기</b><span>왼쪽 원을 밀어 걷고, 화면을 쓸어 시선을 돌려요. ‘조용히 걷기’를 켜면 발소리가 줄어요.</span></p>
+  <p><b>관찰하고 기록하기</b><span>가까운 학생이나 ‘관찰하기’를 눌러 손을 살펴요. ‘행동 기록’을 누르면 그 장면이 일지에 남아요.</span></p>
+  <p><b>근거로 지목하기</b><span>기록한 뒤 ‘지목하기’를 눌러 근거와 의심 유형을 골라요. 오인 지목은 20점 감점돼요.</span></p>
+  <p><b>요청 처리하기</b><span>손을 든 학생에게 다가가 요청을 들어요. 답안지는 교탁에서 챙겨 건네고, 커튼은 창가에서 닫아요.</span></p></div>
+  <details><summary>키보드와 마우스 조작</summary><p>WASD·방향키로 이동하고 드래그 또는 Q/R로 둘러봅니다. Shift는 조용히 걷기, E는 상호작용, F는 기록, Tab은 일지, Esc는 닫기·일시정지입니다.</p></details>
   <button class="primary wide" data-action="close">확인</button>`;
 }
 export function journal(e, id, type, note) {
@@ -70,10 +70,10 @@ export function journal(e, id, type, note) {
     notes = s?.notes ?? [];
   const selected = notes.find((n) => n.key === note);
   const repeat = s?.attempts.includes(type + '/' + note);
-  return `<div class="eyebrow">제3시험실 · 현장 기록</div><h2>감독 일지</h2>
+  return `<div class="eyebrow">냥이잡기 · 현장 기록</div><h2>감독 일지</h2>
   <div class="seat-grid">${e.seats.map((v) => `<button data-seat="${v.id}" class="${id === v.id ? 'selected' : ''} ${v.notes.length ? 'inked' : ''}" title="${v.id}번 좌석">${seatNo(v.id)}${v.caught ? ' ✓' : ''}</button>`).join('')}</div>
   <h3>${seatNo(id)}번 좌석 <small>${s.caught ? '퇴실' : '관찰 ' + notes.length + '건'}</small></h3>
-  ${notes.length ? `<label>지목 근거<select id="evidence">${notes.map((n) => `<option value="${n.key}" ${n.key === note ? 'selected' : ''}>${clock(n.t)} · ${n.text}</option>`).join('')}</select></label>` : '<div class="empty">이 좌석에서 기록한 행동이 없습니다. 학생 옆에서 관찰한 뒤 F를 눌러 기록하세요.</div>'}
+  ${notes.length ? `<label>지목 근거<select id="evidence">${notes.map((n) => `<option value="${n.key}" ${n.key === note ? 'selected' : ''}>${clock(n.t)} · ${n.text}</option>`).join('')}</select></label>` : '<div class="empty">이 좌석에서 기록한 행동이 없습니다. 학생 옆에서 관찰한 뒤 ‘행동 기록’을 누르세요.</div>'}
   ${
     !s.caught && notes.length
       ? `<label>의심 유형<select id="kind"><option value="">유형 선택</option>${Object.entries(TYPES)
@@ -86,7 +86,7 @@ export function journal(e, id, type, note) {
   ${e.complaints.length ? `<details><summary>접수 민원 ${e.complaints.length}건</summary>${e.complaints.map((c) => `<p>${seatNo(c.id)}번 · ${c.text} ${c.resolved ? '(조치 완료)' : ''}</p>`).join('')}</details>` : ''}`;
 }
 export function result(r, best, canReplay) {
-  return `<div class="eyebrow">1교시 국어 · ${MODES[r.mode].name} 종료</div><h2>시험 종료 보고서</h2>
+  return `<div class="eyebrow">1교시 국어 · ${reportName(r)} 종료</div><h2>시험 종료 보고서</h2>
     <div class="score"><strong>${r.score}<small>점</small></strong><span>나의 최고 기록 <b>${best}점</b></span></div>
     <div class="stats">${[
       ['적발', r.caught + '/' + r.total],

@@ -96,7 +96,8 @@ export class Room {
     this.footShadow.rotation.x = -Math.PI / 2;
     scene.add(this.footShadow);
     this.renderer.shadowMap.needsUpdate = true;
-    this.player = { x: session.mode === 'practice' ? 0 : -2.24, z: 3.7 };
+    this.touchQuiet = false;
+    this.player = { x: -2.24, z: 3.7 };
     this.yaw = 0;
     this.pitch = 0.06;
     this.focus = null;
@@ -138,7 +139,6 @@ export class Room {
   resetInput() {
     this.keys.clear();
     this.stick = { x: 0, y: 0 };
-    this.touchQuiet = false;
   }
   spin(dx, dy) {
     if (this.focus || this.replay) return;
@@ -199,13 +199,16 @@ export class Room {
       if (d < 2.35 && dot > 0.1) candidates.push({ type, id, rank: d + (1 - dot) * 1.45 });
     };
     for (const s of this.session.seats) if (!s.caught) push('seat', s, s.id);
-    if (this.session.liveRequests().some((r) => r.type === 'paper' && r.ack && !this.session.carrying))
-      push('desk', DESK);
-    if (this.session.liveRequests().some((r) => r.type === 'curtain' && r.ack)) push('window', WINDOW);
     return candidates.sort((a, b) => a.rank - b.rank)[0] ?? null;
   }
   nearbyAction(type, p) {
     return dist(this.player, p) < 2.05;
+  }
+  seatMarker(id) {
+    const s = this.session.seat(id);
+    const v = this.screenPoint.set(s.x, 1.58, s.z).project(this.camera);
+    if (v.z < 0 || v.z > 1 || Math.abs(v.x) > 0.89 || Math.abs(v.y) > 0.74) return null;
+    return { left: (1 + v.x) * 50, top: (1 - v.y) * 50 };
   }
   pickSeat(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
@@ -248,6 +251,7 @@ export class Room {
       c = this.cameraPoint;
     const p = this.player,
       s = this.session.seat(this.replay?.id ?? this.focus);
+    const portrait = clamp((1 - this.camera.aspect) * 1.7, 0, 1);
     if (s) {
       const off = this.replay ? { x: 1.1, z: 1.65 } : { x: p.x - s.x, z: p.z - s.z };
       const l = Math.max(0.01, Math.hypot(off.x, off.z));
@@ -256,7 +260,7 @@ export class Room {
     } else {
       const sx = Math.sin(this.yaw),
         cz = Math.cos(this.yaw);
-      c.set(p.x + sx * 2.52, 2.43 + this.pitch, p.z + cz * 2.52);
+      c.set(p.x + sx * 2.52, 2.43 + 0.48 * portrait + this.pitch, p.z + cz * 2.52);
       t.set(p.x - sx * 2.02, 1.05 - this.pitch, p.z - cz * 2.02);
     }
     // Keep the follow camera inside all four walls.
@@ -266,7 +270,7 @@ export class Room {
     this.camera.position.lerp(c, k);
     this.look.lerp(t, k);
     this.camera.lookAt(this.look);
-    const fov = s ? 44 : 55;
+    const fov = s ? 44 + 5 * portrait : 55 + 20 * portrait;
     if (Math.abs(this.camera.fov - fov) > 0.03) {
       this.camera.fov += (fov - this.camera.fov) * k;
       this.camera.updateProjectionMatrix();

@@ -24,10 +24,7 @@ export const TYPES = {
     clear: '수험번호와 사진이 있는 수험표를 책상에 다시 놓았다.',
   },
 };
-export const MODES = {
-  exam: { name: '본시험', duration: 180, count: 12 },
-  practice: { name: '연습', duration: 60, count: 4 },
-};
+export const EXAM_DURATION = 180;
 export const DESK = { x: 0, z: 4.55 };
 export const WINDOW = { x: -4.85, z: -0.5 };
 export const EXIT = { x: 4.75, z: -4.5 };
@@ -46,10 +43,8 @@ function shuffled(list, random) {
   return a;
 }
 export class Exam {
-  constructor(mode = 'exam', random = Math.random) {
-    this.mode = mode;
-    const practice = mode === 'practice';
-    this.duration = MODES[mode].duration;
+  constructor(random = Math.random) {
+    this.duration = EXAM_DURATION;
     this.time = 0;
     this.over = false;
     this.log = [];
@@ -57,8 +52,8 @@ export class Exam {
     this.complaints = [];
     this.carrying = false;
     this.curtain = false;
-    const xs = practice ? [-1.15, 1.15] : [-3.38, -1.13, 1.13, 3.38];
-    const zs = practice ? [1.35, -1.35] : [1.72, -0.88, -3.48];
+    const xs = [-3.38, -1.13, 1.13, 3.38];
+    const zs = [1.72, -0.88, -3.48];
     const kinds = shuffled(Object.keys(TYPES), random);
     this.seats = zs.flatMap((z, row) =>
       xs.map((x, col) => {
@@ -67,7 +62,7 @@ export class Exam {
           id: index + 1,
           x,
           z,
-          kind: practice ? 'glasses' : kinds[index % 4],
+          kind: kinds[index % 4],
           guilty: false,
           notes: [],
           attempts: [],
@@ -75,28 +70,23 @@ export class Exam {
           exitAt: null,
           noise: 0,
           noiseOpen: false,
-          offset: practice ? index * 1.65 : random() * 9,
+          offset: random() * 9,
           lastAction: null,
         };
       }),
     );
     const ordered = shuffled(this.seats, random);
-    const count = practice ? 1 : 1 + Math.floor(random() * 3);
-    if (practice) {
-      ordered[2].kind = 'ear';
-      ordered[3].kind = 'note';
-    }
+    const count = 1 + Math.floor(random() * 3);
     ordered.slice(0, count).forEach((s) => (s.guilty = true));
     const neutral = ordered.filter((s) => !s.guilty);
-    this.requests = [this.newRequest(neutral[0], 'paper', practice ? 6 : 16)];
-    if (!practice) this.requests.push(this.newRequest(neutral[1], 'curtain', 76));
+    this.requests = [this.newRequest(neutral[0], 'paper', 16), this.newRequest(neutral[1], 'curtain', 76)];
   }
   newRequest(seat, type, start) {
     return {
       id: seat.id,
       type,
       start,
-      deadline: start + (this.mode === 'practice' ? 24 : 38),
+      deadline: start + 38,
       ack: false,
       done: false,
       late: false,
@@ -152,7 +142,7 @@ export class Exam {
   acknowledge(req) {
     if (this.over || !this.liveRequests().includes(req) || req.ack) return false;
     req.ack = true;
-    req.deadline += this.mode === 'practice' ? 8 : 14;
+    req.deadline += 14;
     this.add(seatNo(req.id) + '번 요청에 고개를 끄덕였다.');
     return true;
   }
@@ -216,7 +206,7 @@ export class Exam {
     const cases = this.seats.filter((s) => s.guilty);
     const caught = cases.filter((s) => s.caught).length;
     return {
-      mode: this.mode,
+      mode: 'exam',
       date: Date.now(),
       caught,
       total: cases.length,
