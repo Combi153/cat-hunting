@@ -73,3 +73,24 @@ test('the bell ends a session and blocks additional observations', () => {
   assert.equal(e.time, 120);
   assert.equal(e.record(e.seats[0], { key: 'cue', text: '관찰' }), false);
 });
+test('handover desks show the same cue, opposite details, and stay observable during requests', () => {
+  for (let seed = 0; seed < 350; seed++) {
+    const exam = new Exam(seed);
+    const desks = exam.pair.map((id) => exam.seat(id));
+    assert.equal(desks[0].kind, desks[1].kind);
+    assert.notEqual(desks[0].guilty, desks[1].guilty);
+    assert.ok(exam.requests.every((r) => !exam.pair.includes(r.id)));
+    assert.equal(exam.pairCount(), 0);
+    for (const desk of desks) {
+      exam.time = 18 - desk.offset;
+      assert.equal(exam.view(desk, false).key, 'cue');
+      exam.record(desk, exam.view(desk, true));
+    }
+    assert.equal(exam.pairCount(), 2);
+    const retry = new Exam(exam.result().seed);
+    assert.deepEqual(retry.pair, exam.pair);
+    assert.deepEqual(retry.seats.map((s) => [s.guilty, s.kind, s.offset]), exam.seats.map((s) => [s.guilty, s.kind, s.offset]));
+    assert.deepEqual(retry.requests, exam.requests);
+    assert.equal(retry.pairCount(), 0);
+  }
+});

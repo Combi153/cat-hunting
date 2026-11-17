@@ -1,7 +1,7 @@
 import './style.css';
 import { Exam, TYPES, DESK, WINDOW, clock, seatNo } from './session.js';
 import * as ui from './ui.js';
-import { activateSound, bell, soundsForFrame } from './sound.js';
+import { activateSound, bell, soundsForFrame, pencilSound } from './sound.js';
 const $ = (s) => document.querySelector(s);
 const lobby = $('#lobby'),
   play = $('#play'),
@@ -180,7 +180,7 @@ async function start() {
     previous = performance.now();
     updateHUD();
     if (!saved.muted) bell();
-    notice('학생을 톡 눌러 다가간 뒤 A를 누르세요.');
+
   } catch (err) {
     console.error(err);
     home();
@@ -251,12 +251,15 @@ function clueFor(s) {
     return { key: 'request', text: '필기를 멈추고 감독관에게 손을 들었다.' };
   return exam.view(s, room.side(s));
 }
-function record() {
+function record(clue) {
   const s = exam.seat(room.focus);
   if (!s) return;
-  const clue = clueFor(s);
+  clue ??= clueFor(s);
+  const before = exam.pairCount();
   if (exam.record(s, clue)) {
-    notice(seatNo(s.id) + '번 · 감독 일지에 기록했습니다.');
+    const completed = before < 2 && exam.pairCount() === 2;
+    if (!saved.muted) pencilSound(completed);
+    notice((completed ? '두 자리 대조 완료! ' : '') + seatNo(s.id) + '번 ' + ui.clueLabel(clue.key) + ' 기록 · ' + clue.text);
     updateHUD();
   }
 }
@@ -294,17 +297,21 @@ function currentAction() {
   const seat = exam.seat(id);
   const clue = clueFor(seat);
   if (seat.notes.some((note) => note.key === clue.key)) return { type: 'journal', id, label: '일지 열기' };
-  return { type: 'record', id, key: clue.key, label: '행동 기록' };
+  return { type: 'record', id, clue, label: '행동 기록' };
 }
 function interact(prompt = shownAction) {
+  // Capture the visible gesture on touch-down even when it changes before release.
+  if (prompt?.type === 'record' && prompt.id === room.focus) {
+    record(prompt.clue);
+    return;
+  }
   const action = currentAction();
   // A moving student or a new clue can change the prompt between touch-down and release.
   if (
     !action ||
     !prompt ||
     prompt.type !== action.type ||
-    prompt.id !== action.id ||
-    prompt.key !== action.key
+    prompt.id !== action.id
   ) {
     updateHUD();
     return;
@@ -319,9 +326,6 @@ function interact(prompt = shownAction) {
     case 'listen':
     case 'deliver':
       respond(action.id);
-      break;
-    case 'record':
-      record();
       break;
     case 'journal':
       return openJournal(action.id);
@@ -389,6 +393,7 @@ function updateHUD() {
           '번이 발소리에 펜을 멈췄습니다.</div>'
       : '',
   );
+  put('#handover', ui.handover(exam));
   const s = exam.seat(room.focus);
   const observing = Boolean(s && !s.caught);
   play.classList.toggle('observing', observing);
@@ -401,9 +406,12 @@ function updateHUD() {
       '#context',
       `<div class="focus-card">
       <div class="focus-title">${ui.icon('eye', 16)} ${seatNo(s.id)}번 좌석 · 관찰 중</div>
-      <p></p><small hidden>손이 가려지면 옆에서 다시 살펴보세요.</small></div>`,
+      <span class="phase-label"></span><p></p><small hidden>손이 가려지면 옆에서 다시 살펴보세요.</small></div>`,
     );
-    put('.focus-card p', clueFor(s).text);
+    const clue = clueFor(s);
+    const recorded = s.notes.some((n) => n.key === clue.key);
+    put('.focus-card p', clue.text);
+    put('.phase-label', ui.clueLabel(clue.key) + (recorded ? ' · 기록됨 ✓' : ''));
     $('.focus-card small').hidden = room.side(s);
   } else {
     put('#context', '');
@@ -547,6 +555,13 @@ document.addEventListener('click', (e) => {
   if (b.id === 'touch-action') {
     if (screen === 'running' && !panel) interact(e.detail ? pressedAction : shownAction);
     pressedAction = null;
+  } else if (b.dataset.walk && screen === 'running') {
+    const id = Number(b.dataset.walk);
+    if (panel) dismiss();
+    room.focus = null;
+    if (room.side(exam.seat(id))) room.selectSeat(id);
+    else if (!room.approachSeat(id)) notice('이동 패드로 옆 통로에 나와 주세요.');
+    updateHUD();
   } else if (b.dataset.seat) openJournal(Number(b.dataset.seat));
   else if (b.dataset.history !== undefined) showResult(saved.history[Number(b.dataset.history)]);
   else if (b.dataset.replay) enterReplay(Number(b.dataset.replay));
@@ -610,7 +625,7 @@ document.addEventListener('keydown', (e) => {
     interact();
   } else if (!e.repeat && e.code === 'KeyF') {
     e.preventDefault();
-    record();
+    record(shownAction?.type === 'record' ? shownAction.clue : undefined);
   }
 });
 document.addEventListener('keyup', (e) => room?.keys.delete(e.code));

@@ -1,4 +1,4 @@
-import { TYPES, EXAM_DURATION, seatNo, clock } from './session.js';
+import { TYPES, EXAM_DURATION, seatNo, clock, hasDetail } from './session.js';
 const lines = {
   book: '<path d="M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm4 0v16m3-11h6m-6 4h5"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -46,7 +46,7 @@ export function lobby(history, muted) {
       <button class="primary start-btn" data-action="start">${icon('play', 17)} 감독 시작 ${icon('arrow', 19)}</button>
       </div>
     </section>
-    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>학생을 톡 눌러 다가가고, 오른쪽 A로 관찰하거나 요청을 들어요. 왼쪽 패드를 살짝 밀면 조용히 걸어요.</p></div>
+    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>인계 메모의 자리 번호를 눌러 걸어가요. 오른쪽 A로 관찰하고, 두 학생의 다음 행동을 기록해 보세요.</p></div>
     <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '지난 시험 기록'}</small></div>${icon('arrow')}</button></section>
     </div>`;
 }
@@ -55,9 +55,31 @@ export function hudTop() {
   <div class="timer" aria-label="남은 시간">${icon('clock', 18)}<strong id="time">${clock(EXAM_DURATION)}</strong></div>
   <div class="hud-tools"><button data-action="journal" aria-label="감독 일지">${icon('book')}</button><button data-action="pause" aria-label="일시정지">${icon('pause')}</button></div></header>`;
 }
+const sharedCues = {
+  glasses: '두 학생이 안경다리를 만졌어요.',
+  ear: '두 학생이 한쪽 귀에 손을 댔어요.',
+  camera: '두 학생이 시험지에 물건을 댔어요.',
+  note: '두 학생이 접힌 종이를 펼쳤어요.',
+};
+export const clueLabel = (key) => ({
+  cue: '첫 동작', proof: '후속 행동', clear: '후속 행동', write: '필기', request: '손들기',
+})[key];
+
+export function handover(exam) {
+  const count = exam.pairCount();
+  const desks = exam.pair.map((id) => {
+    const recorded = hasDetail(exam.seat(id));
+    return `<button data-walk="${id}" aria-label="${id}번 자리로 이동"${exam.seat(id).caught ? ' disabled' : ''}>${icon(recorded ? 'check' : 'pin', 14)}${seatNo(id)}번</button>`;
+  }).join('');
+  return `<section class="memo ${count === 2 ? 'complete' : ''}" aria-label="인계 메모">
+    <div class="memo-heading"><b>${icon('pencil', 14)} 인계 메모</b><small>${count === 2 ? '대조 완료' : '후속 기록'} · ${count}/2</small></div>
+    <p>${count === 2 ? '두 자리의 후속 행동을 일지에서 비교하세요.' : sharedCues[exam.seat(exam.pair[0]).kind] + ' 다음 행동을 살펴보세요.'}</p>
+    <div class="memo-seats">${desks}</div></section>`;
+}
+
 export function help() {
   return `<div class="modal-icon">${icon('book', 23)}</div><h2>감독관이 하는 일</h2>
-  <div class="help-lines"><p><b>걸으며 살피기</b><span>화면을 쓸어 둘러보고 학생을 톡 눌러 다가가요. 직접 걸을 때는 왼쪽 패드의 안쪽 점선까지 밀면 살금살금, 바깥까지 밀면 보통 걸음이에요.</span></p>
+  <div class="help-lines"><p><b>걸으며 살피기</b><span>인계 메모의 두 자리는 첫 동작이 비슷해요. 자리 번호나 교실의 학생을 눌러 다가가고, 화면을 쓸어 둘러봐요. 직접 걸을 때는 왼쪽 패드의 안쪽 점선까지 밀면 살금살금, 바깥까지 밀면 보통 걸음이에요.</span></p>
   <p><b>관찰하고 기록하기</b><span>A 옆에 좌석 번호와 행동이 떠요. ‘관찰하기’에서 A를 누르면 손동작이 크게 보이고, ‘행동 기록’에서 누르면 그 순간이 일지에 남아요.</span></p>
   <p><b>근거로 지목하기</b><span>같은 행동을 기록하고 나면 A로 일지를 열 수 있어요. 근거와 의심 유형을 골라 제출해요. 오인 지목은 20점 감점돼요.</span></p>
   <p><b>요청 처리하기</b><span>손을 든 학생 곁에서 A로 요청을 들어요. 교탁에서 답안지를 챙길 때, 학생에게 건넬 때, 창가에서 커튼을 닫을 때도 A를 눌러요.</span></p></div>
@@ -70,6 +92,11 @@ export function journal(e, id, type, note) {
   const selected = notes.find((n) => n.key === note);
   const repeat = s?.attempts.includes(type + '/' + note);
   return `<div class="eyebrow">냥이잡기 · 현장 기록</div><h2>감독 일지</h2>
+  <div class="journal-pair">${handover(e)}
+  <dl class="pair-notes">${e.pair.map((id) => {
+    const detail = e.seat(id).notes.find((n) => n.key === 'clear' || n.key === 'proof');
+    return `<div><dt>${seatNo(id)}번</dt><dd>${detail ? detail.text : '후속 행동 대기'}</dd></div>`;
+  }).join('')}</dl></div>
   <div class="seat-grid">${e.seats.map((v) => `<button data-seat="${v.id}" class="${id === v.id ? 'selected' : ''} ${v.notes.length ? 'inked' : ''}" title="${v.id}번 좌석">${seatNo(v.id)}${v.caught ? ' ✓' : ''}</button>`).join('')}</div>
   <h3>${seatNo(id)}번 좌석 <small>${s.caught ? '퇴실' : '관찰 ' + notes.length + '건'}</small></h3>
   ${notes.length ? `<label>지목 근거<select id="evidence">${notes.map((n) => `<option value="${n.key}" ${n.key === note ? 'selected' : ''}>${clock(n.t)} · ${n.text}</option>`).join('')}</select></label>` : '<div class="empty">이 좌석에서 기록한 행동이 없습니다. 학생 옆에서 관찰한 뒤 ‘행동 기록’을 누르세요.</div>'}

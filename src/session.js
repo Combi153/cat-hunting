@@ -42,8 +42,20 @@ function shuffled(list, random) {
   }
   return a;
 }
+// A saved seed reproduces desks, gestures and requests for a rematch.
+function examRandom(seed) {
+  let state = seed;
+  return () => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+export const hasDetail = (seat) => seat.notes.some((note) => note.key === 'clear' || note.key === 'proof');
+
 export class Exam {
-  constructor(random = Math.random) {
+  constructor(seed = Math.floor(Math.random() * 4294967296)) {
+    const random = typeof seed === 'function' ? seed : examRandom(seed);
+    this.seed = typeof seed === 'number' ? seed : null;
     this.duration = EXAM_DURATION;
     this.time = 0;
     this.over = false;
@@ -80,6 +92,15 @@ export class Exam {
     ordered.slice(0, count).forEach((s) => (s.guilty = true));
     const neutral = ordered.filter((s) => !s.guilty);
     this.requests = [this.newRequest(neutral[0], 'paper', 16), this.newRequest(neutral[1], 'curtain', 60)];
+    // Two similar gestures give the proctor a starting lead. A raised hand must never hide it.
+    const suspect = ordered[0];
+    const available = neutral.slice(2);
+    const lookalike = available.find((s) => s.kind === suspect.kind) ?? available[0];
+    lookalike.kind = suspect.kind;
+    this.pair = [suspect.id, lookalike.id].sort((a, b) => a - b);
+  }
+  pairCount() {
+    return this.pair.filter((id) => hasDetail(this.seat(id))).length;
   }
   newRequest(seat, type, start) {
     return {
@@ -207,6 +228,8 @@ export class Exam {
     const caught = cases.filter((s) => s.caught).length;
     return {
       mode: 'exam',
+      seed: this.seed,
+      pair: [...this.pair],
       date: Date.now(),
       caught,
       total: cases.length,

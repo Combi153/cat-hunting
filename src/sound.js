@@ -42,3 +42,11 @@ export function soundsForFrame(t, moving, quiet) {
     if (page > 0) tone(440, 0.045, 0.004, 0, 'triangle');
   }
 }
+
+export function pencilSound(completed) {
+  tone(470, 0.075, 0.026, 0, 'triangle');
+  if (completed) {
+    tone(660, 0.14, 0.035, 0.09);
+    tone(830, 0.22, 0.03, 0.19);
+  }
+}
