@@ -7,6 +7,7 @@ const lobby = $('#lobby'),
   play = $('#play'),
   overlay = $('#overlay'),
   canvas = $('#room');
+const desktopMap = matchMedia('(min-width: 900px) and (min-height: 541px)');
 const storageKey = 'nyangijapgi.v1';
 function load() {
   try {
@@ -42,6 +43,8 @@ let screen = 'home',
   room,
   exam,
   roundResult,
+  viewedReport,
+  retryScore,
   returnFromHelp = '',
   loading = false;
 let selectedSeat = 1,
@@ -73,6 +76,7 @@ function notice(message) {
   noticeTime = performance.now() + 3200;
 }
 function modal(name, content, closable = true) {
+  const focusedId = overlay.contains(document.activeElement) ? document.activeElement.id : '';
   const same = panel === name && !overlay.hidden,
     scroll = same ? (overlay.querySelector('.modal')?.scrollTop ?? 0) : 0;
   panel = name;
@@ -96,6 +100,7 @@ function modal(name, content, closable = true) {
     content +
     '</section>';
   overlay.querySelector('.modal').scrollTop = scroll;
+  if (same && focusedId) document.getElementById(focusedId)?.focus({ preventScroll: true });
   if (!same) overlay.querySelector('button,select,summary')?.focus({ preventScroll: true });
 }
 function dismiss() {
@@ -150,7 +155,7 @@ function openHistory() {
         : '<div class="empty">아직 마친 시험이 없습니다.</div>'),
   );
 }
-async function start() {
+async function start(retry) {
   if (loading) return;
   loading = true;
   const startBtn = $('.start-btn');
@@ -168,7 +173,9 @@ async function start() {
     put('#context', '');
     $('#play-header').innerHTML = ui.hudTop();
     if (!room) room = new Room(canvas);
-    exam = new Exam();
+    exam = new Exam(retry?.seed);
+    retryScore = retry?.score;
+    selectedSeat = exam.pair[0];
     room.resize();
     room.reset(exam);
     screen = 'running';
@@ -196,6 +203,7 @@ function finish() {
   screen = 'ended';
   room.resetInput();
   roundResult = exam.result();
+  if (Number.isFinite(retryScore)) roundResult.previousScore = retryScore;
   saved.history.unshift(roundResult);
   saved.history = saved.history.slice(0, 10);
   saved.best.exam = Math.max(Number(saved.best.exam) || 0, roundResult.score);
@@ -204,6 +212,7 @@ function finish() {
   showResult(roundResult);
 }
 function showResult(r) {
+  viewedReport = r;
   modal(
     'result',
     ui.result(r, Math.max(Number(saved.best[r.mode]) || 0, r.score), r === roundResult && screen === 'ended'),
@@ -243,6 +252,15 @@ function focusSeat(id) {
   room.focus = id;
   selectedSeat = id;
   room.resetInput();
+  updateHUD();
+}
+function walkToSeat(id) {
+  const seat = exam.seat(id);
+  if (!seat || seat.caught) return;
+  if (panel) dismiss();
+  room.focus = null;
+  if (room.side(seat)) room.selectSeat(id);
+  else if (!room.approachSeat(id)) notice('이동 패드로 옆 통로에 나와 주세요.');
   updateHUD();
 }
 function clueFor(s) {
@@ -367,14 +385,14 @@ function updateHUD() {
       const instruction = !r.ack ? '가서 요청 듣기' : station === 'desk' ? '새 답안지 받기' :
         station === 'window' ? '커튼 닫기' : '새 답안지를 학생에게 건네세요.';
       return `<button class="task-card ${r.late ? 'late' : ''}" ${station ? 'data-station="' + station + '"' : 'data-walk="' + r.id + '"'}
-        aria-label="${destination}(으)로 이동 · ${instruction}">
+        aria-label="${destination} 이동 · ${instruction}">
         <b>${ui.icon('hand', 14)} ${seatNo(r.id)}번 · ${r.ack ? ui.requestName(r) : '손을 든 학생'} <time data-deadline="${r.deadline}"></time></b>
         <small>${destination} · ${instruction} →</small></button>`;
     }).join(''),
   );
   for (const timer of $('#tasks').querySelectorAll('time')) {
     const seconds = Math.ceil(Number(timer.dataset.deadline) - exam.time);
-    const label = seconds > 0 ? seconds + '초' : '지연';
+    const label = seconds > 0 && !timer.closest('.late') ? seconds + '초' : '지연';
     if (timer.textContent !== label) timer.textContent = label;
   }
   const noisy = exam.seats.filter((s) => !s.caught && s.noise > 4.5).sort((a, b) => b.noise - a.noise)[0];
@@ -388,6 +406,7 @@ function updateHUD() {
       : '',
   );
   put('#handover', ui.handover(exam));
+  if (desktopMap.matches) put('#patrol-map', ui.patrolMap(exam, room.approach?.id ?? room.focus ?? room.pointedSeat));
   const s = exam.seat(room.focus);
   const observing = Boolean(s && !s.caught);
   play.classList.toggle('observing', observing);
@@ -509,6 +528,7 @@ function userAction(action) {
   if (action === 'home') return home();
   if (action === 'close') return close();
   if (action === 'again') return start();
+  if (action === 'retry' && panel === 'result' && Number.isInteger(viewedReport?.seed)) return start(viewedReport);
   if (action === 'report') {
     room.replay = null;
     screen = 'ended';
@@ -558,12 +578,7 @@ document.addEventListener('click', (e) => {
     if (!room.approachStation(b.dataset.station)) notice('이동 패드로 통로에 나와 주세요.');
     updateHUD();
   } else if (b.dataset.walk && screen === 'running') {
-    const id = Number(b.dataset.walk);
-    if (panel) dismiss();
-    room.focus = null;
-    if (room.side(exam.seat(id))) room.selectSeat(id);
-    else if (!room.approachSeat(id)) notice('이동 패드로 옆 통로에 나와 주세요.');
-    updateHUD();
+    walkToSeat(Number(b.dataset.walk));
   } else if (b.dataset.seat) openJournal(Number(b.dataset.seat));
   else if (b.dataset.history !== undefined) showResult(saved.history[Number(b.dataset.history)]);
   else if (b.dataset.replay) enterReplay(Number(b.dataset.replay));
@@ -619,6 +634,10 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (panel) return;
+  if ((e.code === 'Digit1' || e.code === 'Digit2') && !e.repeat) {
+    walkToSeat(exam.pair[e.code === 'Digit1' ? 0 : 1]);
+    return;
+  }
   if (moveKeys.has(e.code)) {
     e.preventDefault();
     room.keys.add(e.code);

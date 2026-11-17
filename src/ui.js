@@ -46,7 +46,7 @@ export function lobby(history, muted) {
       <button class="primary start-btn" data-action="start">${icon('play', 17)} 감독 시작 ${icon('arrow', 19)}</button>
       </div>
     </section>
-    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}터치 조작</h2><p>인계 메모의 자리 번호를 눌러 걸어가요. 오른쪽 A로 관찰하고, 두 학생의 다음 행동을 기록해 보세요.</p></div>
+    <section class="lobby-bottom"><div class="guide"><h2>${icon('hand')}첫 순회</h2><p>인계 메모의 자리 번호를 눌러 걸어가요. 오른쪽 A로 관찰하고, 두 학생의 다음 행동을 기록해 보세요.</p></div>
     <button class="record-link" data-action="history"><div><h2>${icon('book')}감독 일지</h2><small>${last ? '최근 ' + reportName(last) + ' · ' + last.score + '점' : '지난 시험 기록'}</small></div>${icon('arrow')}</button></section>
     </div>`;
 }
@@ -67,14 +67,31 @@ export const clueLabel = (key) => ({
 
 export function handover(exam) {
   const count = exam.pairCount();
+  const prompt = count < 2 ? sharedCues[exam.seat(exam.pair[0]).kind] + ' 다음 행동을 살펴보세요.' :
+    exam.pair.some((id) => exam.seat(id).caught) ? '두 자리를 확인했어요. 남은 자리를 순회하세요.' : '두 자리의 후속 행동을 일지에서 비교하세요.';
   const desks = exam.pair.map((id) => {
     const recorded = hasDetail(exam.seat(id));
     return `<button data-walk="${id}" aria-label="${id}번 자리로 이동"${exam.seat(id).caught ? ' disabled' : ''}>${icon(recorded ? 'check' : 'pin', 14)}${seatNo(id)}번</button>`;
   }).join('');
   return `<section class="memo ${count === 2 ? 'complete' : ''}" aria-label="인계 메모">
     <div class="memo-heading"><b>${icon('pencil', 14)} 인계 메모</b><small>${count === 2 ? '대조 완료' : '후속 기록'} · ${count}/2</small></div>
-    <p>${count === 2 ? '두 자리의 후속 행동을 일지에서 비교하세요.' : sharedCues[exam.seat(exam.pair[0]).kind] + ' 다음 행동을 살펴보세요.'}</p>
+    <p>${prompt}</p>
     <div class="memo-seats">${desks}</div></section>`;
+}
+
+// The front row is closest to the teacher's desk, as seen from the starting aisle.
+export function patrolMap(exam, current) {
+  const rows = [8, 4, 0];
+  const desks = rows.flatMap((start) => exam.seats.slice(start, start + 4)).map((s) => {
+    const state = s.caught ? '퇴실' : exam.requestFor(s.id) ? '요청' : hasDetail(s) ? '기록' : '';
+    return `<button data-walk="${s.id}" class="${current === s.id ? 'current' : ''}"
+      aria-label="${s.id}번 자리 ${state}" ${s.caught ? 'disabled' : ''}>
+      ${seatNo(s.id)}${state ? `<small>${state}</small>` : ''}</button>`;
+  }).join('');
+  return `<nav aria-label="순회 좌석표"><h2>${icon('seat', 16)} 순회 좌석표</h2>
+    <div class="floor-plan"><span class="window-side">창가</span><div class="desk-map">${desks}</div>
+    <span class="teacher-side">교탁</span></div></nav>
+    <p class="key-guide"><kbd>1</kbd><kbd>2</kbd> 메모 자리로 이동<br><kbd>E</kbd> 상호작용　<kbd>Tab</kbd> 일지</p>`;
 }
 
 export function help() {
@@ -83,7 +100,7 @@ export function help() {
   <p><b>관찰하고 기록하기</b><span>A 옆에 좌석 번호와 행동이 떠요. ‘관찰하기’에서 A를 누르면 손동작이 크게 보이고, ‘행동 기록’에서 누르면 그 순간이 일지에 남아요.</span></p>
   <p><b>근거로 지목하기</b><span>같은 행동을 기록하고 나면 A로 일지를 열 수 있어요. 근거와 의심 유형을 골라 제출해요. 오인 지목은 20점 감점돼요.</span></p>
   <p><b>요청 처리하기</b><span>손을 든 학생 곁에서 A로 요청을 들어요. 교탁에서 답안지를 챙길 때, 학생에게 건넬 때, 창가에서 커튼을 닫을 때도 A를 눌러요.</span></p></div>
-  <details><summary>키보드와 마우스 조작</summary><p>WASD·방향키로 이동하고 드래그 또는 Q/R로 둘러봅니다. Shift는 조용히 걷기, E는 상호작용, F는 기록, Tab은 일지, Esc는 닫기·일시정지입니다.</p></details>
+  <details><summary>키보드와 마우스 조작</summary><p>WASD·방향키로 이동하고 드래그 또는 Q/R로 둘러봅니다. 1·2는 메모의 첫째·둘째 자리로 이동, Shift는 조용히 걷기, E는 상호작용, F는 기록, Tab은 일지, Esc는 닫기·일시정지입니다.</p></details>
   <button class="primary wide" data-action="close">확인</button>`;
 }
 export function journal(e, id, type, note) {
@@ -112,8 +129,26 @@ export function journal(e, id, type, note) {
   ${e.complaints.length ? `<details><summary>접수 민원 ${e.complaints.length}건</summary>${e.complaints.map((c) => `<p>${seatNo(c.id)}번 · ${c.text} ${c.resolved ? '(조치 완료)' : ''}</p>`).join('')}</details>` : ''}`;
 }
 export function result(r, best, canReplay) {
+  const pair = (r.pair ?? []).map((id) => r.seats.find((s) => s.id === id)).filter(Boolean);
+  const completed = pair.filter(hasDetail).length;
+  const missed = r.total - r.caught;
+  const delta = r.score - r.previousScore;
+  const comparison = Number.isFinite(r.previousScore)
+    ? `<p class="comparison">같은 배치 ${r.previousScore}점 → ${r.score}점 <b>${delta === 0 ? '동점' : (delta > 0 ? '+' : '−') + Math.abs(delta) + '점'}</b></p>` : '';
+  const deductions = [
+    missed && '미적발 −' + missed * 15 + '점',
+    r.falseCalls && '오인 −' + r.falseCalls * 20 + '점',
+    r.complaints.length && '민원 −' + r.complaints.length * 8 + '점',
+  ].filter(Boolean);
+  const pairReview = pair.length === 2 ? `<section class="pair-review">
+    <div class="memo-heading"><b>${icon('pencil', 16)} 인계 메모 복기</b><strong class="ink-stamp">${completed === 2 ? '대조 완료' : '후속 기록 ' + completed + '/2'}</strong></div>
+    <p>${sharedCues[pair[0].kind]}</p>
+    ${pair.map((s) => `<div class="review-entry"><b>${seatNo(s.id)}번</b><div><small>${hasDetail(s) ? '내가 기록한 장면' : '놓친 장면'}</small><p>${TYPES[s.kind][s.guilty ? 'proof' : 'clear']}</p></div></div>`).join('')}
+    </section>` : '';
   return `<div class="eyebrow">1교시 국어 · ${reportName(r)} 종료</div><h2>시험 종료 보고서</h2>
     <div class="score"><strong>${r.score}<small>점</small></strong><span>나의 최고 기록 <b>${best}점</b></span></div>
+    ${comparison}
+    <p class="deductions">${deductions.join(' · ') || '감점 없이 시험을 마쳤어요.'}</p>
     <div class="stats">${[
       ['적발', r.caught + '/' + r.total],
       ['오인', r.falseCalls + '건'],
@@ -122,8 +157,11 @@ export function result(r, best, canReplay) {
     ]
       .map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`)
       .join('')}</div>
+    ${pairReview}
+    <div class="report-actions">
+    ${Number.isInteger(r.seed) ? `<button class="primary" data-action="retry">같은 배치 재도전 ${icon('arrow', 16)}</button>` : ''}<button class="secondary" data-action="again">새 시험 시작</button></div>
     <h3>좌석별 복기</h3><div class="review-list">${r.seats.map((s) => `<details><summary><span>${seatNo(s.id)}번 좌석</span><b>${s.caught ? '적발' : s.guilty ? '미적발' : '정상'}</b></summary><p>${TYPES[s.kind].cue}<br>${TYPES[s.kind][s.guilty ? 'proof' : 'clear']}</p><p class="fine">${s.lastAction ? clock(s.lastAction.t) + ' · ' + s.lastAction.text : '지목 기록 없음'} · 관찰 기록 ${s.notes.length}건</p>${canReplay ? `<button class="pill" data-replay="${s.id}">${icon('eye', 15)} 행동 다시 보기</button>` : ''}</details>`).join('')}</div>
     ${r.complaints.length ? `<details><summary>민원 ${r.complaints.length}건</summary>${r.complaints.map((c) => `<p>${seatNo(c.id)}번 · ${c.text} ${c.resolved ? '(조치 완료)' : '(미조치)'}</p>`).join('')}</details>` : ''}
     ${r.log.length ? `<details><summary>시간순 감독 일지</summary>${r.log.map((l) => `<p>${clock(l.t)} · ${l.text}</p>`).join('')}</details>` : ''}
-    <div class="modal-actions"><button class="secondary" data-action="home">처음으로</button><button class="primary" data-action="again">다시 감독하기 ${icon('arrow', 16)}</button></div>`;
+    <div class="modal-actions"><button class="secondary" data-action="home">처음으로</button></div>`;
 }

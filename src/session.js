@@ -92,6 +92,12 @@ export class Exam {
     ordered.slice(0, count).forEach((s) => (s.guilty = true));
     const neutral = ordered.filter((s) => !s.guilty);
     this.requests = [this.newRequest(neutral[0], 'paper', 16), this.newRequest(neutral[1], 'curtain', 60)];
+    for (let row = 1; row < zs.length; row++) {
+      const rowKinds = shuffled(kinds, random);
+      this.seats.slice(row * xs.length, (row + 1) * xs.length).forEach((seat, col) => {
+        seat.kind = rowKinds[col];
+      });
+    }
     // Two similar gestures give the proctor a starting lead. A raised hand must never hide it.
     const suspect = ordered[0];
     const available = neutral.slice(2);
