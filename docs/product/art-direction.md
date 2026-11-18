@@ -1,0 +1,36 @@
+# 아트와 행동 표현
+
+상태: 현재 기준 · 코드 기준: `6c613d0` · 정리일: 2026-11-18
+
+[문서 홈](../README.md) · [게임 기획](game-design.md) · [화면 검증](../quality/current-review.md)
+
+## 방향
+
+점토처럼 둥글고 부드러운 교실·학생을 유지한다. 모바일에서는 학생의 얼굴과 손이 주인공이다. 큰 번호표, 떠 있는 민원 카드, 강한 기기 발광으로 화면을 덮거나 정답을 알려주지 않는다. 색상 하나보다 물건의 내용과 쓰임을 관찰하게 한다.
+
+| 표현 | 현재 기준 |
+| --- | --- |
+| 감독관 | 교탁 뒤에서 학생들을 바라보는 뒷모습. 몸의 방향·발걸음과 이동 경로를 연결하고 상호작용 뒤 복귀 |
+| 학생 | 필기·휴식·소매 정리·손목 풀기·목 스트레칭·지문 재독을 섞음. 정상 학생과 범인 모두 일상 행동을 함 |
+| 오인 | 처음의 짧은 흐느낌, 눈물과 울상이 시험 내내 남음. 이후 필기 계속 |
+| 커튼 | 창가 이동, 팔 뻗기, 천이 닫히는 중간 과정, 도움 완료 순서가 보임 |
+| 문구 | ‘하트 -1’ 같은 수치 통보 대신 학생의 말과 상황을 전달 |
+| 화면 | 눈 깜빡임에 따른 암전 없음. 손에 든 물건을 확대 화면에서 판단 |
+
+## 새 에셋 제작과 검토
+
+
+별도 에이전트가 시계·펜 소품과 네 가지 일상 행동을 제작했다. 통합 담당자가 3D 미리보기와 390px·320px 실제 게임 화면을 검토했다. 첫 시안에서는 시계의 정상·부정행위 팔 자세가 달라 몸짓만으로 판정할 수 있었고, 펜의 표시부는 손에 가려졌다. 자세 통일, 손목을 감싸는 밴드, 표시부 위치 조정을 거쳐 반영했다. 소매를 잡는 손, 손목을 푸는 동작, 목에 가져간 손, 지문을 따라가는 손과 필기 복귀도 확인했다.
+
+스마트 안경·시계·초소형 카메라·카메라 내장 필기구는 [2026년 11월 17일 국내 공식 담화](https://www.korea.kr/briefing/policyBriefingView.do?newsId=156789631)에서 대응 대상으로 언급된다. [Ofqual의 2026년 6월 발표](https://www.gov.uk/government/news/cheating-in-exams-with-high-tech-smart-devices-poses-growing-threat-warns-ofqual-chief-in-new-podcast)도 스마트 안경·시계·숨겨진 이어폰의 위험을 다룬다. 따라서 소재의 시의성은 적절하다고 판단했다. 펜의 미리보기 줄무늬와 시계의 답 목록은 작은 화면에서 판단 가능하도록 각색한 게임 표현이며 특정 실제 제품의 복제는 아니다. 실제 수능의 기기 소지 규정과 이 게임의 관찰 판정은 별개다.
+
+
+## 구현과 자료 위치
+
+- 학생·감독관·소품·애니메이션: [characters.js](../../src/art/characters.js)
+- 교실·커튼: [classroom.js](../../src/art/classroom.js), 책상 기준 높이: [dimensions.js](../../src/art/dimensions.js)
+- 표지와 공유 대표 이미지: [exam-keyart.jpg](../../public/art/exam-keyart.jpg). 표지는 게임용 일러스트이며 실시간 플레이 화면은 아니다.
+- 실제 플레이 캡처: [시계](../playtest/45-second/proof-watch.png), [일반 시계](../playtest/45-second/clear-watch.png), [펜](../playtest/45-second/proof-pen.png), [일반 펜](../playtest/45-second/clear-pen.png), [소매 정리](../playtest/45-second/sleeve-adjust.png), [손목 풀기](../playtest/45-second/wrist-rest.png), [목 스트레칭](../playtest/45-second/neck-stretch.png), [재독](../playtest/45-second/reread.png)
+- Jua 글꼴 라이선스: [OFL](../../public/fonts/OFL-Jua.txt)
+
+다음 에셋도 정상·부정행위 대응물을 함께 비교한다. 동일한 자세에서 단서만 달라지는지, 손이 단서를 덮지 않는지, 책상을 관통하지 않는지, 일반 필기로 복귀할 때 소품이 남지 않는지 확인한다. 새 소재의 실제성을 주장할 때는 확인 날짜와 출처를 남기고 게임적 각색을 구분한다.
