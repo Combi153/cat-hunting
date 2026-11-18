@@ -26,7 +26,7 @@ function save() {
 let room, exam;
 let screen = 'home', loading = false, paused = false;
 let previous = performance.now(), renderedAt = 0, toastUntil = 0;
-let seen = new Set(), previousFocus = null, touchStart = null;
+let previousFocus = null, touchStart = null;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
 function put(selector, content) {
   const element = $(selector);
@@ -92,7 +92,6 @@ async function start() {
     if (!room) room = new Room($('#room'));
     room.resize();
     room.reset(exam);
-    seen = new Set();
     paused = false;
     screen = 'running';
     $('#notice').textContent = '';
@@ -111,7 +110,6 @@ async function start() {
 }
 function select(id) {
   if (screen !== 'running' || paused || exam.seat(id)?.caught) return;
-  seen.add(id);
   room.select(id);
   render();
 }
@@ -135,6 +133,7 @@ function finish() {
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
   $('#ending').innerHTML = ui.ending(result);
   $('#ending').hidden = false;
+  $('#ending [data-action=start]').focus({ preventScroll: true });
   $('#notice').textContent = '';
   if (!saved.muted) finale(result.reason === 'win');
 }
@@ -156,7 +155,7 @@ function render() {
     const request = exam.requestFor(seat.id);
     return '<button data-seat="' + seat.id + '" aria-label="' + seatNo(seat.id) + '번 학생 관찰" ' +
       (seat.caught ? 'disabled' : '') + ' class="' + (seat.caught ? 'caught' : '') + '">' +
-      seatNo(seat.id) + (seat.caught ? ' ✓' : request ? ' ✋' : seen.has(seat.id) ? ' ·' : '') + '</button>';
+      seatNo(seat.id) + (seat.caught ? ' ✓' : request ? ' ✋' : '') + '</button>';
   }).join(''));
   put('#tasks', exam.liveRequests().map((request) =>
     '<button data-seat="' + request.id + '" class="request ' + (request.late ? 'late' : '') + '">' +

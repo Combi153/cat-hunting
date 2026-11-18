@@ -502,8 +502,8 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   } else if (pose === 'camera' || pose === 'proof-camera' || pose === 'clear-camera') {
     re.set(0.29, 0.15, 0.3);
     rw.set(0.19, 0.31, 0.54);
-    r.props.camera.visible = pose === 'proof-camera';
-    r.props.eraser.visible = pose === 'camera' || pose === 'clear-camera';
+    r.props.camera.visible = pose === 'proof-camera' || pose === 'camera';
+    r.props.eraser.visible = pose === 'clear-camera';
   } else if (pose === 'note' || pose === 'proof-note' || pose === 'clear-note') {
     re.set(0.29, 0.13, 0.23);
     rw.set(0.15, 0.31, 0.51);

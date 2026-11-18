@@ -9,6 +9,7 @@ test('90-second exams seed three culprits and two innocent requests reproducibly
     const exam = new Exam(seed);
     assert.equal(exam.seats.length, 8);
     assert.equal(exam.seats.filter((seat) => seat.guilty).length, 3);
+    assert.equal(new Set(exam.seats.filter((seat) => seat.guilty).map((seat) => seat.kind)).size, 3);
     assert.ok(exam.requests.every((request) => !exam.seat(request.id).guilty));
     assert.deepEqual(new Exam(seed).seats, exam.seats);
     assert.deepEqual(new Exam(seed).requests, exam.requests);
@@ -36,7 +37,7 @@ test('normal students mostly write, never display a cheating prop, and each culp
       if (!seat.guilty) assert.ok(writing / 180 >= 0.8);
       else {
         assert.ok(proofs >= 24);
-        assert.ok(firstProof <= 55 && lastProof >= 65);
+        assert.ok(firstProof <= 55 && lastProof >= 89);
       }
     }
   }

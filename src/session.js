@@ -1,24 +1,28 @@
 export const TYPES = {
   glasses: {
     name: 'AI 안경',
+    taunt: '히히… 안경 속 정답을 못 봤지?',
     cue: '안경다리를 잡고 렌즈를 들여다봤다.',
     proof: '벗어 든 안경 안쪽에 문항 번호가 바뀌는 화면이 보였다.',
     clear: '고개가 움직이자 렌즈의 창틀 반사도 함께 움직였다.',
   },
   ear: {
     name: '초소형 이어폰',
+    taunt: '히히… 정답이 귀에 쏙쏙!',
     cue: '한쪽 귀에 손을 가져갔다.',
-    proof: '귀에서 꺼낸 이어폰을 열린 충전 케이스에 넣었다.',
+    proof: '귀에서 꺼낸 이어폰 옆에 열린 충전 케이스가 보인다.',
     clear: '손으로 머리카락을 귀 뒤로 넘기고 다시 필기했다.',
   },
   camera: {
     name: '소형 카메라',
+    taunt: '히히… 시험지 사진은 내 거!',
     cue: '작은 물건을 시험지 가까이 가져갔다.',
     proof: '물건 뒷면 화면에 방금 찍은 시험지 사진이 떠 있었다.',
     clear: '지우개로 연필 밑줄을 지우고 가루를 털어냈다.',
   },
   note: {
     name: '쪽지',
+    taunt: '히히… 쪽지 덕에 다 풀었지!',
     cue: '접힌 종이를 주워 펼쳤다.',
     proof: '펼친 종이의 문항별 답을 보고 답안지에 옮겼다.',
     clear: '수험번호와 사진이 있는 수험표를 책상에 다시 놓았다.',
@@ -77,9 +81,11 @@ export class Exam {
       offset: random() * 8,
     })));
     // Spread three different leads over the room without identifying suspects in the UI.
+    const devices = shuffled(Object.keys(TYPES), random);
     for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, 3).entries()) {
       const culprit = this.seats[row * 2 + Math.floor(random() * 2)];
       culprit.guilty = true;
+      culprit.kind = devices[wave];
       culprit.first = [5, 25, 49][wave] + random() * 3;
     }
     const normal = shuffled(this.seats.filter((seat) => !seat.guilty), random);
@@ -96,6 +102,8 @@ export class Exam {
     if (seat.caught) return { pose: 'exit', text: '부정행위를 확인해 퇴실했다.' };
     if (this.requestFor(seat.id)) return { pose: 'hand', text: '손을 들고 감독관의 도움을 기다리고 있다.' };
     if (seat.guilty && this.time >= seat.first) {
+      // A final attempt before the bell gives a missed late-game clue one more readable window.
+      if (this.time >= this.duration - 10) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
       const phase = (this.time - seat.first) % seat.period;
       if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
       if (phase < 8) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };

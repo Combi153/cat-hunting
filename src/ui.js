@@ -74,7 +74,7 @@ export function ending(result) {
   const explanation = win ? '부정행위자 세 명 모두 적발. 시험이 무사히 끝났어요.' :
     result.reason === 'health' ? '오인과 민원으로 생명이 모두 닳았어요.' : '종이 울렸어요. 부정행위자가 끝까지 남아 있었어요.';
   return `<div class="ending-title"><p class="eyebrow">${win ? '감독 성공' : '감독 실패'}</p><h1>${title}</h1></div>
-    <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “히히… ' + TYPES[villain.kind].name + '를 못 봤네?”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
+    <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
     <p>${explanation}</p>
     <div class="end-stats"><span>적발 <b>${result.caught}/3</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
     ${villain ? `<details><summary>놓친 단서 보기</summary>${result.missed.map((seat) => `<p><b>${seatNo(seat.id)}번</b> ${TYPES[seat.kind].proof}</p>`).join('')}</details>` : ''}
