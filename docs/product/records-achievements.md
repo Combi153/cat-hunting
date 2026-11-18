@@ -1,6 +1,6 @@
 # 기록실 (기록과 업적) 설계
 
-상태: 구현 · 2026-11-18 · 기준 `main` 8327652 · 브랜치 `feature/records-achievements`
+상태: 구현 · 2026-11-18 · 기준 `main` c1c5b33 · 브랜치 `feature/records-achievements`
 
 [목업](../mockups/records-achievements/index.html) · [현재 게임 기획](game-design.md)
 
