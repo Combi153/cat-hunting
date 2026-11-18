@@ -44,6 +44,16 @@ export function hearts(health) {
     '</span>'
   );
 }
+// Local mock creative only: no ad network, tracking, or outbound destination.
+function adPreview() {
+  return `<aside class="ad-preview" aria-label="임시 광고 배너 미리보기">
+    <p class="ad-preview-label">광고 · 미리보기</p>
+    <div class="ad-preview-creative" role="img" aria-label="가상 광고: 냥이네 쉼터. 감독 끝! 커피 한 잔 어때요?">
+      <img src="/art/cafe-ad-preview.jpg" alt="" width="900" height="300" decoding="async">
+      <span class="ad-preview-copy" aria-hidden="true"><strong>냥이네 쉼터</strong><span>감독 끝! 커피 한 잔 어때요?</span></span>
+    </div>
+  </aside>`;
+}
 export function lobby(saved, selected = 1) {
   const wins = saved.history.filter((round) => round.reason === 'win').length;
   return `<div class="lobby-wrap">
@@ -58,6 +68,7 @@ export function lobby(saved, selected = 1) {
     ${saved.completed ? '<p class="campaign-clear">다섯 번의 시험을 모두 지켜냈어요. 원하는 단계를 다시 즐겨보세요.</p>' : ''}
     <button class="primary start-btn" data-action="start">${selected}단계 감독 시작 ${icon('arrow')}</button>
     ${saved.history.length ? `<p class="last-round">최근 ${saved.history.length}판 중 ${wins}번 성공 · 이번엔 새로운 배치예요.</p>` : ''}
+    ${adPreview()}
     </section></div>`;
 }
 export function hud(stage = 1) {
@@ -108,6 +119,6 @@ export function ending(result) {
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
 
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다섯 시험 돌아보기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
-    <button class="text-btn" data-action="home">처음으로</button></div>
+    <button class="text-btn" data-action="home">처음으로</button>${adPreview()}</div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }

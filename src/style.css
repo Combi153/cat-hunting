@@ -196,6 +196,55 @@ h2 {
   text-align: center;
   color: var(--muted);
 }
+.ad-preview {
+  width: min(100%, 320px);
+  margin: 20px auto 0;
+  text-align: left;
+}
+.ad-preview-label {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+.ad-preview-creative {
+  position: relative;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #ffe5a0;
+  box-shadow: inset 0 0 0 1px #9d74351a;
+}
+.ad-preview-creative img {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: auto;
+  mask-image: linear-gradient(to right, transparent, #000 25%);
+}
+.ad-preview-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+  padding: 0 10px;
+  color: #574128;
+}
+.ad-preview-copy strong {
+  font: 17px/1 var(--round);
+}
+.ad-preview-copy > span {
+  font-size: 10px;
+  line-height: 1.2;
+}
+.ending-bottom .ad-preview {
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
 #play {
   position: absolute;
   inset: 0;
@@ -414,6 +463,10 @@ h2 {
   color: #894d39;
 }
 .ending-bottom {
+  flex-shrink: 0;
+  max-height: 75%;
+  overflow-y: auto;
+  touch-action: pan-y;
   padding: 16px 20px max(8px, env(safe-area-inset-bottom));
   background: #fffdf3f5;
   border-radius: 25px 25px 0 0;
@@ -576,6 +629,7 @@ h2 {
     top: 0;
     bottom: 0;
     width: 45%;
+    max-height: none;
     border-radius: 0;
     overflow: auto;
     padding: 16px;
