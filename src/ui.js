@@ -67,7 +67,7 @@ export function inspection(exam, id, busy = '') {
   if (!seat)
     return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 다가가세요. 손을 든 학생도 살펴주세요.</p></div>`;
   if (busy)
-    return `<div class="inspection-heading"><button class="back" data-action="overview" ${busy === 'helping' ? 'disabled' : ''}>‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>이동 중</span></div><p class="clue" aria-live="polite"></p><p class="decision-hint">${busy === 'helping' ? '잠시만 기다려 주세요.' : '학생 곁에 도착하면 자세히 살펴볼 수 있어요.'}</p>`;
+    return `<div class="inspection-heading"><button class="back" data-action="overview" ${busy === 'helping' ? 'disabled' : ''}>‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${busy === 'helping' ? '돕는 중' : '이동 중'}</span></div><p class="clue" aria-live="polite"></p><p class="decision-hint">${busy === 'helping' ? '잠시만 기다려 주세요.' : '학생 곁에 도착하면 자세히 살펴볼 수 있어요.'}</p>`;
   const request = exam.requestFor(id);
 
   return `<div class="inspection-heading"><button class="back" data-action="overview" aria-label="교실로 돌아가기">‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${seat.caught ? '적발 완료' : seat.cleared ? '오해였어요' : '관찰 중'}</span></div>

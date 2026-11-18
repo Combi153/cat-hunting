@@ -395,7 +395,6 @@ h2 {
 }
 .ended #play-header,
 .ended #controls,
-.ended #tasks,
 .ended #seat-targets {
   display: none;
 }

@@ -173,7 +173,9 @@ function render() {
     const speech = room.busy
       ? room.action
         ? room.action.request.type === 'curtain'
-          ? '눈부시지 않게 커튼을 닫으러 가요.'
+          ? room.path.length
+            ? '눈부시지 않게 커튼을 닫으러 가요.'
+            : '햇빛을 가리도록 커튼을 닫고 있어요.'
           : '새 답안지를 건네고 있어요.'
         : '학생에게 다가가고 있어요.'
       : request

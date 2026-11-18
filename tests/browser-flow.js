@@ -57,8 +57,10 @@ try {
   };
   const inspect = async (id) => {
     if (await page.locator('[data-action=overview]').count()) await tap('[data-action=overview]');
-    await advance(650);
+    await advance(1100);
     await tap('#seat-targets [data-seat="' + id + '"]');
+    for (let i = 0; i < 30 && !(await page.locator('[data-action=report], [data-action=serve]').count()); i++)
+      await advance(250);
     await advance(700);
     assert.match(
       await page.locator('.inspection-heading h2').innerText(),
@@ -69,8 +71,10 @@ try {
 
   await start();
   assert.equal(await page.locator('#time').textContent(), '01:30');
-  assert.equal(await page.locator('#seat-targets button').count(), 8);
+  assert.equal(await page.locator('#seat-targets button').count(), 12);
   assert.equal(await page.locator('select, #stick, [data-action=journal]').count(), 0);
+  assert.equal(await page.locator('#caught, #tasks').count(), 0);
+  assert.equal(await page.locator('#seat-targets').innerText(), '');
   const fixture = new Exam(42);
   const normal = fixture.seats.filter((seat) => !seat.guilty);
   await inspect(normal[0].id);
@@ -92,6 +96,9 @@ try {
     selectedBeforeSwipe,
   );
   await inspect(normal[0].id);
+  await page.locator('#room').tap({ position: { x: 100, y: 100 } });
+  assert.equal(await page.locator('[data-action=report]').count(), 0);
+  await inspect(normal[0].id);
   const before = await page.locator('#time').textContent();
   await tap('[data-action=pause]');
   await advance(12000);
@@ -99,7 +106,7 @@ try {
   await tap('[data-action=resume]');
   await tap('[data-action=report]');
   assert.equal(await health(), '생명 2개');
-  assert.match(await page.locator('#notice').innerText(), /정상 학생/);
+  assert.match(await page.locator('#notice').innerText(), /잘못 짚었어요/);
   assert.ok(await page.locator('[data-action=report]').isDisabled());
   for (const student of normal.slice(1, 3)) {
     await inspect(student.id);
@@ -109,7 +116,11 @@ try {
   assert.match(await page.locator('.ending-title').innerText(), /감독 실패/);
   assert.match(await page.locator('.ending-line').innerText(), /히히/);
   assert.equal(await page.locator('.score').count(), 0);
-  await page.screenshot({ path: 'test-results/mobile-health-defeat.png' });
+  await page.screenshot({
+    timeout: 30000,
+    animations: 'disabled',
+    path: 'test-results/mobile-health-defeat.png',
+  });
   assert.deepEqual(await page.evaluate(() => window.playedTones), []);
   const history = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')).history);
   assert.equal(history[0].health, 0);
@@ -132,7 +143,11 @@ try {
   assert.notEqual(missed.seed, 42);
   await page.setViewportSize({ width: 320, height: 568 });
   await advance(1000);
-  await page.screenshot({ path: 'test-results/mobile-missed-defeat.png' });
+  await page.screenshot({
+    timeout: 30000,
+    animations: 'disabled',
+    path: 'test-results/mobile-missed-defeat.png',
+  });
 
   await start();
   // New rounds start at the fixture seed; the production entry point excludes the last layout.
@@ -167,18 +182,23 @@ try {
   // All culprits are caught, but the proctor must survive until the final bell.
   assert.ok(await page.locator('#ending').isHidden());
   for (const request of success.requests) {
-    for (let i = 0; i < 120 && !(await page.locator('#tasks [data-seat="' + request.id + '"]').count()); i++)
+    for (let i = 0; i < 180; i++) {
+      const [minutes, seconds] = (await page.locator('#time').textContent()).split(':').map(Number);
+      if (90 - minutes * 60 - seconds >= request.start + 1) break;
+      assert.ok(await page.locator('#ending').isHidden(), 'Exam ended before the requested help');
       await advance(500);
-    await tap('#tasks [data-seat="' + request.id + '"]');
-    await advance(500);
+    }
+    await inspect(request.id);
     await tap('[data-action=serve]');
+    for (let i = 0; i < 40 && !(await page.locator('#notice').innerText()).includes('고맙습니다'); i++)
+      await advance(250);
     assert.match(await page.locator('#notice').innerText(), /고맙습니다/);
   }
   await advance(91000);
   await advance(1000);
   assert.match(await page.locator('.ending-title').innerText(), /감독 성공/);
   assert.equal(await page.locator('.confetti i').count(), 24);
-  await page.screenshot({ path: 'test-results/mobile-victory.png' });
+  await page.screenshot({ timeout: 30000, animations: 'disabled', path: 'test-results/mobile-victory.png' });
   const win = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')).history[0]);
   assert.equal(win.reason, 'win');
   assert.equal(win.caught, 3);

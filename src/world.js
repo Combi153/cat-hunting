@@ -63,7 +63,6 @@ export class Room {
     });
     this.focus = null;
     this.ending = null;
-    this.curtain = false;
     this.path = [];
     this.action = null;
     this.curtainProgress = 0;
