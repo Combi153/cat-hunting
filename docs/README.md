@@ -31,6 +31,7 @@
 | 문서 | 답하는 질문 | 성격 |
 | --- | --- | --- |
 | [현재 게임 기획](product/game-design.md) | 지금 어떻게 플레이하고 어떤 규칙인가? | 현재 사양 |
+| [기록실 설계](product/records-achievements.md) | 기록·업적은 무엇을 세고 언제 열리나? | 현재 사양·목업 |
 | [아트와 행동 표현](product/art-direction.md) | 어떤 느낌과 동작을 유지하며 새 소품은 왜 이렇게 만들었나? | 현재 방향·제작 검토 |
 | [대화와 결정 이력](decisions/conversation-log.md) | 사용자가 무엇을 원했고, 왜 바뀌었나? | 요청·결정 기록 |
 | [개발 안내](engineering/development.md) | 어디를 고치고 어떻게 실행·검증하나? | 개발 절차 |

@@ -4,6 +4,17 @@
 
 [문서 홈](../README.md) · [검증 실행법](../engineering/development.md) · [미검증 항목](open-questions.md)
 
+## 기록실 — 기록과 업적 (2026-11-18)
+
+기준: `8327652`(main) 위의 `feature/records-achievements` 작업 트리. Vite `127.0.0.1:5197`, 설치된 Chrome·Edge와 Playwright 터치 에뮬레이션. 개발 모드로 운영 분석은 수집하지 않았다.
+
+- `npm test` 40개(기록·업적 12개, 결과 필드 1개 추가), `npm run build` 통과. 기존 Three.js 청크 크기 경고 유지.
+- 새 `test:records`: 고정 배치 4단계에서 범인을 모두 신고하고 두 요청을 놓쳐 생명 1개로 통과 → 결과의 ‘새 업적 · 아슬아슬’ 한 줄, 320×568에서 다음 단계 버튼이 화면 안, 기존 v2 기록 형태 유지, 트로피 점 → 업적 탭 NEW 1회 → 새로고침 후 점 없음·획득 유지, 320×568·568×320·1167×813의 가로 넘침 없음을 확인했다. 캡처를 직접 검토해 320px 결과에서 업적 이름이 두 줄로 꺾이는 것을 발견하고 한 줄 + 말줄임으로 고쳤다.
+- `test:campaign`, `test:share`(Edge), `test:review`(Chrome) 통과.
+- `test:browser`는 Chrome·Edge 모두 `#seat-targets [data-seat="1"]` 대기에서 시간 초과로 실패했다. 이 변경을 빼고 원래 `8327652`(origin/main)만 띄워도 같은 곳에서 실패해, 이번 기능과 무관한 기존 문제로 보고 고치지 않았다.
+- 실기기·외부 플레이어의 업적 난이도 체감은 미검증이다([미검증 항목](open-questions.md)).
+
+[목업](../mockups/records-achievements/index.html) · [첫 화면 점](../playtest/records-achievements/lobby-390.png) · [기록 탭](../playtest/records-achievements/stats-390.png) · [업적 탭](../playtest/records-achievements/badges-390.png) · [결과](../playtest/records-achievements/result-390.png) · [작은 결과](../playtest/records-achievements/result-320.png) · [가로](../playtest/records-achievements/badges-568.png) · [노트북](../playtest/records-achievements/badges-1167.png)
 ## 링크 미리보기 소개 변경 (2026-11-18)
 
 기준: `8327652`에 승인된 소개 문구를 적용한 작업 트리. 일반 페이지 설명·Open Graph·X 소개 세 곳을 동일하게 변경했다.

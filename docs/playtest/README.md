@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [records-achievements/](records-achievements/) | 2026-11-18 기록실(기록·업적 탭)·결과의 새 업적 한 줄·트로피 점. `8327652` 위 작업 트리, Chrome 390×844·320×568·568×320·1167×813, 고정 배치·제어된 시계로 4단계 아슬아슬 획득 | [검증 기록](../quality/current-review.md#기록실--기록과-업적-2026-11-18) |
 | [button-cleanup/](button-cleanup/) | 2026-11-18 작은 링크 복사 제거·정지 메뉴의 그만두기 버튼. `3517f67`에 변경, Chrome 작은 세로·가로·노트북, 무작위 배치·제어된 시계 | [검증 기록](../quality/current-review.md#결과일시정지-버튼-정리-2026-11-18) |
 | [portrait-desktop/](portrait-desktop/) | 2026-11-18 중앙 9:16 데스크톱·하단 조작과 시험 표시 구도. `91fae2d`에 변경한 작업 트리, Chrome·제어된 시계. 데스크톱은 무작위 1단계, 작은 세로·가로는 고정 배치 회귀 | [검증 기록](../quality/current-review.md#데스크톱-세로-화면과-시험-표시-구도-2026-11-18) |
 | [promotion-label/](promotion-label/) | 2026-11-18 학원 배너 홍보 표기. `b55f6bc`에 문구 변경만 적용, Chrome 작은 세로·가로·노트북, 무작위 1단계·제어된 시계 | [검증 기록](../quality/current-review.md#학원-배너-홍보-표시-2026-11-18) |
