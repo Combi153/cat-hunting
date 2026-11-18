@@ -20,9 +20,14 @@ test('normal students mostly write, never display a cheating prop, and each culp
   for (let seed = 0; seed < 80; seed++) {
     const exam = new Exam(seed);
     // Service time is excluded from normal body-language sampling.
-    exam.requests.forEach((request) => { request.done = true; });
+    exam.requests.forEach((request) => {
+      request.done = true;
+    });
     for (const seat of exam.seats) {
-      let writing = 0, proofs = 0, firstProof = Infinity, lastProof = 0;
+      let writing = 0,
+        proofs = 0,
+        firstProof = Infinity,
+        lastProof = 0;
       for (let time = 0; time < 90; time += 0.5) {
         exam.time = time;
         const behavior = exam.behavior(seat);
@@ -114,6 +119,9 @@ test('survival requires both lasting 90 seconds and catching everyone', () => {
 
   const exhausted = new Exam(23);
   exhausted.seats.filter((seat) => seat.guilty).forEach((seat) => exhausted.report(seat.id));
-  exhausted.seats.filter((seat) => !seat.guilty).slice(0, 3).forEach((seat) => exhausted.report(seat.id));
+  exhausted.seats
+    .filter((seat) => !seat.guilty)
+    .slice(0, 3)
+    .forEach((seat) => exhausted.report(seat.id));
   assert.equal(exhausted.reason, 'health');
 });

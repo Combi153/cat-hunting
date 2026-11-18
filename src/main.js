@@ -21,12 +21,21 @@ function load() {
 }
 const saved = load();
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch { /* Play works without storage. */ }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+  } catch {
+    /* Play works without storage. */
+  }
 }
 let room, exam;
-let screen = 'home', loading = false, paused = false;
-let previous = performance.now(), renderedAt = 0, toastUntil = 0;
-let previousFocus = null, touchStart = null;
+let screen = 'home',
+  loading = false,
+  paused = false;
+let previous = performance.now(),
+  renderedAt = 0,
+  toastUntil = 0;
+let previousFocus = null,
+  touchStart = null;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
 function put(selector, content) {
   const element = $(selector);
@@ -53,15 +62,20 @@ function modal(content) {
   previousFocus = document.activeElement;
   paused = true;
   $('#overlay').hidden = false;
-  $('#overlay').innerHTML = '<section class="modal" role="dialog" aria-modal="true" aria-label="일시정지">' + content + '</section>';
+  $('#overlay').innerHTML =
+    '<section class="modal" role="dialog" aria-modal="true" aria-label="일시정지">' + content + '</section>';
   $('#overlay button')?.focus();
 }
 function pause() {
   if (screen !== 'running') return;
-  modal('<h2>잠시 쉬어가요</h2><p>남은 시간 ' + clock(exam.duration - exam.time) +
-    '</p><button class="primary" data-action="resume">계속 감독하기</button>' +
-    '<button class="secondary" data-action="sound">' + (saved.muted ? '소리 켜기' : '소리 끄기') +
-    '</button><button class="text-btn" data-action="leave">시험 그만두기</button>');
+  modal(
+    '<h2>잠시 쉬어가요</h2><p>남은 시간 ' +
+      clock(exam.duration - exam.time) +
+      '</p><button class="primary" data-action="resume">계속 감독하기</button>' +
+      '<button class="secondary" data-action="sound">' +
+      (saved.muted ? '소리 켜기' : '소리 끄기') +
+      '</button><button class="text-btn" data-action="leave">시험 그만두기</button>',
+  );
 }
 function resume() {
   paused = false;
@@ -79,7 +93,11 @@ async function start() {
     const { Room } = await import('./world.js');
     const lastSeed = exam?.seed ?? saved.history[0]?.seed;
     const last = Number.isInteger(lastSeed) ? new Exam(lastSeed) : null;
-    const signature = (round) => round.seats.filter((seat) => seat.guilty).map((seat) => seat.id).join(',');
+    const signature = (round) =>
+      round.seats
+        .filter((seat) => seat.guilty)
+        .map((seat) => seat.id)
+        .join(',');
     exam = new Exam();
     // A fresh round visibly changes culprit seats, including after a reload.
     while (last && signature(last) === signature(exam)) exam = new Exam((exam.seed + 1) >>> 0);
@@ -102,7 +120,9 @@ async function start() {
   } catch (error) {
     console.error(error);
     home();
-    modal('<h2>시험실을 열 수 없어요</h2><p>브라우저의 그래픽 가속을 확인한 뒤 다시 시도해 주세요.</p><button class="primary" data-action="home">돌아가기</button>');
+    modal(
+      '<h2>시험실을 열 수 없어요</h2><p>브라우저의 그래픽 가속을 확인한 뒤 다시 시도해 주세요.</p><button class="primary" data-action="home">돌아가기</button>',
+    );
   } finally {
     loading = false;
     if (button?.isConnected && button.tagName === 'BUTTON') button.disabled = false;
@@ -117,7 +137,10 @@ function next() {
   const index = exam.seats.findIndex((seat) => seat.id === room.focus);
   for (let offset = 1; offset <= exam.seats.length; offset++) {
     const seat = exam.seats[(index + offset) % exam.seats.length];
-    if (!seat.caught) { select(seat.id); return; }
+    if (!seat.caught) {
+      select(seat.id);
+      return;
+    }
   }
 }
 function finish() {
@@ -143,27 +166,70 @@ function render() {
   $('#time').textContent = clock(exam.duration - exam.time);
   $('#time').classList.toggle('urgent', exam.duration - exam.time <= 15);
   $('#caught').textContent = '적발 ' + exam.caught + ' / 3';
-  $('.round-status span:last-child').textContent = exam.caught === 3 ? '모두 잡았어요! 남은 요청을 도와주세요' : '종이 울릴 때까지 지켜주세요';
+  $('.round-status span:last-child').textContent =
+    exam.caught === 3 ? '모두 잡았어요! 남은 요청을 도와주세요' : '종이 울릴 때까지 지켜주세요';
   $('#play').classList.toggle('inspecting', Boolean(room.focus));
   put('#controls', ui.inspection(exam, room.focus));
   if (room.focus) {
     const request = exam.requestFor(room.focus);
-    const speech = request ? (request.type === 'paper' ? '“선생님, 답안지를 바꾸고 싶어요.”' : '“햇빛이 눈부셔요. 커튼 좀 닫아 주세요.”') : exam.behavior(exam.seat(room.focus)).text;
+    const speech = request
+      ? request.type === 'paper'
+        ? '“선생님, 답안지를 바꾸고 싶어요.”'
+        : '“햇빛이 눈부셔요. 커튼 좀 닫아 주세요.”'
+      : exam.behavior(exam.seat(room.focus)).text;
     if ($('.clue').textContent !== speech) $('.clue').textContent = speech;
   }
-  put('#seat-targets', exam.seats.map((seat) => {
-    const request = exam.requestFor(seat.id);
-    return '<button data-seat="' + seat.id + '" aria-label="' + seatNo(seat.id) + '번 학생 관찰" ' +
-      (seat.caught ? 'disabled' : '') + ' class="' + (seat.caught ? 'caught' : '') + '">' +
-      seatNo(seat.id) + (seat.caught ? ' ✓' : request ? ' ✋' : '') + '</button>';
-  }).join(''));
-  put('#tasks', exam.liveRequests().map((request) =>
-    '<button data-seat="' + request.id + '" class="request ' + (request.late ? 'late' : '') + '">' +
-    '<b>' + ui.icon('hand', 16) + seatNo(request.id) + '번 · ' + (request.type === 'paper' ? '답안지 부탁해요' : '눈이 부셔요') +
-    '</b><small data-deadline="' + request.deadline + '" data-late="' + request.late + '"></small></button>'
-  ).join(''));
+  put(
+    '#seat-targets',
+    exam.seats
+      .map((seat) => {
+        const request = exam.requestFor(seat.id);
+        return (
+          '<button data-seat="' +
+          seat.id +
+          '" aria-label="' +
+          seatNo(seat.id) +
+          '번 학생 관찰" ' +
+          (seat.caught ? 'disabled' : '') +
+          ' class="' +
+          (seat.caught ? 'caught' : '') +
+          '">' +
+          seatNo(seat.id) +
+          (seat.caught ? ' ✓' : request ? ' ✋' : '') +
+          '</button>'
+        );
+      })
+      .join(''),
+  );
+  put(
+    '#tasks',
+    exam
+      .liveRequests()
+      .map(
+        (request) =>
+          '<button data-seat="' +
+          request.id +
+          '" class="request ' +
+          (request.late ? 'late' : '') +
+          '">' +
+          '<b>' +
+          ui.icon('hand', 16) +
+          seatNo(request.id) +
+          '번 · ' +
+          (request.type === 'paper' ? '답안지 부탁해요' : '눈이 부셔요') +
+          '</b><small data-deadline="' +
+          request.deadline +
+          '" data-late="' +
+          request.late +
+          '"></small></button>',
+      )
+      .join(''),
+  );
   for (const timer of $('#tasks').querySelectorAll('small')) {
-    const text = timer.dataset.late === 'true' ? '민원 접수 · 지금도 도와줄 수 있어요' : '탭해서 돕기 · ' + Math.max(0, Math.ceil(Number(timer.dataset.deadline) - exam.time)) + '초';
+    const text =
+      timer.dataset.late === 'true'
+        ? '민원 접수 · 지금도 도와줄 수 있어요'
+        : '탭해서 돕기 · ' + Math.max(0, Math.ceil(Number(timer.dataset.deadline) - exam.time)) + '초';
     if (timer.textContent !== text) timer.textContent = text;
   }
 }
@@ -180,10 +246,17 @@ function act(action) {
   }
   if (screen !== 'running') return;
   if (action === 'resume') return resume();
-  if (action === 'leave') return modal('<h2>이번 시험을 그만둘까요?</h2><button class="primary" data-action="resume">계속 감독하기</button><button class="secondary" data-action="home">그만두기</button>');
+  if (action === 'leave')
+    return modal(
+      '<h2>이번 시험을 그만둘까요?</h2><button class="primary" data-action="resume">계속 감독하기</button><button class="secondary" data-action="home">그만두기</button>',
+    );
   if (paused) return;
   if (action === 'pause') return pause();
-  if (action === 'overview') { room.focus = null; render(); return; }
+  if (action === 'overview') {
+    room.focus = null;
+    render();
+    return;
+  }
   if (action === 'next') return next();
   if (action === 'report') {
     const outcome = exam.report(room.focus);
@@ -213,7 +286,10 @@ document.addEventListener('keydown', (event) => {
   }
   if (paused && event.code === 'Tab') {
     const buttons = [...$('#overlay').querySelectorAll('button:not(:disabled)')];
-    if ((event.shiftKey && document.activeElement === buttons[0]) || (!event.shiftKey && document.activeElement === buttons.at(-1))) {
+    if (
+      (event.shiftKey && document.activeElement === buttons[0]) ||
+      (!event.shiftKey && document.activeElement === buttons.at(-1))
+    ) {
       event.preventDefault();
       (event.shiftKey ? buttons.at(-1) : buttons[0])?.focus();
     }
@@ -231,18 +307,35 @@ canvas.addEventListener('pointerup', (event) => {
   if (room.focus && Math.abs(dx) > 45) next();
   else if (!room.focus) {
     const box = canvas.getBoundingClientRect();
-    const candidate = exam.seats.filter((seat) => !seat.caught).map((seat) => {
-      const anchor = room.anchor(seat, 1.0);
-      return { id: seat.id, distance: Math.hypot(event.clientX - box.x - anchor.x * box.width / 100, event.clientY - box.y - anchor.y * box.height / 100) };
-    }).sort((a, b) => a.distance - b.distance)[0];
+    const candidate = exam.seats
+      .filter((seat) => !seat.caught)
+      .map((seat) => {
+        const anchor = room.anchor(seat, 1.0);
+        return {
+          id: seat.id,
+          distance: Math.hypot(
+            event.clientX - box.x - (anchor.x * box.width) / 100,
+            event.clientY - box.y - (anchor.y * box.height) / 100,
+          ),
+        };
+      })
+      .sort((a, b) => a.distance - b.distance)[0];
     if (candidate?.distance < 55) select(candidate.id);
   }
   touchStart = null;
 });
-canvas.addEventListener('pointercancel', () => { touchStart = null; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && !paused) pause(); });
-window.addEventListener('blur', () => { if (!paused) pause(); });
-new ResizeObserver(() => { if (room && !$('#play').hidden) room.resize(); }).observe(canvas);
+canvas.addEventListener('pointercancel', () => {
+  touchStart = null;
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && !paused) pause();
+});
+window.addEventListener('blur', () => {
+  if (!paused) pause();
+});
+new ResizeObserver(() => {
+  if (room && !$('#play').hidden) room.resize();
+}).observe(canvas);
 function tick(now) {
   const dt = Math.max(0, (now - previous) / 1000);
   previous = now;
@@ -253,12 +346,16 @@ function tick(now) {
       notice('학생 요청이 늦어 민원이 들어왔어요. 생명 −1', true);
       if (!saved.muted) reportSound(false);
     }
-    if (now - renderedAt > 120) { render(); renderedAt = now; }
+    if (now - renderedAt > 120) {
+      render();
+      renderedAt = now;
+    }
     if (exam.over) finish();
   }
   if (room && (screen === 'running' || screen === 'ended') && !paused) {
-    room.draw(Math.min(dt, 0.1), exam.time);
-    if (motion.matches && room.ending) room.ending.elapsed = 0;
+    const stillEnding = motion.matches && room.ending;
+    if (stillEnding) room.ending.elapsed = 0;
+    room.draw(stillEnding ? 0 : Math.min(dt, 0.1), exam.time);
     if (!room.focus && screen === 'running') {
       for (const button of $('#seat-targets').children) {
         const anchor = room.anchor(exam.seat(Number(button.dataset.seat)));

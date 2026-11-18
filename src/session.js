@@ -71,15 +71,22 @@ export class Exam {
     this.events = [];
     const xs = [-1.35, 1.35];
     const zs = [2.4, 0.1, -2.2, -4.5];
-    this.seats = zs.flatMap((z, row) => xs.map((x, col) => ({
-      id: row * xs.length + col + 1, x, z,
-      kind: Object.keys(TYPES)[Math.floor(random() * 4)],
-      guilty: false, caught: false, cleared: false,
-      exitAt: null, first: 7 + random() * 12,
-      period: 18 + random() * 5,
-      ordinary: Math.floor(random() * ordinary.length),
-      offset: random() * 8,
-    })));
+    this.seats = zs.flatMap((z, row) =>
+      xs.map((x, col) => ({
+        id: row * xs.length + col + 1,
+        x,
+        z,
+        kind: Object.keys(TYPES)[Math.floor(random() * 4)],
+        guilty: false,
+        caught: false,
+        cleared: false,
+        exitAt: null,
+        first: 7 + random() * 12,
+        period: 18 + random() * 5,
+        ordinary: Math.floor(random() * ordinary.length),
+        offset: random() * 8,
+      })),
+    );
     // Spread three different leads over the room without identifying suspects in the UI.
     const devices = shuffled(Object.keys(TYPES), random);
     for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, 3).entries()) {
@@ -88,22 +95,34 @@ export class Exam {
       culprit.kind = devices[wave];
       culprit.first = [5, 25, 49][wave] + random() * 3;
     }
-    const normal = shuffled(this.seats.filter((seat) => !seat.guilty), random);
+    const normal = shuffled(
+      this.seats.filter((seat) => !seat.guilty),
+      random,
+    );
     this.requests = [this.newRequest(normal[0], 'paper', 28), this.newRequest(normal[1], 'curtain', 68)];
   }
   newRequest(seat, type, start) {
     return { id: seat.id, type, start, deadline: start + 18, done: false, late: false };
   }
-  seat(id) { return this.seats.find((seat) => seat.id === id); }
-  get caught() { return this.seats.filter((seat) => seat.caught).length; }
-  liveRequests() { return this.requests.filter((request) => this.time >= request.start && !request.done); }
-  requestFor(id) { return this.liveRequests().find((request) => request.id === id); }
+  seat(id) {
+    return this.seats.find((seat) => seat.id === id);
+  }
+  get caught() {
+    return this.seats.filter((seat) => seat.caught).length;
+  }
+  liveRequests() {
+    return this.requests.filter((request) => this.time >= request.start && !request.done);
+  }
+  requestFor(id) {
+    return this.liveRequests().find((request) => request.id === id);
+  }
   behavior(seat) {
     if (seat.caught) return { pose: 'exit', text: '부정행위를 확인해 퇴실했다.' };
     if (this.requestFor(seat.id)) return { pose: 'hand', text: '손을 들고 감독관의 도움을 기다리고 있다.' };
     if (seat.guilty && this.time >= seat.first) {
       // A final attempt before the bell gives a missed late-game clue one more readable window.
-      if (this.time >= this.duration - 10) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
+      if (this.time >= this.duration - 10)
+        return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
       const phase = (this.time - seat.first) % seat.period;
       if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
       if (phase < 8) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
@@ -143,7 +162,11 @@ export class Exam {
     if (this.over || !request) return false;
     request.done = true;
     if (request.type === 'curtain') this.curtain = true;
-    this.events.push({ id, time: this.time, text: request.type === 'paper' ? '새 답안지 전달' : '커튼 조정' });
+    this.events.push({
+      id,
+      time: this.time,
+      text: request.type === 'paper' ? '새 답안지 전달' : '커튼 조정',
+    });
     return true;
   }
   step(dt) {
@@ -163,10 +186,18 @@ export class Exam {
   }
   result() {
     return {
-      version: 2, seed: this.seed, date: Date.now(), reason: this.reason,
-      health: this.health, caught: this.caught, falseCalls: this.falseCalls,
-      complaints: this.complaints.length, served: this.requests.filter((request) => request.done).length,
-      missed: this.seats.filter((seat) => seat.guilty && !seat.caught).map((seat) => ({ id: seat.id, kind: seat.kind })),
+      version: 2,
+      seed: this.seed,
+      date: Date.now(),
+      reason: this.reason,
+      health: this.health,
+      caught: this.caught,
+      falseCalls: this.falseCalls,
+      complaints: this.complaints.length,
+      served: this.requests.filter((request) => request.done).length,
+      missed: this.seats
+        .filter((seat) => seat.guilty && !seat.caught)
+        .map((seat) => ({ id: seat.id, kind: seat.kind })),
     };
   }
 }

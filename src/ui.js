@@ -32,8 +32,16 @@ export const icon = (name, size = 19) =>
   '</svg>';
 
 export function hearts(health) {
-  return '<span class="hearts" role="img" aria-label="생명 ' + health + '개">' +
-    Array.from({ length: MAX_HEALTH }, (_, i) => '<span class="' + (i < health ? 'alive' : 'lost') + '" aria-hidden="true">♥</span>').join('') + '</span>';
+  return (
+    '<span class="hearts" role="img" aria-label="생명 ' +
+    health +
+    '개">' +
+    Array.from(
+      { length: MAX_HEALTH },
+      (_, i) => '<span class="' + (i < health ? 'alive' : 'lost') + '" aria-hidden="true">♥</span>',
+    ).join('') +
+    '</span>'
+  );
 }
 export function lobby(saved) {
   const wins = saved.history.filter((round) => round.reason === 'win').length;
@@ -56,23 +64,30 @@ export function hud() {
 }
 export function inspection(exam, id) {
   const seat = exam.seat(id);
-  if (!seat) return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 살펴보세요. 조용하다가도 딴짓할 수 있어요.</p></div>`;
+  if (!seat)
+    return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 살펴보세요. 조용하다가도 딴짓할 수 있어요.</p></div>`;
   const request = exam.requestFor(id);
 
   return `<div class="inspection-heading"><button class="back" data-action="overview" aria-label="교실로 돌아가기">‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${seat.caught ? '적발 완료' : seat.cleared ? '정상 확인' : '관찰 중'}</span></div>
     <p class="clue" aria-live="polite"></p>
     <div class="decision">
     <button class="secondary" data-action="next">다음 학생 ›</button>
-    ${request ? `<button class="primary" data-action="serve">${request.type === 'paper' ? '새 답안지 건네기' : '커튼 닫아주기'}</button>` :
-    `<button class="report" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '정상 학생이에요' : '신고하기'}</button>`}
+    ${
+      request
+        ? `<button class="primary" data-action="serve">${request.type === 'paper' ? '새 답안지 건네기' : '커튼 닫아주기'}</button>`
+        : `<button class="report" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '정상 학생이에요' : '신고하기'}</button>`
+    }
     </div><p class="decision-hint">${request ? '요청을 들어주면 민원을 막을 수 있어요.' : '수상한 물건과 행동을 보고 판단하세요. 오인하면 ♥ −1'}</p>`;
 }
 export function ending(result) {
   const win = result.reason === 'win';
   const villain = result.missed[0];
   const title = win ? '완벽하게 지켜냈어요!' : result.reason === 'health' ? '감독 실패!' : '들키지 않았지!';
-  const explanation = win ? '부정행위자 세 명 모두 적발. 시험이 무사히 끝났어요.' :
-    result.reason === 'health' ? '오인과 민원으로 생명이 모두 닳았어요.' : '종이 울렸어요. 부정행위자가 끝까지 남아 있었어요.';
+  const explanation = win
+    ? '부정행위자 세 명 모두 적발. 시험이 무사히 끝났어요.'
+    : result.reason === 'health'
+      ? '오인과 민원으로 생명이 모두 닳았어요.'
+      : '종이 울렸어요. 부정행위자가 끝까지 남아 있었어요.';
   return `<div class="ending-title"><p class="eyebrow">${win ? '감독 성공' : '감독 실패'}</p><h1>${title}</h1></div>
     <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
     <p>${explanation}</p>

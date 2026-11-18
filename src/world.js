@@ -84,8 +84,17 @@ export class Room {
   }
   resize() {
     this.aspect = (this.canvas.clientWidth || innerWidth) / (this.canvas.clientHeight || innerHeight);
-    this.renderer.setSize(this.canvas.clientWidth || innerWidth, this.canvas.clientHeight || innerHeight, false);
+    this.renderer.setSize(
+      this.canvas.clientWidth || innerWidth,
+      this.canvas.clientHeight || innerHeight,
+      false,
+    );
     this.updateProjection();
+    // Resizing clears the WebGL buffer, including while the exam is paused.
+    if (this.scene) {
+      this.updateCamera(1, true);
+      this.renderer.render(this.scene, this.camera);
+    }
   }
   updateProjection() {
     this.camera.left = -this.halfHeight * this.aspect;
@@ -118,9 +127,9 @@ export class Room {
       this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
       height = Math.max(0.85, 0.72 / this.aspect);
     } else {
-      this.target.set(0, 0.5, -0.55);
+      this.target.set(0, this.aspect > 1 ? 1 : 0.5, -0.55);
       this.position.set(0, 8.5, 10.5);
-      height = Math.max(4.65, 3.05 / this.aspect);
+      height = Math.max(this.aspect > 1 ? 3.45 : 4.65, 3.05 / this.aspect);
     }
     const blend = snap ? 1 : 1 - Math.exp(-dt * 10);
     this.camera.position.lerp(this.position, blend);
@@ -151,14 +160,19 @@ export class Room {
       }
     }
     this.proctor.visible = Boolean(this.ending && !this.ending.id);
-    if (this.proctor.visible) updateEnding(this.proctor, this.ending.reason === 'win' ? 'win' : 'sad', this.ending.elapsed);
+    if (this.proctor.visible)
+      updateEnding(this.proctor, this.ending.reason === 'win' ? 'win' : 'sad', this.ending.elapsed);
     if (this.curtain !== exam.curtain) {
       this.curtain = exam.curtain;
       setCurtain(this.environment, this.curtain);
     }
-    const shadowKey = exam.seats.filter((seat) => seat.caught)
-      .map((seat) => seat.id + ':' + Math.min(2, Math.floor(exam.time - seat.exitAt))).join(',') +
-      exam.curtain + Boolean(this.ending);
+    const shadowKey =
+      exam.seats
+        .filter((seat) => seat.caught)
+        .map((seat) => seat.id + ':' + Math.min(2, Math.floor(exam.time - seat.exitAt)))
+        .join(',') +
+      exam.curtain +
+      Boolean(this.ending);
     if (shadowKey !== this.shadowKey) {
       this.shadowKey = shadowKey;
       this.renderer.shadowMap.needsUpdate = true;

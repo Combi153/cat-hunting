@@ -152,7 +152,11 @@ function makeHead(index, proctor = false) {
   ];
   const mouth = lump(face, M.blush, [0, -0.111, 0.169], [0.026, 0.005, 0.004]);
   const grin = new THREE.Group();
-  const smileCurve = new THREE.QuadraticBezierCurve3(v(-0.064, -0.09, 0.174), v(0, -0.16, 0.195), v(0.064, -0.09, 0.174));
+  const smileCurve = new THREE.QuadraticBezierCurve3(
+    v(-0.064, -0.09, 0.174),
+    v(0, -0.16, 0.195),
+    v(0.064, -0.09, 0.174),
+  );
   mesh(grin, new THREE.TubeGeometry(smileCurve, 14, 0.012, 6, false), M.white);
   grin.visible = false;
   head.add(face, grin);
