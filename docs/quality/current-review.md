@@ -4,6 +4,19 @@
 
 [문서 홈](../README.md) · [검증 실행법](../engineering/development.md) · [미검증 항목](open-questions.md)
 
+## 결과의 친구 공유 (2026-11-18)
+
+코드 기준: `43f15fc`에 공유 기능을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5187`, 설치된 Chrome·Playwright 터치 에뮬레이션. 개발 모드에서 운영 분석은 수집하지 않았다.
+
+- `npm test` 27개, `npm run build`, `test:browser`, `test:campaign`, 새 `test:share` 통과. 기존 Three.js 청크 크기 경고는 유지된다. 에셋·다시보기 구현은 변경하지 않아 `test:assets`·`test:review` 전체 검사는 재실행하지 않았다.
+- `test:share`는 고정 배치·제어된 시계에서 규칙 API로 성공·생명 실패를 준비하고 실제 게임 루프로 종료한다. 시간 실패·일반 성공·전체 통과까지 네 결과의 문구, 공개 canonical URL만 공유하는지, 저장 불변, 닫기/Escape 후 포커스 복귀·재도전을 확인했다.
+- 기본 공유 성공·취소·권한 오류·미지원·`canShare(false)`·지연 응답은 브라우저 API 대역으로 확인했다. 실제 클릭의 사용자 활성화 안에서 호출하고, 중복 요청을 막으며, 이전 요청이 새 창을 덮어쓰지 않는다. 취소·오류 때 클립보드를 쓰지 않는다. 이 검사는 실제 휴대폰 공유 메뉴·메신저 전송의 증거가 아니다.
+- 브라우저 클립보드는 실제 쓰기·읽기로 공개 주소가 복사되는지 확인했다. 별도의 권한 거절·API 미지원 대역에서 읽기 전용 주소의 전체 선택과 직접 복사 안내를 확인했다.
+- 320×568·390×844·568×320·1167×813의 성공/실패 결과 버튼 접근, 공유창 범위, 44px 이상 조작 영역과 가로 넘침 없음을 검사했다. 작은 가로 화면에서 내용이 길어지면 선택창 내부를 스크롤한다. 작은 세로·가로·노트북 캡처를 직접 검토했다.
+- 별도 무작위 1단계에서 시계 제어 없이 10번 학생을 탭해 관찰한 뒤 시간 실패까지 진행했다. 실제 화면을 보며 공유창 → 링크 복사 성공 안내 → 닫기 → 부정행위 다시 보기 → 결과 복귀 → 재도전을 확인했다. 자유 플레이 성공률을 측정한 것은 아니다. 실제 iOS/Android의 앱 전환·전송·미리보기는 미검증이다.
+
+[작은 세로 실패](../playtest/result-sharing/defeat-320.png) · [작은 가로 성공](../playtest/result-sharing/win-landscape.png) · [노트북 성공](../playtest/result-sharing/win-laptop.png) · [공유 선택창](../playtest/result-sharing/options.png) · [작은 가로 공유창](../playtest/result-sharing/options-landscape.png) · [복사 성공](../playtest/result-sharing/copied.png) · [직접 복사 안내](../playtest/result-sharing/manual-copy.png)
+
 ## 첫 화면 목표·조작 문구 개선 (2026-11-18)
 
 코드 기준: `07c8af2`에 이번 로비 문구와 단어 단위 줄바꿈을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5186`, 설치된 Chrome에서 확인했다. 개발 모드로 운영 분석은 수집하지 않았다.

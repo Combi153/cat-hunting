@@ -49,6 +49,20 @@
       </section>
       <div id="overlay" hidden></div>
     </div>
+    <dialog id="share-dialog" aria-labelledby="share-title" aria-describedby="share-summary">
+      <div class="share-content">
+        <h2 id="share-title">친구에게 공유하기</h2>
+        <p id="share-summary"></p>
+        <button class="primary" data-share="native">다른 앱으로 공유</button>
+        <button class="secondary" data-share="copy">링크 복사</button>
+        <div id="share-manual" hidden>
+          <label for="share-url">게임 링크</label>
+          <input id="share-url" type="url" readonly spellcheck="false">
+        </div>
+        <p id="share-status" role="status" aria-live="polite"></p>
+        <button class="text-btn" data-share="close">닫기</button>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

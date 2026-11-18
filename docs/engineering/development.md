@@ -35,6 +35,7 @@ npm run preview
 | [characters.js](../../src/art/characters.js) | 학생·감독관 리그, 소품, 표정, 행동 애니메이션 |
 | [classroom.js](../../src/art/classroom.js), [dimensions.js](../../src/art/dimensions.js) | 교실·커튼과 책상 치수 기준 |
 | [sound.js](../../src/sound.js) | 종·신고·도움·승패 음향 |
+| [share.js](../../src/share.js) | 결과 공유 선택창, 기본 공유·링크 복사·직접 복사 대체 동작 |
 | [index.html](../../index.html) | 최초 문서와 공유 크롤러가 읽는 메타데이터 |
 
 ## 상태와 연결
@@ -61,6 +62,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:brows
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:campaign
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:assets
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:review
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:share
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.
@@ -72,6 +74,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:revie
 | `test:campaign` | 정답을 아는 고정 배치에서 다섯 단계 진행·저장·재도전 |
 | `test:assets` | 실제 행동 주기가 나타날 때 접근해 새 소품·일상 행동 캡처 |
 | `test:review` | 실패 후 여섯 행동 재생·소품 복귀·순환, 결과 불변, 화면 크기, 모두 적발한 생명 패배·재도전 |
+| `test:share` | 네 결과의 기본 공유 API 대역, 취소·거절·미지원·지연 응답, 실제 브라우저 클립보드, 직접 복사, 포커스·화면 크기. 외부 앱 전송은 미검증 |
 | `npm run build` | 배포용 정적 파일 생성. 게임 플레이 검증을 대신하지 않음 |
 
 자동 캡처는 Git에서 제외된 `test-results/`에 나온다. 검토한 증거만 버전별 `docs/playtest/`에 복사하고 출처를 기록한다. 3D 검토에서는 스크린샷과 실제 동작을 함께 본다. 브라우저 시계를 멈춘 검증에서는 시작 후 첫 프레임이 그려진 뒤 좌석을 눌러야 하며, 이동은 버튼이 준비될 때까지 시간을 진행한다. 실행 중 소스를 바꾸면 Vite 갱신으로 게임이 초기화될 수 있다.

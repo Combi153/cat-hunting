@@ -4,6 +4,7 @@ import { stageNumber, unlockStage } from './stages.js';
 import * as ui from './ui.js';
 import { activateSound, bell, reportSound, serviceSound, finale } from './sound.js';
 import { createAnalytics, createGameAnalytics } from './analytics.js';
+import { createResultSharing } from './share.js';
 
 const track = createAnalytics({
   measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID,
@@ -13,6 +14,7 @@ const track = createAnalytics({
 const gameAnalytics = createGameAnalytics(track);
 
 const $ = (selector) => document.querySelector(selector);
+const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href);
 const storageKey = 'nyangijapgi.v2';
 function load() {
   try {
@@ -231,6 +233,7 @@ function act(action) {
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
+  if (action === 'share' && screen === 'ended') return sharing.open(exam.result());
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
       room.closeReview();
