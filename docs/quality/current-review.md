@@ -14,6 +14,8 @@
 - 별도 무작위 1단계를 실제 시간으로 진행해 9번 관찰·시간 실패·다시보기·Escape 결과 복귀·공유 안내·실제 링크 복사를 수행했다. 즉시 보상 없이 결과로 돌아와 잔액 2→5를 확인했다. 360×606 화면과 실패 320px·전체 통과·작은 가로·노트북 자동 캡처를 직접 검토했다.
 - 실제 Android/iOS 카카오톡 전송·수신자 카드 UI는 미검증이다. API 입력 검사와 실제 앱 전달 완료를 구분한다. 자동 테스트는 초심자 성공률이나 바이럴 효과의 증거가 아니다. 게임 규칙·진행·저장·행동 모델은 변경하지 않았다.
 
+공개 확인: 기능 커밋 `e5573069f535`의 배포 `dpl_37atfzP2vvn4qTzUTVWdx1jPmYA9` 프로덕션 READY와 공개 별칭을 확인했다. 공개 HTTPS Chrome 360×606에서 빌드 버전·HTTP 200, 3단계 무작위 시간 실패·모달·다시보기/Escape, 네이티브 공유 대역에 `{url}`만 전달, 실제 클립보드의 `/share/stage-3-missed/`, 시간 비공개·지연 보상·모달 복귀·재도전·페이지 오류 없음을 검사했다. 공개 OG 페이지·이미지 10개와 수신자 로비도 통과했다. 제어된 시계이며 운영 GA는 차단했다. 실제 외부 앱 전송·카카오 카드 UI, 서버 런타임 로그/드레인 점검은 수행하지 않았다.
+
 [모바일 실패](../playtest/modal-refinement/failure-360.png) · [320px 실패](../playtest/modal-refinement/failure-320.png) · [공유 안내](../playtest/modal-refinement/share-offer.png) · [복사 후 안내](../playtest/modal-refinement/share-wait.png) · [전체 통과](../playtest/modal-refinement/complete-320.png) · [가로](../playtest/modal-refinement/landscape.png) · [노트북](../playtest/modal-refinement/win-laptop.png)
 
 ## 반응 후 결과 모달·학습 다시보기·단계 공유 (2026-11-18)
