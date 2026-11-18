@@ -14,6 +14,8 @@
 - 360×606 별도 무작위 1단계를 시계 제어 없이 시작해 9번 관찰·교실 복귀·시간 실패를 수행했다. 결과 카드 펼치기/접기, 규칙 펼치기/접기, 다시보기 복귀를 직접 조작하고 캡처를 검토했다. 성공·전체 통과·작은 가로·노트북은 자동 결과 캡처를 검토했다. 카드 위로 지나가던 색종이를 뒤로 옮겼고, 내용을 줄인 카드 위로 머리 일부가 남지 않게 펼친 높이를 보완했다.
 - 실제 카카오톡 인앱, 휴대폰 손가락 조작·외부 공유 앱 전송은 미검증이다. 게임 규칙·난이도·공유 보상·분석 이벤트 의미는 유지한다.
 
+공개 확인: 기능 커밋 `132d0ab`의 프로덕션 READY·공개 별칭 연결을 확인했다. 공개 HTTPS Chrome 360×606에서 HTTP 200·배포 버전 `132d0ab39d4a`, 무작위 배치·제어된 시계의 시간 실패, 카드 펼치기/접기·횟수 규칙·다시보기 복귀·실제 클립보드 복사와 잔액 2→5·페이지 오류 없음을 확인했다. 운영 GA는 차단했다. 서버 런타임 로그·드레인은 점검하지 않았다.
+
 [모바일 결과](../playtest/result-cleanup/mobile-expanded.png) · [캐릭터 먼저](../playtest/result-cleanup/mobile-collapsed.png) · [횟수 규칙](../playtest/result-cleanup/mobile-rules.png) · [전체 통과](../playtest/result-cleanup/complete-320.png) · [가로](../playtest/result-cleanup/landscape.png) · [노트북](../playtest/result-cleanup/win-laptop.png)
 
 ## 캐릭터를 먼저 보여주는 결과 카드 (2026-11-18)
