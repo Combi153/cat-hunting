@@ -78,10 +78,10 @@ export function hud(stage = 1) {
 }
 export function inspection(exam, id, busy = '') {
   if (busy === 'returning')
-    return '<div class="overview-copy"><h2>교탁으로 돌아가고 있어요</h2><p>다른 학생을 탭해 바로 이동</p></div>';
+    return '<div class="overview-copy"><h2>교탁으로 돌아가고 있어요</h2><p>다른 학생을 눌러 바로 이동</p></div>';
   const seat = exam.seat(id);
   if (!seat)
-    return '<div class="overview-copy"><h2>학생을 탭해 관찰하세요.</h2></div>';
+    return '<div class="overview-copy"><h2>학생을 눌러 관찰하세요.</h2></div>';
   if (busy)
     return `<div class="inspection-heading"><button class="back" data-action="overview" ${busy === 'helping' ? 'disabled' : ''}>‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${busy === 'helping' ? '돕는 중' : '이동 중'}</span></div><p class="clue" aria-live="polite"></p>`;
   const request = exam.requestFor(id);
@@ -95,7 +95,7 @@ export function inspection(exam, id, busy = '') {
         ? `<button class="primary" data-action="serve">${request.type === 'paper' ? '새 답안지 건네기' : '커튼 닫아주기'}</button>`
         : `<button class="${seat.cleared ? 'secondary' : 'report'}" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '확인 완료' : '신고하기'}</button>`
     }
-    </div>${request ? '' : '<p class="decision-hint">화면을 탭하면 교실로 돌아가요.</p>'}`;
+    </div>${request ? '' : '<p class="decision-hint">화면을 누르면 교실로 돌아가요.</p>'}`;
 }
 export function ending(result) {
   const win = result.reason === 'win';
@@ -118,7 +118,7 @@ export function ending(result) {
     ${explanation ? `<p>${explanation}</p>` : ''}
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
-    ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다섯 시험 돌아보기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
+    ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
     <button class="secondary share-open" data-action="share">친구에게 공유하기</button>
     <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;

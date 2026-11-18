@@ -412,6 +412,12 @@ h2 {
   font-size: 14px;
   color: var(--muted);
 }
+.pause-rules {
+  display: grid;
+  gap: 8px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
 .text-btn {
   background: transparent;
   min-height: 44px;

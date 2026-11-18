@@ -16,6 +16,19 @@
 
 [작은 세로 로비](../playtest/thinkplace-banner/lobby-320.png) · [가로 로비](../playtest/thinkplace-banner/lobby-568.png) · [노트북 로비](../playtest/thinkplace-banner/lobby-1167.png) · [작은 세로 결과](../playtest/thinkplace-banner/result-320.png) · [가로 결과](../playtest/thinkplace-banner/result-568.png) · [노트북 결과](../playtest/thinkplace-banner/result-1167.png) · [관찰 중 숨김](../playtest/thinkplace-banner/inspection-320.png)
 
+## 일시정지·조작·전체 통과 문구 보완 (2026-11-18)
+
+기준: `a1ee37a`에서 분리한 작업 트리에 승인된 세 가지 문구를 적용했다. 기존 작업 폴더의 미커밋 광고 변경을 섞지 않고 Vite `127.0.0.1:5190`, 설치된 Chrome에서 검증했다. 개발 모드로 운영 분석은 수집하지 않았다.
+
+통합 확인: 광고 작업이 별도 커밋 `3feadb2`로 반영된 뒤 문구 변경만 합쳤다. 최신 작업 트리의 `127.0.0.1:5191`에서 빌드·`test:browser`를 다시 통과했다. 아래 캡처는 분리 검증 시점이므로 결과 하단 광고는 당시 카페 시안이다.
+
+- `npm test` 27개, `npm run build`, `test:browser` 통과. 기존 Three.js 청크 크기 경고는 유지된다.
+- 별도 무작위 배치·제어된 시계·터치 에뮬레이션으로 320×568·568×320·1167×813의 일시정지 안내 두 문장, 12초 경과 후 남은 시간 불변, 창 내부 스크롤·계속 감독하기를 확인했다. 작은 가로 화면의 하단 버튼은 창 내부를 스크롤해 접근한다. 각 화면 캡처를 직접 검토했다.
+- 동일 브라우저에서 5단계 정답을 아는 규칙 API로 전원 적발·종료 상태를 구성해 실제 결과 화면을 열고, ‘다른 단계 다시 하기’를 눌러 모든 단계가 열린 로비로 돌아오는지 확인했다. 페이지 오류는 없었다. 정상 플레이로 다섯 단계를 완주한 검증은 아니다.
+- 학생 선택·복귀·관찰 종료 안내에서 ‘탭’ 표현을 제거한 것을 코드로 확인했다. 일반 플레이·이동·신고·도움·패배·승리는 기존 브라우저 회귀 검사로 확인했다. 캠페인·에셋·공유·다시 보기 전체 검사는 변경 범위가 아니므로 재실행하지 않았다. 실기기와 초심자 이해도는 미검증이다.
+
+[작은 세로](../playtest/pause-help/portrait.png) · [작은 가로](../playtest/pause-help/landscape.png) · [가로 하단 버튼](../playtest/pause-help/landscape-controls.png) · [노트북](../playtest/pause-help/laptop.png) · [전체 통과 버튼](../playtest/pause-help/completed.png)
+
 ## 결과의 친구 공유 (2026-11-18)
 
 코드 기준: `43f15fc`에 공유 기능을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5187`, 설치된 Chrome·Playwright 터치 에뮬레이션. 개발 모드에서 운영 분석은 수집하지 않았다.

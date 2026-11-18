@@ -86,7 +86,9 @@ function pause() {
   modal(
     '<h2>잠시 쉬어가요</h2><p>남은 시간 ' +
       clock(exam.duration - exam.time) +
-      '</p><button class="primary" data-action="resume">계속 감독하기</button>' +
+      '</p><div class="pause-rules"><p>잘못 신고하거나 민원이 생기면 생명이 줄어요.</p>' +
+      '<p>도움 요청을 오래 기다리게 하거나 한 학생을 너무 오래 관찰하면 민원이 생길 수 있어요.</p></div>' +
+      '<button class="primary" data-action="resume">계속 감독하기</button>' +
       '<button class="secondary" data-action="sound">' +
       (saved.muted ? '소리 켜기' : '소리 끄기') +
       '</button><button class="text-btn" data-action="leave">시험 그만두기</button>',
