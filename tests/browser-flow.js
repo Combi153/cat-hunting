@@ -213,6 +213,9 @@ try {
     [568, 320],
     [844, 390],
     [1280, 800],
+    [1167, 813],
+    [1366, 768],
+    [1440, 900],
   ]) {
     const layout = await fresh();
     await page.setViewportSize({ width, height });
@@ -255,6 +258,8 @@ try {
           Math.min(first.y + first.height, second.y + second.height) - Math.max(first.y, second.y);
         assert.ok(overlapX <= 0 || overlapY <= 0, 'Seat touch targets overlap at ' + width + '×' + height);
       }
+    if (width === 1167 || width === 1366 || width === 1440 || width === 568)
+      await page.screenshot({ path: `test-results/overview-${width}x${height}.png`, animations: 'disabled' });
   }
   assert.deepEqual(errors, []);
   console.log('Portrait, short landscape and desktop controls stay on screen; no page errors.');

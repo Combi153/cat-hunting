@@ -2,10 +2,11 @@
 
 [문서 홈](../README.md) · [현재 검증](../quality/current-review.md) · [과거 모바일 기록](../archive/mobile-rubric.md)
 
-스크린샷은 당시 버전과 검증 조건의 증거다. 폴더를 옮기거나 과거 이미지를 새 버전 캡처로 덮어쓰지 않는다. 현재 화면 판단에는 `45-second/`를 먼저 사용한다.
+스크린샷은 당시 버전과 검증 조건의 증거다. 폴더를 옮기거나 과거 이미지를 새 버전 캡처로 덮어쓰지 않는다. 현재 교실 구도는 `laptop-framing/`, 소품 세부는 `45-second/`를 사용한다.
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [laptop-framing/before-1167x813.png](laptop-framing/before-1167x813.png), [laptop-framing/after-1167x813.png](laptop-framing/after-1167x813.png), [laptop-framing/after-568x320.png](laptop-framing/after-568x320.png) | 2026-11-18 노트북 감독관 잘림 재현과 수정 후 구도. Chrome·제어된 시계; 전후 배치는 다름 | [현재 검증](../quality/current-review.md) |
 | [classroom.jpg](classroom.jpg), [rematch.jpg](rematch.jpg) | 초기 좌석표·점수제·같은 시험 재도전 | [초기 기록](../archive/play-rubric.md) |
 | [mobile/inspection.png](mobile/inspection.png), [mobile/victory.png](mobile/victory.png), [mobile/defeat.png](mobile/defeat.png) | 8석·90초 모바일 직접 신고 시기 | [모바일 개선 이력](../archive/mobile-rubric.md) |
 | [living-classroom/overview.png](living-classroom/overview.png), [living-classroom/upset.png](living-classroom/upset.png), [living-classroom/curtain.png](living-classroom/curtain.png) | 12석·감정·커튼 도입 | [생활감 도입 기록](../archive/mobile-rubric.md) |

@@ -170,8 +170,8 @@ export class Room {
       const turn = Math.abs(
         Math.atan2(Math.sin(heading - this.proctor.rotation.y), Math.cos(heading - this.proctor.rotation.y)),
       );
-      const desired = Math.min(3.0, Math.sqrt(total * 9)) * Math.max(0.25, Math.cos(turn));
-      this.speed = (this.speed || 0) + Math.max(-slice * 7, Math.min(slice * 7, desired - (this.speed || 0)));
+      const desired = Math.min(4.2, Math.sqrt(total * 14)) * Math.max(0.25, Math.cos(turn));
+      this.speed = (this.speed || 0) + Math.max(-slice * 10, Math.min(slice * 10, desired - (this.speed || 0)));
       const travel = Math.min(distance, this.speed * slice);
       const fraction = distance > 0.0001 ? travel / distance : 1;
       p.x += (next.x - p.x) * fraction;
@@ -245,9 +245,11 @@ export class Room {
       this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
       height = Math.max(0.85, 0.72 / this.aspect);
     } else {
-      this.target.set(0, this.aspect > 1 ? 1 : 0.5, -0.55);
-      this.position.set(0, 8.5, 10.5);
-      height = Math.max(this.aspect > 1 ? 3.45 : 4.65, 3.55 / this.aspect);
+      // Center the playable area, from the back row's raised hands to the
+      // proctor's feet. Keep the same vertical framing across aspect ratios.
+      this.target.set(0, 0.2, -0.33);
+      this.position.set(0, 8.2, 10.72);
+      height = Math.max(3.8, 3.55 / this.aspect);
     }
     const blend = snap ? 1 : 1 - Math.exp(-dt * 10);
     this.camera.position.lerp(this.position, blend);
