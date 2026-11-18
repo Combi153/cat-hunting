@@ -16,6 +16,8 @@
 - 초기 검사에서 모달 전환 중 제거된 `motion` 선언 누락을 고쳤다. 다시보기에서 Escape를 누를 때 새 모달까지 같은 키로 닫히는 문제를 재현해 기본 동작을 막았고 여섯 소품 다시보기 회귀를 통과했다. 기존 테스트의 즉시 버튼 등장·즉시 보상 전제는 최신 요청에 맞게 변경했다.
 - 실제 휴대폰·카카오톡 링크 카드·외부 앱 전달은 미검증이다. 정적 축하 카드는 서버 인증 성적이 아니며, 공유 성공 응답/복사와 5초 대기만으로 실제 친구 전달·바이럴 효과를 입증하지 않는다. 난이도·게임 내 정답 비공개·기존 보상 수량은 유지한다.
 
+공개 확인: 기능 커밋 `d329268bd5d4`의 Vercel 프로덕션 READY·공개 별칭을 확인했다. 공개 HTTPS Chrome 360×606에서 HTTP 200·빌드 버전, 1.8초 모달·강조 다시보기·Escape 복귀, 실제 단계별 URL 복사, 4.9초 잔액 유지/5.1초 3회 지급·재도전·페이지 오류 없음을 확인했다. 공개 공유 페이지·JPEG 10개와 깊은 주소의 정상 게임 시작도 재검증했다. 운영 GA는 차단했다. 실제 카카오톡 전송·카드 UI, 서버 런타임 로그·드레인 점검은 수행하지 않았다.
+
 [반응 먼저](../playtest/result-modal/intro-360.png) · [실패 모달](../playtest/result-modal/failure-360.png) · [전체 통과](../playtest/result-modal/complete-320.png) · [0회 안내](../playtest/result-modal/retry-gate.png) · [공유 안내](../playtest/result-modal/share-offer.png) · [5초 대기](../playtest/result-modal/share-countdown.png) · [축하 공유 이미지](../../public/share-images/complete.jpg)
 
 ## 결과 영역의 버튼·정보 정리 (2026-11-18)
