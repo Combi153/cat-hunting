@@ -96,7 +96,8 @@ try {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tap('review');
   await page.clock.runFor(2000);
-  assert.match(await page.locator('.review-panel').innerText(), /적발한 학생/);
+  assert.equal(await page.evaluate(() => window.testExam.seat(window.testRoom.ending.id).caught), true);
+  assert.doesNotMatch(await page.locator('.review-panel').innerText(), /놓친 학생|적발한 학생|반복해서/);
   const caught = await page.evaluate(() => {
     const room = window.testRoom;
     return { visible: room.students.get(room.ending.id).visible, elapsed: room.ending.elapsed, missed: room.ending.missed.length };

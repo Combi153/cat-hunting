@@ -190,12 +190,6 @@ h2 {
   min-height: 58px;
   justify-content: space-between;
 }
-.last-round {
-  margin-top: 18px;
-  font-size: 12px;
-  text-align: center;
-  color: var(--muted);
-}
 .ad-preview {
   width: min(100%, 320px);
   margin: 20px auto 0;
@@ -388,6 +382,9 @@ h2 {
   line-height: 1.5;
   margin: 4px 2px 12px;
   word-break: keep-all;
+}
+.clue:empty {
+  display: none;
 }
 .decision {
   display: grid;
@@ -726,12 +723,11 @@ h2 {
   gap: 3px;
   justify-items: center;
   padding: 9px 2px;
-  min-height: 76px;
+  min-height: 64px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #edf0e6;
 }
-.stage-picker small,
 .stage-picker span {
   font-size: 10px;
 }
@@ -787,7 +783,6 @@ h2 {
   border-top: 1px solid var(--line);
 }
 .review-panel h2 { font: 22px var(--round); margin: 8px 0; }
-.review-panel > p:not(.eyebrow) { font-size: 12px; line-height: 1.5; color: var(--muted); }
 .review-nav { display: flex; gap: 10px; margin-top: 12px; }
 .review-nav button { flex: 1; }
 @media (orientation: landscape) {

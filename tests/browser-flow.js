@@ -173,7 +173,7 @@ try {
   assert.equal(history[0].reason, 'health');
   await tap('[data-action=review]');
   await advance(1000);
-  assert.match(await page.locator('.review-panel').innerText(), /놓친 학생/);
+  assert.doesNotMatch(await page.locator('.review-panel').innerText(), /놓친 학생|적발한 학생|반복해서/);
   assert.equal(await page.evaluate(() => window.testRoom.ending.id), history[0].missed[0].id);
   await tap('[data-action=review-next]');
   assert.equal(await page.evaluate(() => window.testRoom.ending.id), history[0].missed[1].id);
@@ -219,7 +219,7 @@ try {
   assert.ok(await page.locator('#ending').isHidden());
   await advance(46000);
   await advance(1000);
-  assert.match(await page.locator('.ending-title').innerText(), /감독 성공/);
+  assert.match(await page.locator('.ending-title').innerText(), /통과/);
   assert.equal(await page.locator('.confetti i').count(), 24);
   await page.screenshot({ timeout: 30000, animations: 'disabled', path: 'test-results/mobile-victory.png' });
   const win = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')).history[0]);

@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [concise-copy/](concise-copy/) | 2026-11-18 문구 정리. 320×568 로비·다시보기는 무작위 배치, 568×320 다시보기는 고정 배치. Chrome·제어된 시계 | [문구 정리 검증](../quality/current-review.md#화면-문구-정리-2026-11-18) |
 | [failure-review/](failure-review/) | 2026-11-18 실패 결과에서 여섯 부정행위 동작 재현. Chrome 390×844·1167×813, 고정 배치·제어된 시계. 필기→단서 반복 중 캡처 | [다시 보기 검증](../quality/current-review.md#실패-후-부정행위-다시-보기-2026-11-18) |
 | [retargeting/returning-laptop.png](retargeting/returning-laptop.png), [retargeting/redirect-laptop.png](retargeting/redirect-laptop.png), [retargeting/redirect-mobile.png](retargeting/redirect-mobile.png) | 2026-11-18 복귀 중 12번 학생으로 전환, 모바일 연속 선택. Chrome·제어된 시계 | [현재 검증](../quality/current-review.md) |
 | [laptop-framing/before-1167x813.png](laptop-framing/before-1167x813.png), [laptop-framing/after-1167x813.png](laptop-framing/after-1167x813.png), [laptop-framing/after-568x320.png](laptop-framing/after-568x320.png) | 2026-11-18 노트북 감독관 잘림 재현과 수정 후 구도. Chrome·제어된 시계; 전후 배치는 다름 | [현재 검증](../quality/current-review.md) |

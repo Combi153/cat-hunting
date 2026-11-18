@@ -71,7 +71,7 @@ try {
     // Two neglected requests are a survivable cost. Help has its own fresh-round test.
     assert.ok(await page.locator('#ending').isHidden());
     await advance(46000 - (await time()) * 1000);
-    assert.match(await page.locator('.ending-title').innerText(), /감독 성공/);
+    assert.match(await page.locator('.ending-title').innerText(), /통과/);
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
     assert.equal(saved.history[0].stage, stage);
     assert.equal(saved.history[0].caught, fixture.rules.culprits);

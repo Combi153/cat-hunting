@@ -198,10 +198,10 @@ function render() {
       ? room.action
         ? room.action.request.type === 'curtain'
           ? room.path.length
-            ? '눈부시지 않게 커튼을 닫으러 가요.'
-            : '햇빛을 가리도록 커튼을 닫고 있어요.'
-          : '새 답안지를 건네고 있어요.'
-        : '학생에게 다가가고 있어요.'
+            ? '창가로 이동 중'
+            : '커튼 닫는 중'
+          : '답안지 건네는 중'
+        : ''
       : request
         ? request.type === 'paper'
           ? '“선생님, 답안지를 바꾸고 싶어요.”'
