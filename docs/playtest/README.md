@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [creator-credit/](creator-credit/) | 2026-11-18 로비 하단 제작자·이메일. `3b0dbd6`에 변경한 작업 트리, Chrome 작은 세로·가로·노트북, 하단까지 스크롤한 화면 | [크레딧 검증](../quality/current-review.md#로비-제작자-연락처-2026-11-18) |
 | [direct-sharing/](direct-sharing/) | 2026-11-18 기본 공유 직접 호출·별도 링크 복사. `acd6c12`, Chrome 작은 세로·가로·노트북, 고정 배치·제어된 시계. OS 공유창은 API 대역 검사로 실기기 목록 캡처가 아님 | [직접 공유 검증](../quality/current-review.md#기본-공유창-바로-열기-2026-11-18) |
 | [thinkplace-banner/](thinkplace-banner/) | 2026-11-18 생각하는 공간 배너. Chrome 작은 세로·가로·노트북 로비/결과, 무작위 1단계·제어된 시계 | [배너 검증](../quality/current-review.md#생각하는-공간-광고-배너-2026-11-18) |
 | [pause-help/](pause-help/) | 2026-11-18 일시정지 규칙 설명·전체 통과 버튼. Chrome 320×568·568×320·1167×813, 무작위 배치·제어된 시계. 전체 통과는 규칙 API로 구성 | [검증 기록](../quality/current-review.md#일시정지조작전체-통과-문구-보완-2026-11-18) |

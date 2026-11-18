@@ -69,7 +69,11 @@ export function lobby(saved, selected = 1) {
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
     <button class="primary start-btn" data-action="start">${selected}단계 감독 시작 ${icon('arrow')}</button>
     ${sponsorBanner('lobby')}
-    </section></div>`;
+    </section>
+    <footer class="creator-credit">
+      <p>만든 사람 <strong>후추</strong></p>
+      <a href="mailto:hodooo153@gmail.com">hodooo153@gmail.com</a>
+    </footer></div>`;
 }
 export function hud(stage = 1) {
   return `<header class="hud-top"><div id="health">${hearts(3)}</div><strong id="time">00:45</strong>

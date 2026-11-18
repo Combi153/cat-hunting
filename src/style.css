@@ -75,6 +75,33 @@ h2 {
   justify-content: space-between;
   margin-bottom: 12px;
 }
+.creator-credit {
+  margin-top: 20px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.creator-credit strong {
+  color: #55644e;
+  font-weight: 600;
+}
+.creator-credit a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 6px;
+  color: inherit;
+  overflow-wrap: anywhere;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+}
+.creator-credit a:focus-visible {
+  outline: 3px solid #d49441;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
 .brand {
   font: 18px var(--round);
   display: flex;
