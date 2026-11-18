@@ -1,3 +1,4 @@
+import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const origin = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173';
@@ -31,7 +32,15 @@ try {
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
   await page.goto(origin);
-  const tap = action => page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap();
+  const tap = async action => {
+    await revealResult(page);
+    await page.locator(`[data-action="${action}"]`).filter({visible:true}).first().tap();
+    if(action==='share'){
+      await page.locator('[data-share=send]').tap();
+      await page.clock.runFor(5100);
+      if(await page.evaluate(()=>window.shareMode==='AbortError'))await page.locator('[data-share=close]').tap();
+    }
+  };
   const events = name => page.evaluate(name => window.events.filter(e => e.name === name), name);
   async function banner(placement) {
     const popup = page.waitForEvent('popup');
@@ -45,6 +54,7 @@ try {
   await page.locator('#play:not([hidden])').waitFor();
   await page.clock.runFor(100);
   await page.clock.fastForward(46000);
+  await revealResult(page);
   await page.locator('[data-action=review]').waitFor();
   assert.equal((await events('level_end')).length, 1);
   const props = await events('prop_result');
@@ -77,6 +87,7 @@ try {
   await page.evaluate(() => { window.shareMode = 'pending'; });
   await tap('share');
   const before = (await events('share_result')).length;
+  await page.locator('[data-share=close]').tap();
   await tap('start');
   await page.evaluate(() => window.resolveShare());
   await page.clock.runFor(100);

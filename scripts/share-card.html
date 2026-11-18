@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><meta charset="UTF-8"><style>
+@font-face{font-family:Jua;src:url('/fonts/Jua-Regular.ttf')}
+*{box-sizing:border-box}body{margin:0;width:1200px;height:630px;overflow:hidden;background:#fff9e9;color:#295b46;font-family:Jua}
+.card{position:relative;width:1200px;height:630px;padding:52px 64px;background:radial-gradient(ellipse at 85% 10%,#c8d9ae88,transparent 65%)}
+.brand{font-size:26px;letter-spacing:1px}.brand span{margin-left:18px;font:20px sans-serif;color:#687663}
+.copy{position:relative;z-index:2;width:660px;margin-top:55px}.eyebrow{font:22px sans-serif;color:#687663;margin:0 0 18px}h1{font-size:80px;line-height:1.1;margin:0 0 24px;font-weight:400;letter-spacing:-2px}.sub{font-size:29px;margin:0}.steps{display:flex;gap:12px;margin-top:32px}.steps span{display:grid;place-items:center;border-radius:50%;width:42px;height:42px;font-size:23px;color:#72836a;background:#e7eadb}.steps .done{color:#fff9e9;background:#295b46}
+canvas{position:absolute;width:560px;height:540px;right:-12px;bottom:0;mask-image:linear-gradient(to right,transparent,#000 25%)}
+.site{position:absolute;bottom:34px;left:64px;font:18px sans-serif;letter-spacing:2px;color:#687663}
+.spark{position:absolute;font-size:44px;color:#c99d4f;z-index:3}.s1{right:72px;top:124px}.s2{right:426px;top:172px;font-size:30px}.s3{right:46px;bottom:90px;font-size:30px}
+</style><div class="card"><div class="brand">냥이잡기<span>45초 시험 감독</span></div><canvas id="room"></canvas><div class="copy"><p class="eyebrow"></p><h1></h1><p class="sub"></p><div class="steps"></div></div><div class="site">CAT-HUNTING.VERCEL.APP</div></div>
+<script type="module">
+import { Room } from '/src/world.js'; import { Exam } from '/src/session.js';
+window.renderCard=async function(stage,win){
+ const exam=new Exam(42,stage); const room=new Room(document.querySelector('canvas'));room.reset(exam);
+ const result=exam.result();result.reason=win?'win':'missed';if(win){result.missed=[];result.caught=exam.rules.culprits;}
+ room.finish(result);room.resize();for(let i=0;i<90;i++)room.draw(1/60,0);
+ const complete=win&&stage===5;
+ document.querySelector('.eyebrow').textContent=complete?'모든 부정행위자를 찾아냈다!':win?'이번 시험, 감독 성공!':'히히… 아직 못 찾았지?';
+ document.querySelector('h1').innerHTML=complete?'5단계<br>모두 통과!':win?`${stage}단계 통과!`:`나는 ${stage}단계에서<br>막혔다!`;
+ document.querySelector('.sub').textContent=complete?'너도 전부 찾아낼 수 있어?':'너는 몇 단계까지 갈 수 있어?';
+ document.querySelector('.steps').innerHTML=Array.from({length:5},(_,i)=>`<span class="${i<(win?stage:stage-1)?'done':''}">${i+1}</span>`).join('');
+ if(win)for(const [i,cls]of ['s1','s2','s3'].entries()){const span=document.createElement('span');span.className='spark '+cls;span.textContent=i===0?'✦':'✧';document.querySelector('.card').append(span)}
+ await document.fonts.ready;
+};
+</script></html>

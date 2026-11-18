@@ -34,16 +34,21 @@ try {
     }, reason);
     await page.clock.fastForward(46000);
     await page.locator('#ending:not([hidden])').waitFor();
+    assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), false);
+    await page.clock.runFor(1500);
+    assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), false, 'reaction is visible for at least 1.5 seconds');
+    await page.clock.runFor(400);
+    assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), true, 'result opens automatically by 1.9 seconds');
     const saved = await page.evaluate(() => [localStorage.getItem('nyangijapgi.v2'),localStorage.getItem('nyangijapgi.retries.v1')]);
     for (const [width,height] of layouts) {
+      await tap('result-close');
       await page.setViewportSize({width,height});
-      await page.locator('.ending-scroll').evaluate(el => { el.scrollTop = 0; });
       await page.clock.runFor(100);
       const geometry = await page.evaluate(() => {
         const room = window.testRoom;
         room.draw(0, window.testExam.time);
         const canvas = document.querySelector('#room').getBoundingClientRect();
-        const sheet = document.querySelector('.ending-bottom').getBoundingClientRect();
+        const sheet = document.querySelector('.ending-reaction').getBoundingClientRect();
         const title = document.querySelector('.ending-title').getBoundingClientRect();
         const model = room.ending.id ? room.students.get(room.ending.id) : room.proctor;
         const points=[];
@@ -62,76 +67,44 @@ try {
         });
         }
         return {canvas:canvas.toJSON(), sheet:sheet.toJSON(), title:title.toJSON(),
-          head:{left:Math.min(...points.map(p=>p.x)),right:Math.max(...points.map(p=>p.x)),top:Math.min(...points.map(p=>p.y)),bottom:Math.max(...points.map(p=>p.y))},
-          scroll:document.querySelector('.ending-scroll').scrollTop};
+          head:{left:Math.min(...points.map(p=>p.x)),right:Math.max(...points.map(p=>p.x)),top:Math.min(...points.map(p=>p.y)),bottom:Math.max(...points.map(p=>p.y))}};
       });
-      await page.screenshot({path:`test-results/results-${reason}-${stage}-${width}.png`});
-      assert.ok(geometry.head.top >= geometry.canvas.top && geometry.head.bottom <= geometry.canvas.bottom, `head fits: ${reason}/${stage}/${width}: ${JSON.stringify(geometry)}`);
+
+      await page.screenshot({path:`test-results/modal-intro-${reason}-${stage}-${width}.png`});
+      assert.ok(geometry.head.top >= geometry.canvas.top && geometry.head.bottom <= geometry.canvas.bottom, `head fits ${reason}/${stage}/${width}: ${JSON.stringify(geometry)}`);
       assert.ok(geometry.head.left >= geometry.canvas.left && geometry.head.right <= geometry.canvas.right);
-      assert.ok(geometry.title.bottom <= geometry.head.top, 'title must not cover the head');
-      const landscape = width === 568 || width === 844;
-      if (!landscape) {
-        assert.equal(geometry.scroll, 0);
-        assert.ok(geometry.canvas.bottom <= geometry.sheet.top + 1, 'collapsed card leaves the character canvas clear');
-        const toggle = page.locator('.ending-toggle');
-        assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
-        await tap('result-toggle');
-        await page.waitForFunction(() => document.querySelector('.ending-scroll').scrollTop > 24);
-        await page.clock.runFor(50);
-        assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
-        if (reason === 'missed' && width === 390) await page.screenshot({path:'test-results/results-expanded.png'});
-      } else {
-        assert.equal(await page.locator('.ending-toggle').isVisible(),false);
-        assert.ok(geometry.canvas.right <= geometry.sheet.left + 1, 'landscape actions must stay beside the character');
+      assert.ok(geometry.title.bottom <= geometry.head.top);
+      if(width===568||width===844) assert.ok(geometry.canvas.right <= geometry.sheet.left+1);
+      else assert.ok(geometry.canvas.bottom <= geometry.sheet.top+1);
+      await tap('result-open');
+      const dialog=await page.locator('#result-dialog').boundingBox();
+      assert.ok(dialog.x>=0&&dialog.y>=0&&dialog.x+dialog.width<=width+1&&dialog.y+dialog.height<=height+1);
+      assert.equal(await page.locator('.ending-scroll').count(),0);
+      assert.equal(await page.locator('#result-actions [data-action=home]').count(),1);
+      if(reason!=='win'){
+        assert.equal(await page.locator('#result-actions .primary').getAttribute('data-action'),'review');
+        const learn=await page.locator('[data-action=review]').boundingBox();
+        assert.ok(learn.y+learn.height <=height);
       }
-      // Every action remains reachable by native scroll, including the banner.
-      for (const button of await page.locator('#result-actions button:not(:disabled), #result-actions a, #result-actions summary').all()) {
-        await button.scrollIntoViewIfNeeded();
-        const b=await button.boundingBox();
-        assert.ok(b.y>=0 && b.y+b.height<=height+1 && b.height>=44);
+      for(const target of await page.locator('#result-actions button, #result-actions a').all()){
+        await target.scrollIntoViewIfNeeded();const box=await target.boundingBox();
+        assert.ok(box.height>=44&&box.y>=0&&box.y+box.height<=height+1);
       }
-      assert.equal(await page.locator('#result-actions [data-action=home]').count(), 1, 'one route to the lobby');
-      await page.locator('.retry-details summary').tap();
-      assert.equal(await page.locator('.retry-details').getAttribute('open'), '');
-      await page.clock.runFor(1100);
-      assert.equal(await page.locator('.retry-details').getAttribute('open'), '', 'balance refresh must preserve open rules');
-      await page.locator('.retry-details summary').tap();
-      await page.clock.runFor(200);
-      await page.locator('.ending-scroll').evaluate(el => {
-        el.scrollTop = Math.max(0, el.querySelector('.ending-spacer').clientHeight - 12);
-      });
-      await page.screenshot({path:`test-results/results-clean-${reason}-${stage}-${width}.png`});
-      if (!landscape) {
-        await tap('result-toggle');
-        await page.waitForFunction(() => document.querySelector('.ending-scroll').scrollTop === 0);
-      }
+      await page.locator('#result-dialog').evaluate(el=>el.scrollTop=0);
+      await page.screenshot({path:`test-results/modal-result-${reason}-${stage}-${width}.png`});
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open),false);
+      assert.equal(await page.evaluate(()=>document.activeElement.dataset.action),'result-open');
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open),true);
     }
-    assert.deepEqual(await page.evaluate(() => [localStorage.getItem('nyangijapgi.v2'),localStorage.getItem('nyangijapgi.retries.v1')]), saved);
-    await page.setViewportSize({width:390,height:844});
-    if (reason !== 'win') {
-      await tap('review');
-      await page.clock.runFor(100);
-      await tap('review-close');
-      assert.ok(await page.locator('.ending-scroll').evaluate(el=>el.scrollTop>0), 'return from review restores the expanded card');
+    if(reason!=='win'){
+      await tap('review'); await page.clock.runFor(1000); await tap('review-close');
+      assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open),true);
+      assert.equal(await page.evaluate(()=>document.activeElement.dataset.action),'review');
     }
-    await tap('share');
-    await page.waitForFunction(()=>document.querySelector('#share-toast').textContent.includes('3회 추가'));
-    assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),'https://cat-hunting.vercel.app/');
-    console.log(`Result ${reason}/${stage}: animated head bounds, six layouts, expand/collapse, all actions and sharing passed.`);
+    assert.deepEqual(await page.evaluate(()=>[localStorage.getItem('nyangijapgi.v2'),localStorage.getItem('nyangijapgi.retries.v1')]),saved);
+    console.log(`Result ${reason}/${stage}: timed reveal, six layouts, visible review, native modal keyboard, return and unchanged saves passed.`);
   }
-  // A real touch swipe moves the sheet; keyboard users can reach it with Tab.
-  await page.locator('.ending-scroll').evaluate(el=>{el.scrollTop=0;});
-  const cdp=await page.context().newCDPSession(page);
-  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:195,y:730}]});
-  for (const y of [680,610,530,440]) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:195,y}]});
-  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  await page.waitForFunction(()=>document.querySelector('.ending-scroll').scrollTop>50);
-  await page.locator('.ending-toggle').focus();
-  await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.querySelector('.ending-scroll').scrollTop===0);
-  await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(()=>document.activeElement.dataset.action),'home');
-  assert.ok(await page.locator('.ending-scroll').evaluate(el=>el.scrollTop>0));
   assert.deepEqual(errors,[]);
-  console.log('Touch swipe and keyboard access passed; no page errors.');
-} finally {await browser.close();}
+}finally{await browser.close();}

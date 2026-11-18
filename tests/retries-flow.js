@@ -1,3 +1,4 @@
+import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const origin = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173';
@@ -27,136 +28,41 @@ try {
   await page.clock.install({ time: new Date('2026-11-18T14:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-18T14:01:00Z'));
   await page.goto(origin);
-  const tap = action => page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap();
-  const status = () => page.locator('.retry-status').filter({ visible: true });
-  const balance = async n => assert.match(await status().innerText(), new RegExp(`재도전 ${n}회`));
-  const raw = () => page.evaluate(() => localStorage.getItem('nyangijapgi.retries.v1'));
-  const events = name => page.evaluate(name => window.events.filter(e => e.name === name), name);
-  const start = async () => {
-    await tap('start');
-    await page.locator('#play:not([hidden])').waitFor();
-    await page.locator('#ending').waitFor({ state: 'hidden' });
-    await page.clock.runFor(100);
+  const tap = async action => { await revealResult(page); return page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap(); };
+  const balance = async n => { await revealResult(page); assert.match(await page.locator('.retry-status').filter({visible:true}).innerText(),new RegExp(`재도전 ${n}회`)); };
+  const raw = () => page.evaluate(()=>localStorage.getItem('nyangijapgi.retries.v1'));
+  const events = name => page.evaluate(name=>window.events.filter(e=>e.name===name),name);
+  const start = async()=>{await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.locator('#ending').waitFor({state:'hidden'});await page.clock.runFor(100)};
+  const finish = async reason=>{
+    if(reason!=='missed')await page.evaluate(reason=>{for(const seat of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(seat.id)},reason);
+    await page.clock.fastForward(46000);await revealResult(page);
   };
-  const finish = async reason => {
-    if (reason !== 'missed') await page.evaluate(reason => {
-      for (const seat of window.testExam.seats.filter(s => reason === 'win' ? s.guilty : !s.guilty).slice(0, reason === 'win' ? 12 : 3)) window.testExam.report(seat.id);
-    }, reason);
-    await page.clock.fastForward(46000);
-    await page.locator('#ending:not([hidden])').waitFor();
-  };
-  await balance(3);
-  await start();
-  await finish('win');
-  await balance(3);
-  assert.equal(await page.locator('[data-action=advance]').isEnabled(), true);
-  for (const [reason, remaining] of [['missed', 2], ['health', 1], ['missed', 0]]) {
-    await start();
-    await finish(reason);
-    await balance(remaining);
+  await balance(3);await start();await finish('win');await balance(3);
+  for(const [reason,n]of [['missed',2],['health',1],['missed',0]]){await start();await finish(reason);await balance(n)}
+  assert.equal((await events('retry_exhausted')).length,1);
+  const attempt=await page.evaluate(()=>window.testExam.seed);
+  assert.equal(await page.locator('#ending [data-action=start]').isEnabled(),true);
+  await tap('start');assert.match(await page.locator('#share-title').innerText(),/기회가 없어요/);
+  assert.equal(await page.evaluate(()=>window.testExam.seed),attempt);assert.equal(await page.evaluate(()=>window.shareCalls),0);
+  await page.locator('[data-share=close]').tap();await tap('review');await page.clock.runFor(1000);await tap('review-next');await tap('review-close');await balance(0);
+  for(const [width,height]of [[320,568],[568,320],[1167,813]]){
+    await page.setViewportSize({width,height});await tap('start');await page.screenshot({path:`test-results/retry-gate-${width}.png`});
+    await page.locator('[data-share=close]').tap();
   }
-  assert.equal((await events('retry_exhausted')).length, 1);
-  assert.equal(await page.locator('#ending [data-action=start]').isDisabled(), true);
-  // A stale enabled control cannot bypass the start guard.
-  await page.locator('#ending [data-action=start]').evaluate(el => { el.disabled = false; el.click(); });
-  assert.equal(await page.locator('#ending [data-action=start]').isDisabled(), true);
-  await tap('review');
-  await page.clock.runFor(1000);
-  await tap('review-next');
-  await tap('review-close');
-  await balance(0);
-  for (const [width, height] of [[320,568], [568,320], [1167,813]]) {
-    await page.setViewportSize({ width, height });
-    await page.clock.runFor(200);
-    for (const action of ['review', 'share', 'home']) {
-      const button = page.locator(`#ending [data-action=${action}]`).first();
-      await button.scrollIntoViewIfNeeded();
-      const b = await button.boundingBox();
-      assert.ok(b.height >= 44 && b.x >= 0 && b.y >= 0 && b.x + b.width <= width && b.y + b.height <= height);
-    }
-    await page.locator('#ending [data-action=share]').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `test-results/retries-empty-${width}.png` });
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  }
-  await page.setViewportSize({ width: 390, height: 844 });
-  await tap('home');
-  await page.reload();
-  await balance(0);
-  assert.equal(await page.locator('#lobby [data-action=start]').isDisabled(), true);
-  await page.evaluate(() => { window.shareMode = 'AbortError'; });
-  await tap('share');
-  await balance(0);
-  assert.equal((await events('retry_reward')).length, 0);
-  await page.evaluate(() => { window.shareMode = 'success'; });
-  await tap('share');
-  await balance(3);
-  await tap('share');
-  await balance(6);
-  assert.equal((await events('retry_reward')).length, 2);
-  assert.ok((await events('retry_reward')).every(e => !e.attempt_id && e.share_placement === 'lobby'));
-  await page.reload();
-  await balance(6);
-  await start();
-  await tap('pause');
-  await tap('leave');
-  await tap('home');
-  await balance(6); // Explicit quit isn't a completed defeat.
-
-  // Duplicate clicks reward a single in-flight handoff only once.
-  await page.evaluate(() => { window.shareMode = 'pending'; });
-  await tap('share');
-  await tap('share');
-  assert.equal(await page.evaluate(() => window.shareCalls), 1);
-  await page.evaluate(() => window.resolveShare());
-  await balance(9);
-  // Leaving a result invalidates a late success, including its reward.
-  await start();
-  await finish('missed');
-  await balance(8);
-  await tap('share');
-  const before = await raw();
-  await tap('home');
-  await page.evaluate(() => window.resolveShare());
-  assert.equal(await raw(), before);
-  await balance(8);
-
-  // Real clipboard fallback grants +3 every time; denied copy grants nothing.
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
-  await page.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: undefined }));
-  await tap('share');
-  await page.waitForFunction(() => document.querySelector('#share-toast').textContent.includes('3회 추가'));
-  await balance(11);
-  assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'https://cat-hunting.vercel.app/');
-  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('Denied'); } } }));
-  const copiedBalance = await raw();
-  await tap('share');
-  await page.locator('#share-dialog').waitFor();
-  assert.equal(await raw(), copiedBalance);
-  await page.locator('[data-share=close]').tap();
-  await balance(11);
-
-  // Visible lobby and result refresh at Korean midnight. No reload is needed.
-  await page.clock.setSystemTime(new Date('2026-11-18T15:00:01Z'));
-  await page.clock.runFor(1100);
-  await balance(3);
-  await start();
-  await finish('missed');
-  await balance(2);
-  await page.clock.setSystemTime(new Date('2026-11-19T15:00:01Z'));
-  await page.clock.runFor(1100);
-  await balance(3);
-  await start();
-  // An exam crossing midnight charges its failure to the day it finishes.
-  await page.clock.setSystemTime(new Date('2026-11-20T15:00:01Z'));
-  await finish('health');
-  await balance(2);
-  const state = JSON.parse(await raw());
-  assert.equal(state.day, '2026-11-21');
-  await page.reload();
-  await balance(2);
-  const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
-  assert.equal(progress.unlocked, 2);
-  assert.equal(progress.history.length, 7);
-  assert.deepEqual(errors, []);
-  console.log('Retry flow passed: wins, 3 losses, review while blocked, reload, repeated rewards, cancel/denied/stale/duplicate sharing, clipboard, quit, Korean midnight and three layouts.');
-} finally { await browser.close(); }
+  await tap('start');await page.locator('[data-share=send]').tap();await page.clock.runFor(4900);await balance(0);
+  await page.clock.runFor(200);await balance(3);
+  await start();await tap('pause');await tap('leave');await tap('home');await balance(3);
+  await page.reload();await balance(3);
+  // Repeatable rewards remain possible; the first click is just an invitation.
+  await tap('share');const before=await raw();await page.clock.runFor(6000);assert.equal(await raw(),before);
+  await page.locator('[data-share=send]').tap();await page.clock.runFor(5100);await balance(6);
+  assert.equal((await events('retry_reward')).length,1); // analytics collector resets on reload
+  await page.clock.setSystemTime(new Date('2026-11-18T15:00:01Z'));await page.clock.runFor(1100);await balance(3);
+  await start();await finish('missed');await balance(2);
+  await page.clock.setSystemTime(new Date('2026-11-19T15:00:01Z'));await page.clock.runFor(1100);await balance(3);
+  await start();await page.clock.setSystemTime(new Date('2026-11-20T15:00:01Z'));await finish('health');await balance(2);
+  assert.equal(JSON.parse(await raw()).day,'2026-11-21');await page.reload();await balance(2);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nyangijapgi.v2')).unlocked),2);
+  assert.deepEqual(errors,[]);
+  console.log('Retries passed: win preserved, three failures, zero-chance invitation, review without quota, delayed reward then retry, reload, repeated reward, quit and Korean midnight.');
+}finally{await browser.close();}

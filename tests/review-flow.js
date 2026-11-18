@@ -1,3 +1,4 @@
+import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { Exam, TYPES } from '../src/session.js';
@@ -24,7 +25,7 @@ try {
   });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
-  const tap = action => page.locator(`[data-action=${action}]`).filter({ visible: true }).tap();
+  const tap = async action => { await revealResult(page); return page.locator(`[data-action=${action}]`).filter({ visible: true }).tap(); };
   const covered = new Set();
   for (let seed = 1; covered.size < Object.keys(TYPES).length; seed++) {
     const fixture = new Exam(seed);
@@ -35,6 +36,7 @@ try {
     await page.clock.runFor(100);
     // Timeout through the real game loop, then inspect the ended round.
     await page.clock.fastForward(46000);
+    await revealResult(page);
     await page.locator('[data-action=review]').waitFor();
     const saved = await page.evaluate(() => localStorage.getItem('nyangijapgi.v2'));
     const frozen = await page.evaluate(() => JSON.stringify(window.testExam));

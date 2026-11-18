@@ -1,3 +1,4 @@
+import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { Exam } from '../src/session.js';
@@ -48,7 +49,7 @@ try {
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.goto(origin);
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
-  const tap = (selector) => page.locator(selector).filter({ visible: true }).tap();
+  const tap = async selector => { await revealResult(page); return page.locator(selector).filter({ visible: true }).tap(); };
   const advance = async (ms) => {
     while (ms > 0) {
       await page.clock.fastForward(Math.min(ms, 500));
@@ -82,9 +83,11 @@ try {
       await tap('[data-action=leave]');
       await tap('#overlay [data-action=home]');
     }
-    if (await page.locator('#lobby [data-action=start]').isDisabled()) {
+    if (await page.locator('#lobby .retry-status b').textContent() === '0') {
       await page.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} }));
       await tap('#lobby [data-action=share]');
+      await page.locator('[data-share=send]').tap();
+      await page.clock.runFor(5200);
     }
     await start();
     return new Exam(await page.evaluate(() => window.testExam.seed), 3);

@@ -22,7 +22,7 @@ const retries = createRetryAllowance({
   getItem: key => localStorage.getItem(key),
   setItem: (key, value) => localStorage.setItem(key, value),
 });
-const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'), track,
+const sharing = createResultSharing($('#share-dialog'), $('#share-toast'), track,
   () => screen === 'ended' ? engagement.shareContext() : { share_placement: 'lobby' },
   (method, context) => {
     const allowance = retries.reward();
@@ -64,36 +64,35 @@ let previous = performance.now(),
   toastUntil = 0;
 let previousFocus = null,
   touchStart = null;
-let resultScroll = 0;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
-function syncResultSheet() {
-  const scroll = $('#ending .ending-scroll');
-  if (!scroll) return;
-  const expanded = scroll.scrollTop > 24;
-  const toggle = scroll.querySelector('.ending-toggle');
-  toggle.setAttribute('aria-expanded', String(expanded));
-  toggle.querySelector('.sheet-label').textContent = expanded ? '캐릭터 보기 ↓' : '결과·버튼 보기 ↑';
+let resultTimer;
+function closeResult() {
+  clearTimeout(resultTimer);
+  $('#result-dialog')?.close();
 }
-function showResult(scrollTop = 0) {
+function openResult() {
+  clearTimeout(resultTimer);
+  const dialog = $('#result-dialog');
+  if (screen !== 'ended' || !dialog || dialog.open || room.ending?.reviewIndex != null) return;
+  dialog.showModal();
+  $('#result-actions button')?.focus({ preventScroll: true });
+}
+function showResult(immediate = false) {
+  clearTimeout(resultTimer);
   $('#ending').innerHTML = ui.ending(room.ending, retries.current().remaining);
   $('#ending').hidden = false;
-  $('#ending .ending-scroll').scrollTop = scrollTop;
-  syncResultSheet();
+  $('#result-dialog').addEventListener('close', () => $('#ending [data-action=result-open]')?.focus({ preventScroll: true }));
   refreshRetries();
+  if (immediate) openResult();
+  else resultTimer = setTimeout(openResult, 1800);
 }
-$('#ending').addEventListener('scroll', syncResultSheet, true);
 function refreshRetries() {
   if (screen === 'running') return;
   const root = screen === 'home' ? '#lobby' : '#ending';
   const { remaining } = retries.current();
-  if ($(`${root} .retry-status`)) put(`${root} .retry-status`, ui.retryStatus(remaining, screen === 'ended'));
-  const reward = $('#ending .result-retries');
-  if (reward) {
-    reward.classList.toggle('is-empty', remaining === 0);
-    reward.querySelector('.retry-empty').hidden = remaining > 0;
-  }
+  if ($(`${root} .retry-status`)) put(`${root} .retry-status`, ui.retryStatus(remaining));
   for (const button of document.querySelectorAll(`${root} [data-action=start], ${root} [data-action=advance]`))
-    button.disabled = loading || remaining === 0;
+    button.disabled = loading;
 }
 function put(selector, content) {
   const element = $(selector);
@@ -103,6 +102,7 @@ function put(selector, content) {
   }
 }
 function home() {
+  closeResult();
   engagement.home();
   sharing.reset();
   if (screen === 'running') gameAnalytics.leave(exam);
@@ -150,10 +150,11 @@ async function start(stage = selectedStage, source = 'lobby') {
   if (loading) return;
   if (retries.current().remaining === 0) {
     refreshRetries();
-    $(`${screen === 'home' ? '#lobby' : '#ending'} [data-action=share]`)?.focus();
+    sharing.share(screen === 'ended' ? exam.result() : null, true);
     return;
   }
   sharing.reset();
+  closeResult();
   loading = true;
   track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
   const button = document.activeElement;
@@ -162,7 +163,11 @@ async function start(stage = selectedStage, source = 'lobby') {
   try {
     const { Room } = await import('./world.js');
     // A different tab may have spent the final chance while the room loaded.
-    if (retries.current().remaining === 0) return;
+    if (retries.current().remaining === 0) {
+      if (screen === 'ended') openResult();
+      sharing.share(screen === 'ended' ? exam.result() : null, true);
+      return;
+    }
     const lastSeed = exam?.seed ?? saved.history[0]?.seed;
     const last = Number.isInteger(lastSeed)
       ? new Exam(lastSeed, exam?.stage ?? saved.history[0]?.stage ?? 1)
@@ -237,12 +242,10 @@ function finish() {
   paused = false;
   $('#overlay').hidden = true;
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
-  resultScroll = 0;
   showResult();
   if (retries.current().remaining === 0)
     track('retry_exhausted', { ...engagement.shareContext(), retry_remaining: 0 });
-  const toggle = $('#ending .ending-toggle');
-  (toggle.getClientRects().length ? toggle : $('#ending #result-actions button'))?.focus({ preventScroll: true });
+  $('#ending [data-action=result-open]')?.focus({ preventScroll: true });
   room.resize();
   $('#notice').textContent = '';
   if (!saved.muted) finale(result.reason === 'win');
@@ -290,14 +293,8 @@ function render() {
   );
 }
 function act(action) {
-  if (action === 'result-toggle' && screen === 'ended') {
-    const scroll = $('#ending .ending-scroll');
-    if (scroll) scroll.scrollTo({
-      top: scroll.scrollTop > 24 ? 0 : Math.max(0, scroll.querySelector('.ending-spacer').clientHeight - 12),
-      behavior: motion.matches ? 'instant' : 'smooth',
-    });
-    return;
-  }
+  if (action === 'result-open') return openResult();
+  if (action === 'result-close') return closeResult();
   if (screen === 'ended' && !loading && ['start', 'advance', 'home', 'review', 'share', 'share-copy'].includes(action))
     engagement.action(({ start: 'retry', advance: 'advance', home: 'home', review: 'review', share: 'share', 'share-copy': 'copy' })[action]);
   if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage, screen === 'ended' ? 'retry' : 'lobby');
@@ -311,10 +308,10 @@ function act(action) {
       engagement.closeReview();
       room.closeReview();
       $('#play').classList.remove('reviewing');
-      showResult(resultScroll);
+      showResult(true);
       $('#ending [data-action=review]')?.focus({ preventScroll: true });
     } else {
-      if (action === 'review') resultScroll = $('#ending .ending-scroll')?.scrollTop ?? 0;
+      if (action === 'review') closeResult();
       const selection = room.review(action === 'review-prev' ? -1 : action === 'review-next' ? 1 : 0);
       if (!selection) return;
       engagement.review(selection, action === 'review' ? 'open' : 'navigate');
@@ -375,8 +372,11 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
-  if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null)
+  if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null) {
+    event.preventDefault();
     act('review-close');
+    return;
+  }
   if (event.code === 'Escape' && screen === 'running') {
     if (paused) resume();
     else if (room.focus) act('overview');

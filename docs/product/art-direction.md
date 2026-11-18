@@ -15,7 +15,7 @@
 | 학생 | 필기·휴식·소매 정리·손목 풀기·목 스트레칭·지문 재독을 섞음. 정상 학생과 범인 모두 일상 행동을 함 |
 | 오인 | 처음의 짧은 흐느낌, 눈물과 울상이 시험 내내 남음. 이후 필기 계속 |
 | 커튼 | 창가 이동, 팔 뻗기, 천이 닫히는 중간 과정, 도움 완료 순서가 보임 |
-| 결과 연출 | 제목·캐릭터 공간·하단 카드를 분리. 세로 결과 카드는 180px부터 위로 스크롤해 펼치고, 가로는 캐릭터 옆 패널을 스크롤. 성공·실패 모두 얼굴과 상체를 먼저 보여줌 |
+| 결과 연출 | 캐릭터 얼굴·상체와 대사를 먼저 보여준 뒤 1.8초 후 결과 모달. 실패는 다시보기 버튼을 가장 강조. 밀어 올리는 카드는 사용하지 않음 |
 | 문구 | ‘하트 -1’ 같은 수치 통보 대신 학생의 말과 상황을 전달 |
 | 화면 | 눈 깜빡임에 따른 암전 없음. 손에 든 물건을 확대 화면에서 판단. 데스크톱도 중앙 9:16 세로 화면·하단 조작부 사용 |
 
@@ -33,7 +33,8 @@
 
 - 학생·감독관·소품·애니메이션: [characters.js](../../src/art/characters.js)
 - 교실·커튼: [classroom.js](../../src/art/classroom.js), 책상 기준 높이: [dimensions.js](../../src/art/dimensions.js)
-- 표지와 공유 대표 이미지: [exam-keyart.jpg](../../public/art/exam-keyart.jpg). 표지는 게임용 일러스트이며 실시간 플레이 화면은 아니다.
+- 결과 공유 이미지: [share-images](../../public/share-images/)의 1200×630 JPEG 10종. 실제 게임 캐릭터와 점토 교실을 별도 렌더링한 홍보 카드이며 개별 판의 녹화·성적 인증 이미지가 아니다. 전체 통과는 웃으며 두 팔을 든 감독관·다섯 완료 표시, 나머지는 단계별 성공/도전 중 문구를 사용한다.
+- 표지와 일반 공유 대표 이미지: [exam-keyart.jpg](../../public/art/exam-keyart.jpg). 표지는 게임용 일러스트이며 실시간 플레이 화면은 아니다.
 - 실제 플레이 캡처: [시계](../playtest/45-second/proof-watch.png), [일반 시계](../playtest/45-second/clear-watch.png), [펜](../playtest/45-second/proof-pen.png), [일반 펜](../playtest/45-second/clear-pen.png), [소매 정리](../playtest/45-second/sleeve-adjust.png), [손목 풀기](../playtest/45-second/wrist-rest.png), [목 스트레칭](../playtest/45-second/neck-stretch.png), [재독](../playtest/45-second/reread.png)
 - Jua 글꼴 라이선스: [OFL](../../public/fonts/OFL-Jua.txt)
 

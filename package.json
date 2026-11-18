@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-share-pages.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js",
     "test:browser": "node tests/browser-flow.js",
@@ -16,7 +16,9 @@
     "test:assets": "node tests/assets-flow.js",
     "test:analytics": "node tests/analytics-flow.js",
     "test:retries": "node tests/retries-flow.js",
-    "test:results": "node tests/results-flow.js"
+    "test:results": "node tests/results-flow.js",
+    "render:share": "node scripts/render-share-images.mjs",
+    "test:share-pages": "node tests/share-pages-flow.js"
   },
   "dependencies": {
     "three": "0.180.0"

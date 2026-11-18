@@ -1,3 +1,4 @@
+import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { Exam, EXAM_DURATION } from '../src/session.js';
@@ -21,7 +22,7 @@ try {
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.goto(process.env.TEST_BASE_URL || 'http://127.0.0.1:5173');
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
-  const tap = (selector) => page.locator(selector).filter({ visible: true }).tap();
+  const tap = async selector => { await revealResult(page); return page.locator(selector).filter({ visible: true }).tap(); };
   const advance = async (ms) => {
     while (ms > 0) {
       await page.clock.fastForward(Math.min(ms, 500));
@@ -71,6 +72,7 @@ try {
     // Two neglected requests are a survivable cost. Help has its own fresh-round test.
     assert.ok(await page.locator('#ending').isHidden());
     await advance(46000 - (await time()) * 1000);
+    await revealResult(page);
     assert.match(await page.locator('.ending-title').innerText(), /통과/);
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
     assert.equal(saved.history[0].stage, stage);

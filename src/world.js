@@ -268,7 +268,7 @@ export class Room {
     } else if (this.ending) {
       const actor = seat ?? { x: 0, z: 2.8 };
       const y = seat ? 1.18 : 1.47;
-      // The result canvas has its own space above the scrollable action sheet.
+      // The reaction gets a clear canvas before the result dialog opens.
       height = Math.max(0.82, 0.65 / this.aspect);
       this.target.set(actor.x, y, actor.z + 0.14);
       this.position.set(actor.x + 0.12, y + 0.2, actor.z + 2.6);
