@@ -6,7 +6,7 @@
 - 2172×724 원본의 3:1 비율을 유지한다. 최대 너비 320px, 높이 약 107px이며 좁은 컨테이너에서는 비율을 유지해 함께 줄어든다. 기존 50px 고정 높이·마스크·겹친 카페 문구는 제거했다.
 - 상단에는 `홍보`, 접근성 이름에는 `생각하는 공간 홍보`로 표시하고 배너 전체가 하나의 링크다. 새 탭으로 열어 게임 상태를 유지하며 Tab/Enter와 포커스 표시를 지원한다.
 - 목적지: `https://thinkplace.co.kr/`. 최초 인스타그램 연결 제안은 사용자의 후속 요청으로 대체했다.
-- UTM: `utm_source=cat_hunting`, `utm_medium=banner`, `utm_campaign=thinkplace`, `utm_content=lobby` 또는 `result`. 홈페이지 측 분석에서 유입 위치를 구별하기 위한 값이다. 게임에 별도 클릭 이벤트나 광고 추적 스크립트는 추가하지 않았다.
+- UTM: `utm_source=cat_hunting`, `utm_medium=banner`, `utm_campaign=thinkplace`, `utm_content=lobby` 또는 `result`. 홈페이지 측 분석에서 유입 위치를 구별하기 위한 값이다. 게임은 `banner_click`으로 로비/결과 클릭을 구분한다. 별도 광고망 SDK는 사용하지 않는다. 자동 outbound 클릭과 합산하지 않으며 노출 수·CTR은 이번 수집 범위가 아니다.
 - 이미지: [WebP](../../public/thinkplace/thinkplace-banner.webp) 우선, [PNG](../../public/thinkplace/thinkplace-banner.png) 대체. 사용자 키트의 원본을 그대로 사용하며 이미지 안 문구도 유지한다.
 - 구현: [ui.js](../../src/ui.js)의 `sponsorBanner(placement)`, [style.css](../../src/style.css)의 `.sponsor-banner`와 `.sponsor-banner-link`.
 - 로비와 결과 패널의 기존 스크롤을 유지한다. 검증 조건·한계는 [현재 검증](../quality/current-review.md)에 기록한다.

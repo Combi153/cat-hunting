@@ -42,7 +42,7 @@ npm run preview
 
 `main.js`는 `home → running → ended` 화면 흐름을 관리한다. `Exam`이 게임 규칙과 시간을 갖고 `Room`이 위치·이동·도움 연출을 맡는다. 이동이 끝나기 전에는 신고·도움 버튼을 열지 않으며, 복귀·이동 중에는 새 학생 선택을 허용해 현재 위치에서 경로를 교체한다. `Room.select()`는 유효한 경로를 찾은 뒤 복귀 상태를 해제하며, 도움 행동 진행 중에만 학생 선택을 막는다. 도움 완료 시점과 시험 종료 시점은 연출과 규칙 양쪽을 함께 확인해야 한다.
 
-실패 후 다시 보기는 `ended` 안의 표시 상태다. `Room.review()`/`closeReview()`가 대상과 재생 시계만 바꾸고 `Exam`은 진행하지 않는다. 적발 때 축소·퇴실한 학생의 표시 크기와 표정을 복원해 같은 소품·애니메이션을 재현한다. `ending.reviewIndex`가 있을 때 관찰 카메라를 사용하고 `.reviewing` 레이아웃에서 캔버스와 버튼 영역을 분리한다. 결과 복귀와 재도전 시 재생 상태를 해제한다. 다시 보기 자체는 저장하거나 분석 이벤트를 추가하지 않는다.
+실패 후 다시 보기는 `ended` 안의 표시 상태다. `Room.review()`/`closeReview()`가 대상과 재생 시계만 바꾸고 `Exam`은 진행하지 않는다. 적발 때 축소·퇴실한 학생의 표시 크기와 표정을 복원해 같은 소품·애니메이션을 재현한다. `ending.reviewIndex`가 있을 때 관찰 카메라를 사용하고 `.reviewing` 레이아웃에서 캔버스와 버튼 영역을 분리한다. 결과 복귀와 재도전 시 재생 상태를 해제한다. 다시 보기는 저장·진행을 바꾸지 않으며 열기·소품별 관찰 시간을 분석 이벤트로 기록한다.
 
 렌더링되는 포즈는 `Exam.behavior()`가 정하지만, 관찰 문구는 `Exam.observationText()`를 거친다. `behavior.text`의 내부 증거 설명을 그대로 UI에 노출하면 정상·부정행위의 동일 문구라는 현재 결정을 깨뜨릴 수 있다.
 
@@ -63,6 +63,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:campa
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:assets
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:review
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:share
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analytics
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.

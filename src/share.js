@@ -1,6 +1,6 @@
 // Share only the public game URL and a short result, never the current page's
 // preview address, query parameters, saved history or culprit identities.
-export function createResultSharing(dialog, url, toast) {
+export function createResultSharing(dialog, url, toast, send = () => {}, getContext = () => ({})) {
   const copyButton = dialog.querySelector('[data-share="copy"]');
   const summary = dialog.querySelector('#share-summary');
   const status = dialog.querySelector('#share-status');
@@ -10,6 +10,11 @@ export function createResultSharing(dialog, url, toast) {
   let pending = null;
   let manualResult;
   let toastTimer;
+  let manualContext = {};
+  function event(context, method, status) {
+    // Fixed categories only: never send URL, message, recipient, or error text.
+    send('share_result', { ...context, interaction_action: method, interaction_status: status });
+  }
 
   function shareData(result) {
     const text = result.reason === 'win'
@@ -25,7 +30,8 @@ export function createResultSharing(dialog, url, toast) {
     toast.textContent = '';
   }
 
-  function showManualCopy(result) {
+  function showManualCopy(result, context) {
+    manualContext = context;
     manualResult = result;
     summary.textContent = shareData(result).text;
     input.value = url;
@@ -37,23 +43,28 @@ export function createResultSharing(dialog, url, toast) {
     input.setSelectionRange(0, input.value.length);
   }
 
-  async function copy(result) {
+  async function copy(result, context = getContext()) {
     if (pending !== null) return;
     const current = ++generation;
     pending = current;
     copyButton.disabled = true;
+    event(context, 'copy', 'attempt');
     clearToast();
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
       // Call within the original click, without an intermediate dialog or await.
       await navigator.clipboard.writeText(url);
       if (current === generation) {
+        event(context, 'copy', 'copied');
         if (dialog.open) dialog.close();
         toast.textContent = '링크를 복사했어요';
         toastTimer = setTimeout(clearToast, 3000);
       }
     } catch {
-      if (current === generation) showManualCopy(result);
+      if (current === generation) {
+        event(context, 'copy', 'manual_required');
+        showManualCopy(result, context);
+      }
     } finally {
       if (pending === current) pending = null;
       if (current === generation) copyButton.disabled = false;
@@ -62,7 +73,7 @@ export function createResultSharing(dialog, url, toast) {
 
   dialog.addEventListener('close', () => { generation++; pending = null; copyButton.disabled = false; });
   dialog.querySelector('[data-share="close"]').addEventListener('click', () => dialog.close());
-  copyButton.addEventListener('click', () => copy(manualResult));
+  copyButton.addEventListener('click', () => copy(manualResult, manualContext));
   input.addEventListener('click', () => input.select());
 
   return {
@@ -70,23 +81,32 @@ export function createResultSharing(dialog, url, toast) {
       if (pending !== null) return;
       clearToast();
       const data = shareData(result);
+      const context = getContext();
       let supported = typeof navigator.share === 'function';
       try {
         if (supported && navigator.canShare) supported = navigator.canShare(data);
       } catch {
         supported = false;
       }
-      if (!supported) return copy(result);
+      if (!supported) {
+        event(context, 'native', 'unsupported');
+        return copy(result, context);
+      }
       const current = ++generation;
       pending = current;
+      event(context, 'native', 'attempt');
       try {
         // The result button opens the OS share sheet directly, in this click.
         await navigator.share(data);
-        // Handoff is not delivery confirmation. Cancellation needs no UI.
+        // OS handoff is not delivery confirmation.
+        if (current === generation) event(context, 'native', 'resolved');
       } catch (error) {
-        if (current === generation && error.name !== 'AbortError') {
-          pending = null;
-          return copy(result);
+        if (current === generation) {
+          event(context, 'native', error.name === 'AbortError' ? 'cancelled' : 'error');
+          if (error.name !== 'AbortError') {
+            pending = null;
+            return copy(result, context);
+          }
         }
       } finally {
         if (pending === current) pending = null;

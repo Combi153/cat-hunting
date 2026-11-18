@@ -1,5 +1,5 @@
 // The measurement ID is public. Development stays offline unless explicitly enabled.
-export function createAnalytics({ measurementId = '', enabled = false, debug = false,
+export function createAnalytics({ measurementId = '', enabled = false, debug = false, buildVersion = '',
   target = globalThis.window, document = globalThis.document } = {}) {
   if (!enabled || !/^G-[A-Z0-9]+$/.test(measurementId) || !target || !document) return () => {};
   try {
@@ -20,7 +20,7 @@ export function createAnalytics({ measurementId = '', enabled = false, debug = f
   }
   return (name, parameters = {}) => {
     try {
-      target.gtag('event', name, { ...parameters, send_to: measurementId });
+      target.gtag('event', name, { ...(buildVersion ? { build_version: buildVersion } : {}), ...parameters, send_to: measurementId });
     } catch {
       // Analytics must never interrupt play, including when blocked by the browser.
     }
@@ -40,6 +40,7 @@ export function createGameAnalytics(send, makeId = () =>
       attempt_id: active.id,
       attempt_number: active.number,
       start_source: active.source,
+      previous_review: active.previousReview,
       elapsed_seconds: Math.round(exam.time * 10) / 10,
       health_remaining: exam.health,
       caught_count: exam.caught,
@@ -56,10 +57,10 @@ export function createGameAnalytics(send, makeId = () =>
     send(name, { ...snapshot(exam), ...extra });
   }
   return {
-    start(exam, source) {
+    start(exam, source, { previous_review = 'not_applicable' } = {}) {
       const number = (attempts.get(exam.stage) || 0) + 1;
       attempts.set(exam.stage, number);
-      active = { exam, id: makeId(), number, source, inspections: 0, checkpoint: 0 };
+      active = { exam, id: makeId(), number, source, previousReview: previous_review, inspections: 0, checkpoint: 0 };
       emit('level_start', exam);
     },
     inspect(exam) {
@@ -77,8 +78,12 @@ export function createGameAnalytics(send, makeId = () =>
       }
     },
     end(exam) {
+      if (active?.exam !== exam) return;
+      const context = { level_name: `exam_${exam.stage}`, ruleset: exam.result().ruleset,
+        attempt_id: active.id, attempt_number: active.number, end_reason: exam.reason };
       emit('level_end', exam, { success: exam.reason === 'win', end_reason: exam.reason });
       active = null;
+      return context;
     },
     leave(exam) {
       emit('level_exit', exam, { end_reason: 'quit' });

@@ -4,17 +4,20 @@ import { stageNumber, unlockStage } from './stages.js';
 import * as ui from './ui.js';
 import { activateSound, bell, reportSound, serviceSound, finale } from './sound.js';
 import { createAnalytics, createGameAnalytics } from './analytics.js';
+import { createEngagementAnalytics } from './engagement-analytics.js';
 import { createResultSharing } from './share.js';
 
 const track = createAnalytics({
+  buildVersion: __BUILD_VERSION__,
   measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID,
   enabled: import.meta.env.PROD || import.meta.env.VITE_GA_DEBUG === 'true',
   debug: import.meta.env.VITE_GA_DEBUG === 'true',
 });
 const gameAnalytics = createGameAnalytics(track);
+const engagement = createEngagementAnalytics(track);
 
 const $ = (selector) => document.querySelector(selector);
-const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'));
+const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'), track, () => engagement.shareContext());
 const storageKey = 'nyangijapgi.v2';
 function load() {
   try {
@@ -59,6 +62,7 @@ function put(selector, content) {
   }
 }
 function home() {
+  engagement.home();
   sharing.reset();
   if (screen === 'running') gameAnalytics.leave(exam);
   screen = 'home';
@@ -138,7 +142,7 @@ async function start(stage = selectedStage, source = 'lobby') {
     previous = performance.now();
     render();
     if (!saved.muted) bell();
-    gameAnalytics.start(exam, source);
+    gameAnalytics.start(exam, source, engagement.nextAttempt(exam.stage));
   } catch (error) {
     track('level_load_error', { level_name: `exam_${selectedStage}` });
     console.error(error);
@@ -172,7 +176,7 @@ function finish() {
   if (screen !== 'running') return;
   screen = 'ended';
   const result = exam.result();
-  gameAnalytics.end(exam);
+  engagement.finish(exam, gameAnalytics.end(exam));
   saved.unlocked = unlockStage(saved.unlocked, result);
   if (result.reason === 'win' && result.stage === 5) saved.completed = true;
   saved.history.unshift(result);
@@ -231,6 +235,8 @@ function render() {
   );
 }
 function act(action) {
+  if (screen === 'ended' && !loading && ['start', 'advance', 'home', 'review', 'share', 'share-copy'].includes(action))
+    engagement.action(({ start: 'retry', advance: 'advance', home: 'home', review: 'review', share: 'share', 'share-copy': 'copy' })[action]);
   if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage, screen === 'ended' ? 'retry' : 'lobby');
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
@@ -238,6 +244,7 @@ function act(action) {
   if (action === 'share' && screen === 'ended') return sharing.share(exam.result());
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
+      engagement.closeReview();
       room.closeReview();
       $('#play').classList.remove('reviewing');
       $('#ending').innerHTML = ui.ending(room.ending);
@@ -245,6 +252,7 @@ function act(action) {
     } else {
       const selection = room.review(action === 'review-prev' ? -1 : action === 'review-next' ? 1 : 0);
       if (!selection) return;
+      engagement.review(selection, action === 'review' ? 'open' : 'navigate');
       $('#play').classList.add('reviewing');
       $('#ending').innerHTML = ui.review(selection);
       $(`#ending [data-action=${action === 'review' ? 'review-close' : action}]`)?.focus({ preventScroll: true });
@@ -288,6 +296,8 @@ function act(action) {
   if (exam.over) finish();
 }
 document.addEventListener('click', (event) => {
+  const banner = event.target.closest('.sponsor-banner-link');
+  if (banner && (screen === 'home' || screen === 'ended')) engagement.banner(screen === 'home' ? 'lobby' : 'result');
   const button = event.target.closest('button');
   if (!button || button.disabled || (paused && !$('#overlay').contains(button))) return;
   if (button.dataset.level && screen === 'home') {
@@ -352,6 +362,7 @@ canvas.addEventListener('pointercancel', () => {
   touchStart = null;
 });
 document.addEventListener('visibilitychange', () => {
+  engagement.visibility(!document.hidden);
   if (document.hidden && screen === 'running') gameAnalytics.event('level_background', exam);
   if (document.hidden && !paused) pause();
 });
