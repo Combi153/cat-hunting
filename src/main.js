@@ -14,7 +14,7 @@ const track = createAnalytics({
 const gameAnalytics = createGameAnalytics(track);
 
 const $ = (selector) => document.querySelector(selector);
-const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href);
+const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'));
 const storageKey = 'nyangijapgi.v2';
 function load() {
   try {

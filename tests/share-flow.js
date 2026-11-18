@@ -36,6 +36,8 @@ try {
   };
   const dialog = page.locator('#share-dialog');
   const status = page.locator('#share-status');
+  const toast = page.locator('#share-toast');
+  const copied = () => page.waitForFunction(() => document.querySelector('#share-toast').textContent === '링크를 복사했어요');
   async function finish(stage, reason) {
     if (await page.locator('#lobby').isHidden()) await tap('home');
     await page.locator(`[data-level="${stage}"]`).tap();
@@ -67,7 +69,7 @@ try {
     assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'share');
   }
 
-  // Cancel/failure never writes the clipboard; copying is a separate user choice.
+  // Cancellation does nothing; unsupported/failed sharing copies without a modal.
   await page.evaluate(() => {
     window.copyCalls = [];
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copyCalls.push(text); } } });
@@ -78,14 +80,9 @@ try {
   assert.deepEqual(await page.evaluate(() => window.copyCalls), []);
   await page.evaluate(() => { window.shareMode = 'NotAllowedError'; });
   await tap('share');
-  assert.match(await status.innerText(), /링크를 복사/);
-  assert.equal(await dialog.isVisible(), true);
-  assert.deepEqual(await page.evaluate(() => window.copyCalls), []);
-  await shareTap('copy');
+  await copied();
+  assert.equal(await dialog.isVisible(), false);
   assert.deepEqual(await page.evaluate(() => window.copyCalls), [publicUrl]);
-  assert.match(await status.innerText(), /링크를 복사했어요/);
-  await page.keyboard.press('Escape');
-  await dialog.waitFor({ state: 'hidden' });
   assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'share');
 
   // A second press cannot launch another native request. Leaving the result
@@ -101,27 +98,54 @@ try {
   assert.equal(await dialog.isVisible(), false);
   await finish(1, 'missed');
 
-  // Unsupported API and canShare(false) both retain a working copy option.
-  for (const unsupported of ['canShare', 'share']) {
-    await page.evaluate(key => {
-      Object.defineProperty(navigator, key, { configurable: true, value: key === 'canShare' ? () => false : undefined });
+  // Capability detection includes canShare throwing in restrictive WebViews.
+  for (const unsupported of ['canShare', 'throw', 'share']) {
+    const before = await page.evaluate(() => window.copyCalls.length);
+    await page.evaluate(mode => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: mode === 'share' ? undefined : window.nativeShare });
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => {
+        if (mode === 'throw') throw new Error('Unavailable');
+        return mode === 'share';
+      } });
     }, unsupported);
     await tap('share');
-    assert.equal(await page.locator('[data-share="native"]').count(), 0);
-    assert.equal(await page.evaluate(() => document.activeElement.dataset.share), 'copy');
-    await shareTap('copy');
-    assert.match(await status.innerText(), /링크를 복사했어요/);
-    await shareTap('close');
+    await copied();
+    assert.equal(await dialog.isVisible(), false);
+    assert.equal(await page.evaluate(() => window.copyCalls.length), before + 1);
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'share');
+    await page.clock.runFor(3100);
+    assert.equal(await toast.innerText(), '');
+  }
+
+  // Duplicate requests and stale clipboard responses must not affect a new screen.
+  for (const outcome of ['resolve', 'reject']) {
+    await page.evaluate(() => {
+      window.pendingCopies = 0;
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => {
+        window.pendingCopies++;
+        return new Promise((resolve, reject) => { window.resolveCopy = resolve; window.rejectCopy = reject; });
+      } } });
+    });
+    await tap('share');
+    await tap('share-copy');
+    assert.equal(await page.evaluate(() => window.pendingCopies), 1);
+    await tap('home');
+    await page.evaluate(outcome => outcome === 'resolve' ? window.resolveCopy() : window.rejectCopy(new Error('Late failure')), outcome);
+    assert.equal(await dialog.isVisible(), false);
+    assert.equal(await toast.innerText(), '');
+    await finish(1, 'missed');
   }
 
   // Real browser clipboard, then denied/unavailable fallbacks with selectable URL.
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   await page.evaluate(() => { delete navigator.clipboard; });
   await tap('share-copy');
-  await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
-  assert.match(await status.innerText(), /링크를 복사했어요/);
+  await copied();
+  assert.equal(await dialog.isVisible(), false);
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), publicUrl);
-  await shareTap('close');
+  await tap('home');
+  assert.equal(await toast.innerText(), '');
+  await finish(1, 'missed');
   for (const mode of ['denied', 'missing']) {
     await page.evaluate(mode => {
       Object.defineProperty(navigator, 'clipboard', { configurable: true, value: mode === 'missing' ? undefined : { writeText: async () => { throw new DOMException('Denied', 'NotAllowedError'); } } });
@@ -131,7 +155,11 @@ try {
     assert.match(await status.innerText(), /자동으로 복사할 수 없어요/);
     assert.equal(await page.locator('#share-url').inputValue(), publicUrl);
     assert.deepEqual(await page.locator('#share-url').evaluate(el => [document.activeElement === el, el.selectionStart, el.selectionEnd]), [true, 0, publicUrl.length]);
-    await shareTap('close');
+    await page.evaluate(() => { delete navigator.clipboard; });
+    await shareTap('copy');
+    await copied();
+    assert.equal(await dialog.isVisible(), false);
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), publicUrl);
   }
 
   // Real result panels, touch target sizing, modal bounds and keyboard focus.
@@ -149,6 +177,14 @@ try {
       await page.screenshot({ path: `test-results/share-${reason}-${width}.png` });
       await tap('share');
       assert.equal(await dialog.isVisible(), false);
+      await page.evaluate(() => { delete navigator.clipboard; });
+      await tap('share-copy');
+      await copied();
+      assert.equal(await dialog.isVisible(), false);
+      await page.screenshot({ path: `test-results/share-copied-${reason}-${width}.png` });
+      const toastBox = await toast.boundingBox();
+      assert.ok(toastBox.x >= 0 && toastBox.y >= 0 && toastBox.x + toastBox.width <= width && toastBox.y + toastBox.height <= height);
+      await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }); });
       await tap('share-copy');
       await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
       await page.screenshot({ path: `test-results/share-options-${width}.png` });
@@ -173,7 +209,7 @@ try {
   await page.locator('#ending').waitFor({ state: 'hidden' });
   assert.equal(await dialog.isVisible(), false);
   assert.deepEqual(errors, []);
-  console.log('Sharing: one-tap native handoff without intermediate UI for four outcomes, cancel/error, copy, real clipboard, manual fallback, pending requests, focus and four layouts passed.');
+  console.log('Sharing: one-tap native handoff without intermediate UI for four outcomes, cancel, automatic copy without a modal, real clipboard, manual fallback, stale requests, toast timeout, focus and four layouts passed.');
 } finally {
   await browser.close();
 }

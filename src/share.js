@@ -1,13 +1,15 @@
 // Share only the public game URL and a short result, never the current page's
 // preview address, query parameters, saved history or culprit identities.
-export function createResultSharing(dialog, url) {
+export function createResultSharing(dialog, url, toast) {
   const copyButton = dialog.querySelector('[data-share="copy"]');
   const summary = dialog.querySelector('#share-summary');
   const status = dialog.querySelector('#share-status');
   const manual = dialog.querySelector('#share-manual');
   const input = dialog.querySelector('#share-url');
   let generation = 0;
-  let nativePending = false;
+  let pending = null;
+  let manualResult;
+  let toastTimer;
 
   function shareData(result) {
     const text = result.reason === 'win'
@@ -18,50 +20,55 @@ export function createResultSharing(dialog, url) {
     return { title: '냥이잡기 · 45초 시험 감독', text, url };
   }
 
-  function showCopy(result, message = '') {
-    generation++;
-    summary.textContent = shareData(result).text;
-    input.value = url;
-    manual.hidden = true;
-    copyButton.disabled = false;
-    status.textContent = message;
-    if (!dialog.open) dialog.showModal();
-    copyButton.focus({ preventScroll: true });
+  function clearToast() {
+    clearTimeout(toastTimer);
+    toast.textContent = '';
   }
 
-  async function copy() {
-    if (copyButton.disabled) return;
-    const current = generation;
+  function showManualCopy(result) {
+    manualResult = result;
+    summary.textContent = shareData(result).text;
+    input.value = url;
+    manual.hidden = false;
+    status.textContent = '자동으로 복사할 수 없어요. 게임 링크를 길게 누르거나 선택해 복사해 주세요.';
+    if (!dialog.open) dialog.showModal();
+    input.focus();
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+  }
+
+  async function copy(result) {
+    if (pending !== null) return;
+    const current = ++generation;
+    pending = current;
     copyButton.disabled = true;
-    status.textContent = '';
+    clearToast();
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      // Call within the original click, without an intermediate dialog or await.
       await navigator.clipboard.writeText(url);
-      if (dialog.open && current === generation) {
-        manual.hidden = true;
-        status.textContent = '링크를 복사했어요. 친구에게 붙여넣어 보내 주세요.';
+      if (current === generation) {
+        if (dialog.open) dialog.close();
+        toast.textContent = '링크를 복사했어요';
+        toastTimer = setTimeout(clearToast, 3000);
       }
     } catch {
-      if (dialog.open && current === generation) {
-        manual.hidden = false;
-        status.textContent = '자동으로 복사할 수 없어요. 게임 링크를 길게 누르거나 선택해 복사해 주세요.';
-        input.focus();
-        input.select();
-        input.setSelectionRange(0, input.value.length);
-      }
+      if (current === generation) showManualCopy(result);
     } finally {
+      if (pending === current) pending = null;
       if (current === generation) copyButton.disabled = false;
     }
   }
 
-  dialog.addEventListener('close', () => { generation++; });
+  dialog.addEventListener('close', () => { generation++; pending = null; copyButton.disabled = false; });
   dialog.querySelector('[data-share="close"]').addEventListener('click', () => dialog.close());
-  copyButton.addEventListener('click', copy);
+  copyButton.addEventListener('click', () => copy(manualResult));
   input.addEventListener('click', () => input.select());
 
   return {
     async share(result) {
-      if (nativePending) return;
+      if (pending !== null) return;
+      clearToast();
       const data = shareData(result);
       let supported = typeof navigator.share === 'function';
       try {
@@ -69,31 +76,29 @@ export function createResultSharing(dialog, url) {
       } catch {
         supported = false;
       }
-      if (!supported) {
-        showCopy(result, '이 브라우저에서는 링크를 복사해 공유해 주세요.');
-        return;
-      }
+      if (!supported) return copy(result);
       const current = ++generation;
-      nativePending = true;
+      pending = current;
       try {
         // The result button opens the OS share sheet directly, in this click.
         await navigator.share(data);
         // Handoff is not delivery confirmation. Cancellation needs no UI.
       } catch (error) {
         if (current === generation && error.name !== 'AbortError') {
-          showCopy(result, '공유 창을 열 수 없어요. 링크를 복사해 보내 주세요.');
+          pending = null;
+          return copy(result);
         }
       } finally {
-        nativePending = false;
+        if (pending === current) pending = null;
       }
     },
-    copy(result) {
-      showCopy(result);
-      return copy();
-    },
+    copy,
     reset() {
       // Leaving the result invalidates pending callbacks without changing play.
       generation++;
+      pending = null;
+      copyButton.disabled = false;
+      clearToast();
       if (dialog.open) dialog.close();
     },
   };
