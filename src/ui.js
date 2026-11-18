@@ -60,9 +60,9 @@ export function lobby(saved, selected = 1) {
     <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
     <div class="cover-art" role="img" aria-label="점토 교실에서 안경을 고쳐 쓰는 학생"></div>
     <section class="cover-copy"><h1>냥이잡기</h1>
-    <p class="lead">부정행위를 모두 찾아내세요.</p>
+    <p class="lead">종이 울리기 전에 부정행위를 모두 찾아내세요.</p>
     <div class="rules"><span>${icon('clock')} 45초</span><span>${hearts(3)} 생명 3개</span></div>
-    <p class="how">학생을 탭해 살펴보고 신고하세요.<br>손을 든 학생은 도와주세요.</p>
+    <p class="how">학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.</p>
     <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
     <button class="primary start-btn" data-action="start">${selected}단계 감독 시작 ${icon('arrow')}</button>

@@ -4,6 +4,17 @@
 
 [문서 홈](../README.md) · [검증 실행법](../engineering/development.md) · [미검증 항목](open-questions.md)
 
+## 첫 화면 목표·조작 문구 개선 (2026-11-18)
+
+코드 기준: `07c8af2`에 이번 로비 문구와 단어 단위 줄바꿈을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5186`, 설치된 Chrome에서 확인했다. 개발 모드로 운영 분석은 수집하지 않았다.
+
+- `npm test` 27개, `npm run build`, `test:browser` 통과. 줄바꿈 CSS 조정 후 빌드와 브라우저 검사를 다시 통과했다. 기존 Three.js 청크 크기 경고는 유지된다.
+- 320×568·568×320·1167×813에서 실제 로비 캡처를 검토했다. 320px에서도 ‘찾아내세요’가 단어 중간에서 끊기지 않는다. 작은 세로·가로 화면은 기존 로비 스크롤로 시작 버튼에 접근하며, 노트북은 문구와 시작 버튼을 함께 표시한다.
+- 별도 무작위 1단계에서 로비 시작 → 10번 학생 선택 → 도착 후 관찰 화면을 제어된 시계로 직접 확인했다. 클릭 입력 검사이며 모바일 터치 회귀는 `test:browser`에서 수행했다. 정답을 모르는 한 판 완주나 실기기 검증은 아니다.
+- 규칙·진행·에셋은 변경하지 않아 `test:campaign`, `test:assets`, `test:review`를 이번 작업에서 재실행하지 않았다. 초심자의 실제 문구 이해도는 미검증이다. 추가 설명 후보는 검토 제안이며 구현하지 않았다.
+
+[작은 세로](../playtest/lobby-copy/portrait.png) · [세로 시작 버튼](../playtest/lobby-copy/portrait-start.png) · [가로 시작 버튼](../playtest/lobby-copy/landscape-start.png) · [노트북](../playtest/lobby-copy/laptop.png) · [관찰](../playtest/lobby-copy/inspection.png)
+
 ## 화면 문구 정리 (2026-11-18)
 
 코드 기준: `82bd3ef`에 문구 정리를 적용한 작업 트리. 로컬 Vite `127.0.0.1:5185`, Chrome·Playwright 터치 에뮬레이션에서 확인했다. 개발 모드로 운영 분석은 수집하지 않았다.

@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [lobby-copy/](lobby-copy/) | 2026-11-18 승인된 로비 목표·조작 문구. Chrome 320×568·568×320·1167×813, 작은 화면은 시작 버튼까지 스크롤. 무작위 1단계 관찰은 제어된 시계·클릭 입력 | [첫 화면 문구 검증](../quality/current-review.md#첫-화면-목표조작-문구-개선-2026-11-18) |
 | [concise-copy/](concise-copy/) | 2026-11-18 문구 정리. 320×568 로비·다시보기는 무작위 배치, 568×320 다시보기는 고정 배치. Chrome·제어된 시계 | [문구 정리 검증](../quality/current-review.md#화면-문구-정리-2026-11-18) |
 | [failure-review/](failure-review/) | 2026-11-18 실패 결과에서 여섯 부정행위 동작 재현. Chrome 390×844·1167×813, 고정 배치·제어된 시계. 필기→단서 반복 중 캡처 | [다시 보기 검증](../quality/current-review.md#실패-후-부정행위-다시-보기-2026-11-18) |
 | [retargeting/returning-laptop.png](retargeting/returning-laptop.png), [retargeting/redirect-laptop.png](retargeting/redirect-laptop.png), [retargeting/redirect-mobile.png](retargeting/redirect-mobile.png) | 2026-11-18 복귀 중 12번 학생으로 전환, 모바일 연속 선택. Chrome·제어된 시계 | [현재 검증](../quality/current-review.md) |

@@ -115,6 +115,7 @@ h2 {
   font-size: 15px;
   color: #55644e;
   line-height: 1.5;
+  word-break: keep-all;
 }
 .rules {
   display: flex;
