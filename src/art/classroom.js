@@ -264,8 +264,8 @@ export function createClassroom(seats = []) {
     }
   }
   const rearSign = lettering('시험 중', 1.4, 0.32, { size: 0.5, weight: 600 });
-  plane(1.4, 0.32, rearSign, -0.65, 2.33, -5.55);
-  box(1.62, 0.48, 0.05, 'ivory', -0.65, 2.33, -5.59, 0.035);
+  plane(1.4, 0.32, rearSign, 0, 2.33, -5.55);
+  box(1.62, 0.48, 0.05, 'ivory', 0, 2.33, -5.59, 0.035);
 
   // Corridor exit at the back right, with a glazed upper panel and a sage plaque.
   box(0.1, 2.46, 1.58, 'rim', 5.1, 1.23, -4.3, 0.025);
