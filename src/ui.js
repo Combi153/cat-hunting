@@ -1,5 +1,6 @@
 import { STAGES } from './stages.js';
 import { TYPES, seatNo, MAX_HEALTH } from './session.js';
+import { ACHIEVEMENTS, KINDS, KIND_LABELS, progress } from './records.js';
 const lines = {
   book: '<path d="M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm4 0v16m3-11h6m-6 4h5"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -22,6 +23,7 @@ const lines = {
   flag: '<path d="M5 21V3m0 1c5-4 9 4 15 0v9c-6 4-10-4-15 0"/>',
   pencil: '<path d="m4 16 11-11 4 4L8 20l-5 1zM13 7l4 4"/>',
   pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4M12 13v4m-4 3h8m-6-3h4"/>',
 };
 export const icon = (name, size = 19) =>
   '<svg aria-hidden="true" width="' +
@@ -56,10 +58,12 @@ function sponsorBanner(placement) {
     </a>
   </aside>`;
 }
-export function lobby(saved, selected = 1) {
+export function lobby(saved, selected = 1, records = null) {
+  const fresh = records?.unseen.length > 0;
   return `<div class="lobby-wrap">
     <header class="topline"><span class="brand"><img src="/cat.svg" alt="">45초 시험 감독</span>
-    <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
+    <span class="top-actions"><button class="icon-btn records-btn" data-action="records" aria-label="기록실${fresh ? ', 새 업적 있음' : ''}">${icon('trophy')}${fresh ? '<i class="new-dot" aria-hidden="true"></i>' : ''}</button>
+    <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></span></header>
     <div class="cover-art" role="img" aria-label="점토 교실에서 안경을 고쳐 쓰는 학생"></div>
     <section class="cover-copy"><h1>냥이잡기</h1>
     <p class="lead">종이 울리기 전에 부정행위를 모두 찾아내세요.</p>
@@ -121,6 +125,7 @@ export function ending(result) {
     <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
     ${explanation ? `<p>${explanation}</p>` : ''}
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
+    ${newBadge(result.achievements)}
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
     <button class="secondary share-open" data-action="share">친구에게 공유하기</button>
@@ -138,4 +143,76 @@ export function review({ seat, index, total }) {
     </nav>
     <button class="text-btn" data-action="review-close">결과로 돌아가기</button>
   </section>`;
+}
+
+const byId = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
+const secs = (value) => (value === null ? '—' : value.toFixed(1) + '초');
+
+// A single passive line under the result stats; the next-stage button keeps its place.
+function newBadge(ids = []) {
+  if (!ids?.length) return '';
+  const first = byId[ids[0]];
+  return `<p class="new-badge"><span class="badge-icon" aria-hidden="true">${first.icon}</span><b><em>새 업적</em> ${first.name}</b><span>${ids.length > 1 ? '외 ' + (ids.length - 1) + '개' : first.desc}</span></p>`;
+}
+
+function statsTab(records, saved) {
+  const rate = records.exams ? ' · ' + Math.round((records.wins / records.exams) * 100) + '%' : '';
+  const stages = records.stages
+    .map((stage, i) => {
+      const locked = i + 1 > saved.unlocked && !stage.played;
+      const tries = stage.wins ? `통과 ${stage.wins}번` : stage.played ? `도전 ${stage.played}번` : locked ? '잠김' : '아직 도전 전';
+      const best = stage.fastest !== null ? `<b>${secs(stage.fastest)}</b>` : `<span>${stage.played && !stage.wins ? '아직 통과 전' : '—'}</span>`;
+      return `<li class="${stage.wins ? '' : 'dim'}"><span class="lv">${i + 1}단계</span><span>${tries}</span>${best}</li>`;
+    })
+    .join('');
+  const recent = saved.history.filter((round) => Number.isInteger(round.stage)).slice(0, 10);
+  return `<div class="stat-grid">
+      <p><span>감독한 시험</span><b>${records.exams}번</b></p>
+      <p><span>통과</span><b>${records.wins}번${rate}</b></p>
+      <p><span>최고 연속 통과</span><b>${records.bestStreak}번</b></p>
+      <p><span>가장 빠른 전원 적발</span><b>${secs(records.fastest)}</b></p>
+    </div>
+    <h2>단계별</h2><ul class="record-card stage-list">${stages}</ul>
+    <h2>최근 ${recent.length || 10}번 <small>숫자는 단계, 왼쪽이 최근</small></h2>
+    <div class="record-card">${
+      recent.length
+        ? `<ol class="recent-dots" aria-label="최근 시험 결과">${recent.map((round) => `<li class="${round.reason === 'win' ? 'pass' : 'fail'}" aria-label="${round.stage}단계 ${round.reason === 'win' ? '통과' : '실패'}">${round.stage}</li>`).join('')}</ol>`
+        : '<p class="empty">아직 기록이 없어요.</p>'
+    }</div>
+    <h2>잡아낸 도구</h2>
+    <ul class="record-card tool-grid">${KINDS.map((kind) => `<li><b>${records.kinds[kind]}</b><span>${KIND_LABELS[kind]}</span></li>`).join('')}</ul>
+    <h2>감독 습관</h2>
+    <ul class="record-card habit-list"><li><span>누적 적발</span><b>${records.caught}명</b></li><li><span>오인 신고</span><b>${records.falseCalls}번</b></li><li><span>민원</span><b>${records.complaints}번</b></li></ul>`;
+}
+
+function badgesTab(records) {
+  const shown = ACHIEVEMENTS.filter((a) => !a.hidden || records.unlocked[a.id]);
+  const secret = ACHIEVEMENTS.some((a) => a.hidden && !records.unlocked[a.id]);
+  return `<ul class="badge-grid">${shown
+    .map((a) => {
+      const got = Boolean(records.unlocked[a.id]),
+        isNew = records.unseen.includes(a.id),
+        value = progress(records, a.id);
+      const detail =
+        !got && a.id === 'streak-5'
+          ? `지금 ${value}번`
+          : !got && a.goal
+            ? `${a.desc} ${Math.min(value, a.goal)}/${a.goal}`
+            : a.desc;
+      const bar = !got && a.goal ? `<i class="badge-bar"><i style="width:${Math.min(100, (value / a.goal) * 100)}%"></i></i>` : '';
+      return `<li class="${got ? 'got' : 'locked'}${isNew ? ' fresh' : ''}" aria-label="${a.name}${got ? ', 획득' : ', 아직'}${isNew ? ', 새 업적' : ''}"><span class="badge-icon" aria-hidden="true">${a.icon}</span><b>${a.name}</b><small>${detail}</small>${bar}</li>`;
+    })
+    .join('')}</ul>${secret ? '<p class="secret-note">❓ 숨은 업적이 하나 더 있어요</p>' : ''}`;
+}
+
+export function recordsScreen(records, saved, tab = 'stats') {
+  const got = Object.keys(records.unlocked).length;
+  return `<div class="records-wrap">
+    <header class="records-head"><button class="text-btn" data-action="home">‹ 처음으로</button><h1>기록실</h1><span></span></header>
+    <div class="records-tabs" role="tablist" aria-label="기록실">
+      <button role="tab" data-action="records" aria-selected="${tab === 'stats'}">기록</button>
+      <button role="tab" data-action="records-badges" aria-selected="${tab === 'badges'}">업적 ${got}/${ACHIEVEMENTS.length}</button>
+    </div>
+    <section role="tabpanel" class="records-panel">${tab === 'badges' ? badgesTab(records) : statsTab(records, saved)}</section>
+  </div>`;
 }

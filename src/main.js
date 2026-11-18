@@ -6,6 +6,7 @@ import { activateSound, bell, reportSound, serviceSound, finale } from './sound.
 import { createAnalytics, createGameAnalytics } from './analytics.js';
 import { createEngagementAnalytics } from './engagement-analytics.js';
 import { createResultSharing } from './share.js';
+import { RECORDS_KEY, applyResult, normalizeRecords, seedRecords } from './records.js';
 
 const track = createAnalytics({
   buildVersion: __BUILD_VERSION__,
@@ -44,6 +45,24 @@ function save() {
     /* Play works without storage. */
   }
 }
+// Records live under their own key so the v2 progress save is never rewritten by this feature.
+function loadRecords() {
+  try {
+    const raw = localStorage.getItem(RECORDS_KEY);
+    return raw === null ? seedRecords(saved.history) : normalizeRecords(JSON.parse(raw));
+  } catch {
+    return seedRecords(saved.history);
+  }
+}
+let records = loadRecords();
+function saveRecords() {
+  try {
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  } catch {
+    /* Records then last for this visit only. */
+  }
+}
+saveRecords();
 let room, exam;
 let screen = 'home',
   loading = false,
@@ -65,12 +84,27 @@ function home() {
   engagement.home();
   sharing.reset();
   if (screen === 'running') gameAnalytics.leave(exam);
+  const fromRecords = screen === 'records';
   screen = 'home';
   paused = false;
   $('#overlay').hidden = true;
   $('#play').hidden = true;
   $('#lobby').hidden = false;
-  put('#lobby', ui.lobby(saved, selectedStage));
+  put('#lobby', ui.lobby(saved, selectedStage, records));
+  if (fromRecords) $('#lobby [data-action=records]').focus({ preventScroll: true });
+}
+function openRecords(tab) {
+  if (screen !== 'home' && screen !== 'records') return;
+  const tabChanged = screen !== 'records' || !$(`#lobby [aria-selected=true][data-action=${tab === 'badges' ? 'records-badges' : 'records'}]`);
+  screen = 'records';
+  put('#lobby', ui.recordsScreen(records, saved, tab));
+  if (tabChanged) $('#lobby').scrollTop = 0;
+  $('#lobby [aria-selected=true]').focus({ preventScroll: true });
+  // NEW marks show for this visit to the badge tab, then count as seen.
+  if (tab === 'badges' && records.unseen.length) {
+    records.unseen = [];
+    saveRecords();
+  }
 }
 function notice(text, hurt = false) {
   $('#notice').textContent = text;
@@ -182,11 +216,16 @@ function finish() {
   saved.history.unshift(result);
   saved.history.length = Math.min(saved.history.length, 10);
   save();
-  room.finish(result);
+  const recorded = applyResult(records, result);
+  records = recorded.records;
+  saveRecords();
+  // Only the result screen needs the new badges; the saved history keeps its existing shape.
+  const shown = { ...result, achievements: recorded.unlocked };
+  room.finish(shown);
   paused = false;
   $('#overlay').hidden = true;
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
-  $('#ending').innerHTML = ui.ending(result);
+  $('#ending').innerHTML = ui.ending(shown);
   $('#ending').hidden = false;
   $('#ending button').focus({ preventScroll: true });
   $('#notice').textContent = '';
@@ -241,6 +280,8 @@ function act(action) {
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
+  if (action === 'records') return openRecords('stats');
+  if (action === 'records-badges') return openRecords('badges');
   if (action === 'share' && screen === 'ended') return sharing.share(exam.result());
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
@@ -310,6 +351,7 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
+  if (event.code === 'Escape' && screen === 'records') home();
   if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null)
     act('review-close');
   if (event.code === 'Escape' && screen === 'running') {

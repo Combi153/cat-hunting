@@ -835,3 +835,322 @@ h2 {
   .reviewing #ending { align-content: center; background: var(--cream); }
   .review-panel { border-top: 0; }
 }
+
+/* 기록실 — records and achievements, opened from the lobby trophy */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.records-btn {
+  position: relative;
+  color: #a86d22;
+  background: #fff7e8;
+  box-shadow: inset 0 0 0 1.5px #e3bf86;
+}
+.records-btn svg {
+  width: 21px;
+  height: 21px;
+}
+.new-dot {
+  position: absolute;
+  top: 9px;
+  right: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #bb5b4e;
+  border: 2px solid var(--cream);
+}
+.records-wrap {
+  padding: max(8px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom));
+}
+.records-head {
+  display: grid;
+  grid-template-columns: 96px 1fr 96px;
+  align-items: center;
+}
+.records-head .text-btn {
+  justify-self: start;
+  padding-left: 0;
+  font-weight: 700;
+}
+.records-head h1 {
+  font-size: 22px;
+  text-align: center;
+}
+.records-tabs {
+  display: flex;
+  background: #edf0e4;
+  border-radius: 13px;
+  padding: 3px;
+  margin: 6px 0 14px;
+}
+.records-tabs button {
+  flex: 1;
+  min-height: 42px;
+  border-radius: 10px;
+  background: transparent;
+  font-weight: 700;
+  color: var(--muted);
+}
+.records-tabs [aria-selected='true'] {
+  background: #fff;
+  color: #2d4136;
+  box-shadow: 0 1px 3px #0001;
+}
+.records-panel h2 {
+  font-size: 16px;
+  margin: 16px 0 7px;
+}
+.records-panel h2 small {
+  font: 11px 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.records-panel ul,
+.records-panel ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.stat-grid p,
+.record-card {
+  background: #fff;
+  border: 1px solid #e1e6d6;
+  border-radius: 14px;
+}
+.stat-grid p {
+  padding: 10px 12px;
+}
+.stat-grid span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.stat-grid b {
+  display: block;
+  font: 21px var(--round);
+  color: var(--green);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.records-panel .record-card {
+  padding: 4px 12px;
+}
+.stage-list li,
+.habit-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 13px;
+  border-bottom: 1px dashed #e1e6d6;
+}
+.stage-list li:last-child,
+.habit-list li:last-child {
+  border-bottom: 0;
+}
+.stage-list .lv {
+  font: 15px var(--round);
+  width: 52px;
+}
+.stage-list li > :nth-child(2) {
+  flex: 1;
+  text-align: center;
+}
+.stage-list b,
+.habit-list b {
+  color: var(--green);
+}
+.stage-list li.dim {
+  color: #a1a898;
+}
+.records-panel .recent-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 9px 0;
+}
+.recent-dots li {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 13px var(--round);
+}
+.recent-dots .pass {
+  background: var(--green);
+  color: #fff;
+}
+.recent-dots .fail {
+  background: #ece9dc;
+  color: #8f8a74;
+  border: 1.5px solid #cfc9b4;
+}
+.record-card .empty {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.records-panel .tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 12px;
+  text-align: center;
+}
+.tool-grid li {
+  background: #f4f6ee;
+  border-radius: 10px;
+  padding: 5px 0;
+}
+.tool-grid b {
+  display: block;
+  font: 18px var(--round);
+  color: var(--green);
+}
+.tool-grid span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.badge-grid li {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e1e6d6;
+  border-radius: 14px;
+  padding: 10px 4px 9px;
+  text-align: center;
+}
+.badge-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 5px;
+  border-radius: 50%;
+  font-size: 22px;
+  background: #fbefd9;
+  border: 2px solid #d49441;
+}
+.badge-grid b {
+  display: block;
+  font: 14px var(--round);
+}
+.badge-grid small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.badge-grid .locked .badge-icon {
+  background: #eceee6;
+  border-color: #d4d8cb;
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+.badge-grid .locked b {
+  color: #9aa394;
+}
+.badge-grid .fresh {
+  border-color: #d49441;
+  box-shadow: 0 0 0 2px #d4944133;
+}
+.badge-grid .fresh::before {
+  content: 'NEW';
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: #bb5b4e;
+  border-radius: 6px;
+  padding: 1px 4px;
+}
+.badge-bar {
+  display: block;
+  height: 4px;
+  margin: 6px 12px 0;
+  border-radius: 4px;
+  background: #e5e9dc;
+  overflow: hidden;
+}
+.badge-bar i {
+  display: block;
+  height: 100%;
+  background: #d49441;
+}
+.secret-note {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.new-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 10px;
+  padding: 6px 12px;
+  background: #fff7e8;
+  border: 1.5px solid #d49441;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 12px;
+}
+.new-badge .badge-icon {
+  width: auto;
+  height: auto;
+  margin: 0;
+  background: none;
+  border: 0;
+  font-size: 18px;
+}
+.new-badge b {
+  flex: none;
+  white-space: nowrap;
+  font: 15px var(--round);
+  color: #2d4136;
+}
+.new-badge em {
+  font: 800 11px 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-style: normal;
+  color: #a86d22;
+  margin-right: 3px;
+}
+.new-badge > span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+  color: var(--muted);
+}
+@media (max-width: 350px) {
+  .records-wrap {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .badge-grid small {
+    font-size: 9.5px;
+  }
+  .stat-grid b {
+    font-size: 18px;
+  }
+}
