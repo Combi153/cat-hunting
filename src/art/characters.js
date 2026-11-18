@@ -580,7 +580,7 @@ export function updateProctor(group, { time = 0, walking = false, quiet = false,
   setArm(r.left, v(-0.255, 0.2, -0.035), v(-0.26, -0.045, 0.065), 1);
   setArm(r.right, v(0.26, 0.2, swing), v(0.25, -0.05, swing * 1.7), 1);
   if (reaching) setArm(r.right, v(0.29, 0.5, 0.12), v(0.25, 0.8, 0.4 + Math.sin(time * 3) * 0.08), 1, true);
-  for (const eye of r.head.userData.face.eyes) eye.scale.y = time % 12 > 11.82 ? 0.002 : 0.016;
+  for (const eye of r.head.userData.face.eyes) eye.scale.y = 0.016;
   r.clipboard.position.set(-0.283, 0.015, 0.088);
   r.clipboard.rotation.set(-0.08, -0.15, -0.08);
   r.pencil.visible = false;

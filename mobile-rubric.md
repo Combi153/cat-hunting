@@ -61,3 +61,13 @@
 - 별도 화면 검증에서 커튼 진행률 약 49%일 때 창가의 팔 동작과 천의 중간 위치를 캡처했고, 완료 후 감사 인사를 확인했다. 깜빡임 중 화면 어둡기와 입력 통과, 동작 줄이기 설정에서의 생략도 확인했다.
 
 [12석 전체 화면](docs/playtest/living-classroom/overview.png) · [오인 이후 남는 표정](docs/playtest/living-classroom/upset.png) · [커튼을 닫는 중간 장면](docs/playtest/living-classroom/curtain.png)
+
+
+## 후속 조정 · 교탁 뒤 대기와 복귀
+
+- 감독관의 시작점과 복귀 지점을 교탁 뒤로 옮겼다. 학생들을 바라보는 뒷모습으로 대기한다.
+- 신고·답안지 전달·커튼 조작·관찰 종료 후 교탁 양옆을 거쳐 제자리로 걸어온다. 복귀 중 새 관찰은 시작하지 않는다.
+- 사용자 요청에 따라 위 세 번째 개선에서 넣었던 눈 깜빡임과 화면 어둡기 효과를 제거했다.
+- 단위 테스트 12개로 12석·창가·교탁 뒤의 이동 경로와 복귀 완료 위치·방향을 확인했다. 모바일 브라우저에서는 신고와 답안지 전달 뒤의 실제 복귀를 검증했다.
+
+[교탁 뒤의 뒷모습](docs/playtest/living-classroom/proctor-home.png) · [신고 후 돌아오는 장면](docs/playtest/living-classroom/proctor-returning.png)

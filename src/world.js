@@ -7,7 +7,7 @@ import {
   updateProctor,
   updateUpset,
 } from './art/characters.js';
-import { approachPath, stationPath } from './walkways.js';
+import { approachPath, stationPath, PROCTOR_HOME } from './walkways.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
 
 export class Room {
@@ -65,9 +65,11 @@ export class Room {
     this.ending = null;
     this.path = [];
     this.action = null;
+    this.returning = false;
     this.curtainProgress = 0;
     this.proctor.visible = true;
-    this.proctor.position.set(0, 0, 3.7);
+    this.proctor.position.set(PROCTOR_HOME.x, 0, PROCTOR_HOME.z);
+    this.proctor.rotation.y = Math.PI;
     this.renderer.shadowMap.needsUpdate = true;
     this.updateCamera(1, true);
     this.draw(0, 0);
@@ -116,19 +118,26 @@ export class Room {
   select(id) {
     const seat = this.session.seat(id);
     if (!seat || seat.caught) return;
-    if (this.action) return;
+    if (this.action || this.returning) return;
     const path = approachPath(this.session.seats, this.proctor.position, seat);
     if (!path) return;
     this.focus = id;
     this.path = path;
   }
   get busy() {
-    return this.action ? 'helping' : this.path.length ? 'walking' : '';
+    return this.returning ? 'returning' : this.action ? 'helping' : this.path.length ? 'walking' : '';
   }
   overview() {
-    if (this.action) return;
+    if (this.action || this.returning) return;
+    this.returnHome();
+  }
+  returnHome() {
+    const path = stationPath(this.session.seats, this.proctor.position, 'home');
+    if (!path) return;
     this.focus = null;
-    this.path = [];
+    this.path = path;
+    this.returning = path.length > 0;
+    if (!this.returning) this.proctor.rotation.y = Math.PI;
   }
   help() {
     if (this.busy) return false;
@@ -157,6 +166,10 @@ export class Room {
       remaining -= used;
       if (fraction >= 1) this.path.shift();
     }
+    if (!this.path.length && this.returning) {
+      this.returning = false;
+      this.proctor.rotation.y = Math.PI;
+    }
     if (!this.path.length && this.action) {
       this.action.elapsed += remaining;
       const { request, elapsed } = this.action;
@@ -167,7 +180,7 @@ export class Room {
       if (elapsed >= (request.type === 'curtain' ? 2.1 : 1.1)) {
         const completed = this.session.serve(request.id);
         this.action = null;
-        if (request.type === 'curtain') this.focus = null;
+        this.returnHome();
         return completed ? request : null;
       }
     } else if (!this.path.length && this.focus) {
@@ -183,6 +196,7 @@ export class Room {
     this.focus = null;
     this.path = [];
     this.action = null;
+    this.returning = false;
     this.proctor.position.set(0, 0, 2.8);
     this.proctor.rotation.y = 0;
     this.ending = { ...result, id: result.missed[0]?.id, elapsed: 0 };

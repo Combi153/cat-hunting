@@ -1,4 +1,5 @@
 const DESK = { x: 0, z: 4.55 };
+export const PROCTOR_HOME = { x: 0, z: 5.45 };
 const WINDOW = { x: -4.4, z: 1.4 };
 
 export function blocked(seats, x, z) {
@@ -15,6 +16,11 @@ export function approachPath(seats, start, seat) {
 
 // Stop inside interaction range on the nearest accessible side of the station.
 export function stationPath(seats, start, place) {
+  if (place === 'home') {
+    if (distance(start, PROCTOR_HOME) < 0.0001) return [];
+    const path = routeTo(seats, start, PROCTOR_HOME.z, () => [DESK.x - 1.5, DESK.x + 1.5]);
+    return path ? [...path, { ...PROCTOR_HOME }] : null;
+  }
   if (place === 'window') return routeTo(seats, start, WINDOW.z, () => [WINDOW.x]);
   if (place === 'desk') return routeTo(seats, start, DESK.z, () => [DESK.x - 1.5, DESK.x + 1.5]);
   return null;

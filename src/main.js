@@ -113,7 +113,6 @@ async function start() {
     paused = false;
     screen = 'running';
     $('#notice').textContent = '';
-    $('#blink').style.opacity = '0';
     toastUntil = 0;
     previous = performance.now();
     render();
@@ -167,6 +166,7 @@ function render() {
   $('#time').textContent = clock(exam.duration - exam.time);
   $('#time').classList.toggle('urgent', exam.duration - exam.time <= 15);
   $('#play').classList.toggle('inspecting', Boolean(room.focus && !room.busy));
+  $('#seat-targets').inert = room.returning;
   put('#controls', ui.inspection(exam, room.focus, room.busy));
   if (room.focus) {
     const request = exam.requestFor(room.focus);
@@ -232,6 +232,7 @@ function act(action) {
     if (!outcome) return;
     if (!saved.muted) reportSound(outcome.correct);
     notice(outcome.text, !outcome.correct);
+    if (!exam.over) room.returnHome();
   }
   if (action === 'serve') room.help();
   render();
@@ -328,12 +329,6 @@ function tick(now) {
     const stillEnding = motion.matches && room.ending;
     if (stillEnding) room.ending.elapsed = 0;
     room.draw(stillEnding ? 0 : Math.min(dt, 0.1), exam.time);
-    const blinkPhase = exam.time % 12;
-    const blink =
-      screen === 'running' && !motion.matches && !room.busy && blinkPhase > 11.76
-        ? Math.sin(((blinkPhase - 11.76) / 0.24) * Math.PI) * 0.72
-        : 0;
-    $('#blink').style.opacity = String(Math.max(0, blink));
     if ((!room.focus || room.busy) && screen === 'running') {
       for (const button of $('#seat-targets').children) {
         const anchor = room.anchor(exam.seat(Number(button.dataset.seat)));

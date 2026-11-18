@@ -272,14 +272,7 @@ h2 {
 .inspecting #seat-targets {
   display: none;
 }
-#blink {
-  position: absolute;
-  inset: 0;
-  background: #15201c;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 2;
-}
+
 #notice {
   position: absolute;
   left: 12px;

@@ -58,6 +58,8 @@ try {
   const inspect = async (id) => {
     if (await page.locator('[data-action=overview]').count()) await tap('[data-action=overview]');
     await advance(1100);
+    for (let i = 0; i < 40 && (await page.locator('#seat-targets').evaluate((el) => el.inert)); i++)
+      await advance(250);
     await tap('#seat-targets [data-seat="' + id + '"]');
     for (let i = 0; i < 30 && !(await page.locator('[data-action=report], [data-action=serve]').count()); i++)
       await advance(250);
@@ -107,7 +109,8 @@ try {
   await tap('[data-action=report]');
   assert.equal(await health(), '생명 2개');
   assert.match(await page.locator('#notice').innerText(), /잘못 짚었어요/);
-  assert.ok(await page.locator('[data-action=report]').isDisabled());
+  assert.match(await page.locator('#controls').innerText(), /교탁으로 돌아가고/);
+  assert.equal(await page.locator('#blink').count(), 0);
   for (const student of normal.slice(1, 3)) {
     await inspect(student.id);
     await tap('[data-action=report]');
@@ -175,7 +178,7 @@ try {
     }
     assert.match(await page.locator('.clue').innerText(), /화면|이어폰|옮겼다/);
     // The player can still report after the device has been put away.
-    await advance(6500);
+    if (culprit.first < 10) await advance(6500);
     await tap('[data-action=report]');
     assert.match(await page.locator('#notice').innerText(), /적발/);
   }
@@ -229,6 +232,8 @@ try {
     );
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await tap('[data-action=overview]');
+    for (let i = 0; i < 40 && (await page.locator('#seat-targets').evaluate((el) => el.inert)); i++)
+      await advance(250);
     for (let i = 0; i < 16; i++) await page.clock.fastForward(70);
     const buttons = await page.locator('#seat-targets button').evaluateAll((elements) =>
       elements.map((element) => {
