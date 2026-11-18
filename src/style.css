@@ -689,33 +689,6 @@ h2 {
   color: var(--cream);
   border-color: var(--green);
 }
-.stage-brief {
-  margin-bottom: 18px;
-  padding: 16px;
-  background: #f1efdf;
-  border-radius: 12px;
-}
-.stage-brief h2 {
-  margin: 8px 0;
-  font-size: 20px;
-  line-height: 1.4;
-}
-.stage-brief > p:last-child,
-.next-brief p {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.next-brief {
-  padding: 10px 12px;
-  background: #edf0e6;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  text-align: left;
-}
-.next-brief b {
-  font-size: 13px;
-}
 .campaign-clear {
   font-size: 13px;
   line-height: 1.5;

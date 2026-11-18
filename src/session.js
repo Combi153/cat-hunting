@@ -21,6 +21,20 @@ export const TYPES = {
     proof: '물건 뒷면 화면에 방금 찍은 시험지 사진이 떠 있었다.',
     clear: '지우개로 연필 밑줄을 지우고 가루를 털어냈다.',
   },
+  watch: {
+    name: '답안 표시 시계',
+    taunt: '히히… 손목의 글씨는 못 봤지?',
+    cue: '소매 가까이에서 손목을 확인했다.',
+    proof: '손목 화면에 문항 번호와 선택지가 나란히 표시되고 있었다.',
+    clear: '손목의 작은 문자판에 시곗바늘과 눈금이 보였다.',
+  },
+  pen: {
+    name: '카메라 펜',
+    taunt: '히히… 평범한 펜처럼 보였지?',
+    cue: '펜을 손안에서 돌려 시험지 가까이 가져갔다.',
+    proof: '펜의 작은 화면에 책상 위 시험지와 같은 그림이 비쳤다.',
+    clear: '뚜껑을 열어 펜촉을 살펴보고 다시 끼웠다.',
+  },
   note: {
     name: '쪽지',
     taunt: '히히… 쪽지 덕에 다 풀었지!',
@@ -29,7 +43,7 @@ export const TYPES = {
     clear: '수험번호와 사진이 있는 수험표를 책상에 다시 놓았다.',
   },
 };
-export const EXAM_DURATION = 90;
+export const EXAM_DURATION = 45;
 export const MAX_HEALTH = 3;
 export const seatNo = (id) => String(id).padStart(2, '0');
 export const clock = (seconds) => {
@@ -52,6 +66,10 @@ function examRandom(seed) {
   };
 }
 const ordinary = [
+  { pose: 'sleeve-adjust', text: '옷소매를 조금 끌어올리고 있다.' },
+  { pose: 'wrist-rest', text: '손목을 가볍게 돌리며 힘을 풀고 있다.' },
+  { pose: 'neck-stretch', text: '어깨를 펴고 고개를 천천히 돌렸다.' },
+  { pose: 'reread', text: '손가락으로 지문을 짚으며 다시 읽고 있다.' },
   { pose: 'rest', text: '연필을 내려놓고 잠깐 손목을 쉬고 있다.' },
   { pose: 'clear-camera', text: '지우개로 답을 지우고 다시 생각하고 있다.' },
   { pose: 'read', text: '시험지를 내려다보며 지문을 읽고 있다.' },
@@ -81,29 +99,27 @@ export class Exam {
         id: row * xs.length + col + 1,
         x,
         z,
-        kind: Object.keys(TYPES)[Math.floor(random() * 4)],
+        kind: this.rules.kinds[Math.floor(random() * this.rules.kinds.length)],
         guilty: false,
         caught: false,
         cleared: false,
         exitAt: null,
         first: 7 + random() * 12,
-        period: this.rules.cycle + random() * 3,
+        period: this.rules.cycle + random() * this.rules.jitter,
         ordinary: Math.floor(random() * ordinary.length),
         offset: random() * 8,
       })),
     );
     const devices = shuffled(this.rules.kinds, random);
-    for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, this.rules.culprits).entries()) {
-      const culprit = this.seats[row * xs.length + Math.floor(random() * xs.length)];
+    for (const [wave, culprit] of shuffled(this.seats, random).slice(0, this.rules.culprits).entries()) {
       culprit.guilty = true;
       culprit.kind = devices[wave % devices.length];
-      culprit.first = [5, 22, 39, 52][wave] + random() * 3;
+      culprit.first = [0.8, 2.8, 5.2, 7.5][wave] + random() * 1.3;
     }
     const normal = shuffled(
       this.seats.filter((seat) => !seat.guilty),
       random,
     );
-    for (const seat of normal) seat.mimic = random() < this.rules.mimics;
     for (const seat of shuffled(this.seats, random).slice(0, this.rules.sensitive)) seat.sensitive = true;
     this.requests = this.rules.requests.map((start, i) =>
       this.newRequest(normal[i], i === 1 ? 'curtain' : 'paper', start),
@@ -144,8 +160,8 @@ export class Exam {
     if (this.watchWarning(id)) return '“선생님… 계속 보고 계시면 집중하기 어려워요.”';
     const seat = this.seat(id),
       behavior = this.behavior(seat);
-    if (this.stage > 1 && this.watchTime < 0.9 && /^(proof|clear)-/.test(behavior.pose))
-      return TYPES[seat.kind].cue;
+    const kind = behavior.pose.replace(/^(proof|clear)-/, '');
+    if (TYPES[kind]) return TYPES[kind].cue;
     return behavior.text;
   }
   seat(id) {
@@ -166,21 +182,21 @@ export class Exam {
     if (this.rules.hide && this.watching === seat.id && this.watchTime < this.rules.hide)
       return { pose: 'write', text: '감독관을 보더니 손을 멈추고 시험지로 시선을 돌렸다.' };
     if (seat.guilty && this.time >= seat.first) {
-      if (this.rules.grace && this.time >= this.duration - this.rules.grace)
-        return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
       const phase = (this.time - seat.first) % seat.period;
-      if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
-      if (phase < 2 + this.rules.proof) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
+      if (phase < this.rules.cue) return { pose: seat.kind, text: TYPES[seat.kind].cue };
+      if (phase < this.rules.cue + this.rules.proof) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
     }
     if (seat.cleared) return { pose: 'write', text: '눈가를 붉힌 채, 말없이 답안지를 채우고 있다.' };
     if (!seat.guilty) {
-      if (seat.mimic) {
-        const phase = (this.time + seat.offset) % seat.period;
-        if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
-        if (phase < 2 + this.rules.proof) return { pose: 'clear-' + seat.kind, text: TYPES[seat.kind].clear };
-      }
-      const phase = (this.time + seat.offset) % 32;
-      if (phase >= 25 && phase < 29) return ordinary[seat.ordinary];
+      const phase = (this.time + seat.offset) % seat.period;
+      if (phase < this.rules.cue) return { pose: seat.kind, text: TYPES[seat.kind].cue };
+      if (phase < this.rules.cue + this.rules.proof) return { pose: 'clear-' + seat.kind, text: TYPES[seat.kind].clear };
+    }
+    // Innocent fidgets belong to everyone, so a quiet interval or a stretch cannot identify guilt.
+    const ordinaryPhase = (this.time + seat.offset * 1.7) % 13;
+    if (ordinaryPhase >= 9 && ordinaryPhase < 12) {
+      const index = (seat.ordinary + Math.floor((this.time + seat.offset * 1.7) / 13)) % ordinary.length;
+      return ordinary[index];
     }
     return { pose: 'write', text: '지문을 읽으며 연필로 답을 쓰고 있다.' };
   }
@@ -239,6 +255,8 @@ export class Exam {
   result() {
     return {
       version: 2,
+      duration: this.duration,
+      ruleset: 2,
       stage: this.stage,
       seed: this.seed,
       date: Date.now(),

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-import { Exam } from '../src/session.js';
+import { Exam, EXAM_DURATION } from '../src/session.js';
+import { bestPlan } from './helpers/balance-plan.js';
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
 try {
   const page = await browser.newPage({
@@ -29,7 +30,7 @@ try {
   };
   const time = async () => {
     const [m, s] = (await page.locator('#time').textContent()).split(':').map(Number);
-    return 90 - m * 60 - s;
+    return EXAM_DURATION - m * 60 - s;
   };
   const ready = async () => {
     for (let i = 0; i < 50 && (await page.locator('#seat-targets').evaluate((el) => el.inert)); i++)
@@ -60,24 +61,22 @@ try {
     await advance(200);
     assert.match(await page.locator('.round-status').innerText(), new RegExp(stage + ' / 5'));
     // Known fixtures isolate campaign progression from inference skill; real UI performs every trip/report.
-    for (const seat of fixture.seats.filter((s) => s.guilty)) {
-      await inspect(seat.id);
+    for (const visit of bestPlan(fixture).visits) {
+      // Wait at home for the next observable window, then physically walk there.
+      while ((await time()) < visit.depart) await advance(100);
+      await inspect(visit.id);
+      while ((await time()) < visit.report + 0.5) await advance(100);
       await tap('[data-action=report]');
     }
-    for (const request of fixture.requests) {
-      await ready();
-      for (let i = 0; i < 180 && (await time()) < request.start + 1; i++) await advance(500);
-      await inspect(request.id);
-      await tap('[data-action=serve]');
-      for (let i = 0; i < 50 && !(await page.locator('#notice').innerText()).includes('고맙습니다'); i++)
-        await advance(200);
-      assert.match(await page.locator('#notice').innerText(), /고맙습니다/);
-    }
-    await advance(91000 - (await time()) * 1000);
+    // Two neglected requests are a survivable cost. Help has its own fresh-round test.
+    assert.ok(await page.locator('#ending').isHidden());
+    await advance(46000 - (await time()) * 1000);
     assert.match(await page.locator('.ending-title').innerText(), /감독 성공/);
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
     assert.equal(saved.history[0].stage, stage);
-    assert.equal(saved.history[0].served, fixture.requests.length);
+    assert.equal(saved.history[0].caught, fixture.rules.culprits);
+    assert.equal(saved.history[0].duration, 45);
+    assert.equal(await page.locator('.stage-brief, .next-brief, #ending details').count(), 0);
     assert.equal(saved.unlocked, Math.min(5, stage + 1));
     if (stage === 2) {
       await page.setViewportSize({ width: 320, height: 568 });
@@ -91,7 +90,7 @@ try {
       });
       await page.setViewportSize({ width: 390, height: 844 });
     }
-    console.log('Stage ' + stage + ' victory, help, unlock and next-stage controls verified.');
+    console.log('Stage ' + stage + ' victory, unlock and next-stage controls verified.');
     last = fixture;
   }
   assert.equal(await page.locator('[data-action=advance]').count(), 0);
@@ -109,8 +108,8 @@ try {
   await page.locator('#play:not([hidden])').waitFor();
   await page.locator('#seat-targets button').first().waitFor();
   await page.locator('#ending').waitFor({ state: 'hidden' });
-  await advance(91000);
-  assert.match(await page.locator('.ending-title').innerText(), /감독 실패/);
+  await advance(46000);
+  assert.match(await page.locator('.ending-title').innerText(), /들키지 않았지/);
   assert.match(await page.locator('#ending [data-action=start]').innerText(), /3단계 다시 도전/);
   await tap('[data-action=start]');
   await page.locator('#ending').waitFor({ state: 'hidden' });

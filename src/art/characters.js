@@ -7,6 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const ball = new THREE.SphereGeometry(1, 14, 10);
 const softBox = new RoundedBoxGeometry(1, 1, 1, 2, 0.15);
 const ring = new THREE.TorusGeometry(1, 0.085, 5, 18);
+const wristBand = new THREE.TorusGeometry(1, 0.14, 6, 20);
 const materialCache = new Map();
 function clay(color, options = {}) {
   const key = color + JSON.stringify(options);
@@ -289,6 +290,58 @@ function makePencil() {
   box(p, M.sole, [0, 0.09, 0], [0.015, 0.025, 0.015]);
   return bake(p);
 }
+// The same muted housing is used for harmless and illicit displays. Only a
+// close look at what is on the screen, and how it is used, distinguishes them.
+function makeWatch(display = 'sleep') {
+  const watch = new THREE.Group();
+  for (const y of [-0.015, 0.015])
+    mesh(watch, wristBand, M.device, [0, y, -0.014], [0.06, 0.045, 0.06], [Math.PI / 2, 0, 0]);
+  box(watch, M.trim, [0, 0.004, 0.036], [0.097, 0.115, 0.021]);
+  box(watch, M.paper, [0, 0.004, 0.049], [0.078, 0.093, 0.005]);
+  lump(watch, M.device, [0.051, 0.012, 0.034], [0.006, 0.013, 0.007]);
+  if (display === 'answers') {
+    for (let row = 0; row < 2; row++) {
+      const y = 0.025 - row * 0.039;
+      tinyDigit(watch, row + 1, -0.021, y, 0.054, 0.009, M.graphite);
+      box(watch, M.graphite, [-0.003, y, 0.055], [0.009, 0.003, 0.003]);
+      tinyDigit(watch, row ? 4 : 3, 0.021, y, 0.054, 0.009, M.graphite);
+    }
+  } else if (display === 'time') {
+    mesh(watch, ring, M.graphite, [0, 0.004, 0.055], [0.03, 0.03, 0.02]);
+    box(watch, M.graphite, [0, 0.015, 0.057], [0.003, 0.026, 0.003]);
+    box(watch, M.graphite, [0.009, -0.002, 0.058], [0.024, 0.003, 0.003], [0, 0, -0.45]);
+    for (const [x, y] of [
+      [0, 0.035],
+      [0, -0.027],
+      [-0.031, 0.004],
+      [0.031, 0.004],
+    ])
+      box(watch, M.graphite, [x, y, 0.056], [0.005, 0.005, 0.003]);
+  } else {
+    // Both students initially tilt the same uninformative face away from view.
+    box(watch, M.trim, [0, 0.004, 0.054], [0.062, 0.074, 0.004]);
+  }
+  return bake(watch);
+}
+function makeExamPen(recording = false, capped = false) {
+  const pen = new THREE.Group();
+  box(pen, M.device, [0, 0, 0], [0.03, 0.18, 0.028]);
+  box(pen, M.trim, [0, 0.068, 0.014], [0.007, 0.047, 0.006]);
+  lump(pen, M.brass, [0, -0.094, 0], [0.009, 0.017, 0.009]);
+  if (capped) box(pen, M.device, [0, -0.075, 0], [0.033, 0.068, 0.033]);
+  if (recording) {
+    // An imagined exam-game prop: a pen-sized camera with a preview strip.
+    // It shares the normal pen's body, finish and clip, without a glowing cue.
+    lump(pen, M.ink, [0, -0.107, 0.001], [0.006, 0.006, 0.006]);
+    box(pen, M.paper, [0, -0.051, 0.017], [0.024, 0.06, 0.004]);
+    for (let row = 0; row < 3; row++)
+      box(pen, M.graphite, [0, -0.031 - row * 0.017, 0.02], [0.016, 0.003, 0.002]);
+    box(pen, M.graphite, [-0.008, -0.072, 0.02], [0.003, 0.006, 0.002]);
+  } else {
+    lump(pen, M.graphite, [0, -0.108, 0], [0.003, 0.007, 0.003]);
+  }
+  return bake(pen);
+}
 function makeProps() {
   const props = new THREE.Group();
   const glasses = makeGlasses(true);
@@ -344,8 +397,35 @@ function makeProps() {
   box(eraser, M.white, [0.15, 0.3, 0.57], [0.075, 0.025, 0.04]);
   box(eraser, M.trim, [0.15, 0.3, 0.57], [0.035, 0.027, 0.042]);
   props.add(bake(eraser));
+  const watch = makeWatch();
+  const watchAnswers = makeWatch('answers');
+  const watchTime = makeWatch('time');
+  const pen = makeExamPen(false, true);
+  const penCamera = makeExamPen(true);
+  const clearPen = makeExamPen();
+  const penCap = new THREE.Group();
+  box(penCap, M.device, [0, 0, 0], [0.033, 0.068, 0.033]);
+  box(penCap, M.trim, [0, 0.012, 0.017], [0.006, 0.03, 0.005]);
+  props.add(watch, watchAnswers, watchTime, pen, penCamera, clearPen, bake(penCap));
   for (const p of props.children) p.visible = false;
-  return { group: props, glasses, clearGlasses, ear, earCase: bake(earCase), camera, note, id, eraser };
+  return {
+    group: props,
+    glasses,
+    clearGlasses,
+    ear,
+    earCase: bake(earCase),
+    camera,
+    note,
+    id,
+    eraser,
+    watch,
+    watchAnswers,
+    watchTime,
+    pen,
+    penCamera,
+    clearPen,
+    penCap,
+  };
 }
 function instanceParts(parent, parts) {
   const batch = new THREE.InstancedMesh(parts[0].geometry, parts[0].material, parts.length);
@@ -489,13 +569,16 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     a,
   );
   r.head.rotation.y = Math.sin(f * 0.3) * 0.018;
+  r.head.rotation.z = THREE.MathUtils.lerp(r.head.rotation.z, 0, a);
   const le = v(-0.285, 0.17, 0.28),
     lw = v(-0.16, 0.295, 0.52);
   const re = v(0.285, 0.18, 0.27),
     rw = v(0.13 + Math.sin(f * 6) * 0.009, 0.298, 0.56 + Math.cos(f * 4) * 0.012);
   for (const prop of r.props.group.children) prop.visible = false;
   r.props.earCase.visible = pose === 'proof-ear' && !stand;
-  r.pencil.visible = !stand && (pose === 'write' || pose === 'rest' || pose === 'read');
+  const resting = ['rest', 'read', 'reread', 'sleeve-adjust', 'wrist-rest', 'neck-stretch'].includes(pose);
+  const writing = pose === 'write' || pose === 'proof-watch' || pose === 'clear-watch';
+  r.pencil.visible = !stand && (writing || resting);
   r.head.userData.glasses.visible = r.normalGlasses || pose === 'glasses';
   if (pose === 'glasses') {
     re.set(0.33, 0.39, 0.18);
@@ -527,6 +610,45 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     r.props.note.visible = pose === 'proof-note';
     r.props.id.visible = pose === 'note' || pose === 'clear-note';
     r.props.id.rotation.y = pose === 'note' ? Math.PI - 0.12 : -0.12;
+  } else if (pose === 'watch' || pose.endsWith('-watch')) {
+    le.set(-0.27, 0.27, 0.26);
+    lw.set(-0.085, 0.46, 0.42);
+    if (pose === 'watch') {
+      re.set(0.24, 0.26, 0.27);
+      rw.set(-0.025, 0.43, 0.43);
+    }
+    r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.22, a);
+    r.head.rotation.y = -0.06 + Math.sin(time * 1.1) * 0.025;
+  } else if (pose === 'pen' || pose.endsWith('-pen')) {
+    re.set(0.29, 0.23, 0.28);
+    rw.set(0.13, pose === 'proof-pen' ? 0.35 : 0.43, 0.53);
+    if (pose === 'clear-pen') {
+      le.set(-0.25, 0.23, 0.3);
+      lw.set(-0.045, 0.405, 0.49);
+      rw.x = 0.06 + Math.sin(time * 1.6) * 0.006;
+    }
+    r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.2, a);
+  } else if (pose === 'sleeve-adjust') {
+    le.set(-0.27, 0.23, 0.27);
+    lw.set(-0.08, 0.39, 0.42);
+    re.set(0.24, 0.27, 0.28);
+    rw.set(-0.105, 0.395 + Math.sin(time * 2.4) * 0.008, 0.4);
+    r.head.rotation.y = -0.06;
+  } else if (pose === 'wrist-rest') {
+    le.set(-0.25, 0.23, 0.31);
+    lw.set(-0.02, 0.385, 0.45);
+    re.set(0.25, 0.24, 0.29);
+    rw.set(0.035, 0.425, 0.445);
+  } else if (pose === 'neck-stretch') {
+    re.set(0.32, 0.39, 0.07);
+    rw.set(0.155, 0.64, -0.025);
+    r.head.rotation.z = Math.sin(time * 0.9) * 0.09 + 0.045;
+    r.head.rotation.x = 0.06;
+  } else if (pose === 'reread') {
+    lw.set(-0.13, 0.3, 0.58 + Math.sin(time * 0.8) * 0.025);
+    rw.set(0.2, 0.3, 0.43);
+    r.head.rotation.y = Math.sin(time * 0.7) * 0.055;
+    r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.24, a);
   } else if (pose === 'hand') {
     re.set(0.32, 0.63, 0.02);
     rw.set(0.3, 1.02, 0.04);
@@ -543,8 +665,13 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     re.set(0.25, 0.2, swing);
     rw.set(0.25, -0.045, swing * 1.6);
   }
-  const leftOnDesk = !stand && !pose.endsWith('note');
-  const rightOnDesk = !stand && (pose === 'write' || pose === 'rest' || pose === 'read');
+  const leftRaised =
+    pose.endsWith('note') ||
+    pose === 'watch' ||
+    pose.endsWith('-watch') ||
+    ['clear-pen', 'sleeve-adjust', 'wrist-rest'].includes(pose);
+  const leftOnDesk = !stand && !leftRaised;
+  const rightOnDesk = !stand && (writing || ['rest', 'read', 'reread'].includes(pose));
   if (!stand) {
     if (le.z > 0.13) le.y = Math.max(le.y, aboveDesk(r.upper, le.z, 0.092));
     if (re.z > 0.13) re.y = Math.max(re.y, aboveDesk(r.upper, re.z, 0.092));
@@ -553,7 +680,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   }
   setArm(r.left, le, lw, a, false, leftOnDesk);
   setArm(r.right, re, rw, a, pose === 'hand', rightOnDesk);
-  if (pose === 'write') {
+  if (writing) {
     r.pencil.position.copy(r.right.hand.position);
     r.pencil.position.x -= 0.027;
     r.pencil.position.z += 0.032;
@@ -561,6 +688,41 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     const tip = temp.set(0, -0.117, 0).applyQuaternion(r.pencil.quaternion);
     r.pencil.position.y = aboveDesk(r.upper, r.pencil.position.z + tip.z, 0.012) - tip.y;
   }
+  if (resting) {
+    r.pencil.position.set(0.06, aboveDesk(r.upper, 0.65, 0.019), 0.65);
+    r.pencil.rotation.set(0, 0, Math.PI / 2);
+  }
+  if (pose === 'watch' || pose.endsWith('-watch')) {
+    const watch =
+      pose === 'proof-watch'
+        ? r.props.watchAnswers
+        : pose === 'clear-watch'
+          ? r.props.watchTime
+          : r.props.watch;
+    watch.visible = !stand;
+    const direction = temp.subVectors(r.left.wrist, r.left.elbow).normalize();
+    watch.position.copy(r.left.wrist).addScaledVector(direction, -0.035);
+    watch.position.y += 0.035;
+    watch.position.z += 0.025;
+    watch.rotation.set(pose === 'watch' ? -0.45 : -0.95, 0.1, -0.12);
+  }
+  if (pose === 'pen' || pose.endsWith('-pen')) {
+    const pen =
+      pose === 'proof-pen' ? r.props.penCamera : pose === 'clear-pen' ? r.props.clearPen : r.props.pen;
+    pen.visible = !stand;
+    pen.position.copy(r.right.hand.position);
+    pen.position.x -= 0.025;
+    pen.position.z += 0.027;
+    pen.rotation.set(pose === 'proof-pen' ? -0.82 : -0.35, Math.sin(time * 1.6) * 0.08, -0.22);
+    if (pose === 'clear-pen') {
+      r.props.penCap.visible = !stand;
+      r.props.penCap.position.copy(r.left.hand.position);
+      r.props.penCap.position.x -= 0.024;
+      r.props.penCap.position.z += 0.045;
+      r.props.penCap.rotation.set(-0.35, 0.1, 0.28);
+    }
+  }
+  if (pose === 'wrist-rest') r.right.hand.rotation.z = -0.2 + Math.sin(time * 1.4) * 0.12;
   updateLegs(r, time, walking);
   syncInstances(r);
 }

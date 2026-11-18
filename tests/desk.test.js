@@ -63,3 +63,21 @@ test('wrongly accused students remain tearful after the first sobbing reaction',
     assert.ok(face.brows[0].rotation.z > 0.4);
   }
 });
+
+test('watch counterparts share body motion; new props disappear when writing resumes', () => {
+  const proof = createStudent(0), clear = createStudent(0);
+  for (let i = 0; i < 60; i++) {
+    updateStudent(proof, { time: i / 60, pose: 'proof-watch' });
+    updateStudent(clear, { time: i / 60, pose: 'clear-watch' });
+    for (const arm of ['left', 'right']) {
+      assert.deepEqual(proof.userData.clay[arm].wrist, clear.userData.clay[arm].wrist);
+    }
+  }
+  for (const pose of ['watch', 'proof-watch', 'clear-watch', 'pen', 'proof-pen', 'clear-pen', 'sleeve-adjust', 'wrist-rest', 'neck-stretch', 'reread']) {
+    for (let i = 0; i < 90; i++) updateStudent(proof, { time: i / 60, pose });
+    proof.updateMatrixWorld(true);
+    proof.traverse(part => assert.ok(part.matrixWorld.elements.every(Number.isFinite), pose));
+    updateStudent(proof, { time: 2, pose: 'write' });
+    assert.ok(proof.userData.clay.props.group.children.every(prop => !prop.visible), pose);
+  }
+});
