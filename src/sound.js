@@ -1,6 +1,4 @@
 let audio;
-let lastStep = -1,
-  lastPage = -1;
 export function activateSound() {
   try {
     audio ??= new AudioContext();
@@ -31,22 +29,22 @@ export function bell() {
   tone(660, 0.32, 0.06);
   tone(880, 0.66, 0.045, 0.23);
 }
-export function soundsForFrame(t, moving, quiet) {
-  if (moving && (t < lastStep || t - lastStep > (quiet ? 0.58 : 0.39))) {
-    tone(quiet ? 100 : 85, 0.075, quiet ? 0.007 : 0.026, 0, 'triangle');
-    lastStep = t;
-  }
-  const page = Math.floor(t / 12);
-  if (lastPage !== page) {
-    lastPage = page;
-    if (page > 0) tone(440, 0.045, 0.004, 0, 'triangle');
-  }
+export function reportSound(correct) {
+  tone(correct ? 660 : 180, 0.18, 0.05, 0, 'triangle');
+  tone(correct ? 880 : 130, 0.24, 0.04, 0.13, 'triangle');
 }
-
-export function pencilSound(completed) {
-  tone(470, 0.075, 0.026, 0, 'triangle');
-  if (completed) {
-    tone(660, 0.14, 0.035, 0.09);
-    tone(830, 0.22, 0.03, 0.19);
+export function serviceSound() {
+  tone(540, 0.12, 0.025);
+  tone(720, 0.2, 0.025, 0.12);
+}
+export function finale(win) {
+  const melody = win ? [523, 659, 784, 1047, 784, 1047] : [220, 196, 165, 130];
+  melody.forEach((frequency, index) => {
+    tone(frequency, index === melody.length - 1 ? 0.85 : 0.22, 0.045, index * 0.18, 'triangle');
+    if (win) tone(frequency / 2, 0.32, 0.025, index * 0.18);
+  });
+  if (!win) {
+    // Three clipped, descending notes echo the student's mischievous chuckle.
+    for (let i = 0; i < 3; i++) tone(280 - i * 25, 0.11, 0.025, 0.9 + i * 0.19, 'triangle');
   }
 }
