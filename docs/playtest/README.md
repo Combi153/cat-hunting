@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [retargeting/returning-laptop.png](retargeting/returning-laptop.png), [retargeting/redirect-laptop.png](retargeting/redirect-laptop.png), [retargeting/redirect-mobile.png](retargeting/redirect-mobile.png) | 2026-11-18 복귀 중 12번 학생으로 전환, 모바일 연속 선택. Chrome·제어된 시계 | [현재 검증](../quality/current-review.md) |
 | [laptop-framing/before-1167x813.png](laptop-framing/before-1167x813.png), [laptop-framing/after-1167x813.png](laptop-framing/after-1167x813.png), [laptop-framing/after-568x320.png](laptop-framing/after-568x320.png) | 2026-11-18 노트북 감독관 잘림 재현과 수정 후 구도. Chrome·제어된 시계; 전후 배치는 다름 | [현재 검증](../quality/current-review.md) |
 | [classroom.jpg](classroom.jpg), [rematch.jpg](rematch.jpg) | 초기 좌석표·점수제·같은 시험 재도전 | [초기 기록](../archive/play-rubric.md) |
 | [mobile/inspection.png](mobile/inspection.png), [mobile/victory.png](mobile/victory.png), [mobile/defeat.png](mobile/defeat.png) | 8석·90초 모바일 직접 신고 시기 | [모바일 개선 이력](../archive/mobile-rubric.md) |

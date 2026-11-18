@@ -120,9 +120,12 @@ export class Room {
   select(id) {
     const seat = this.session.seat(id);
     if (!seat || seat.caught) return;
-    if (this.action || this.returning) return;
+    if (this.action) return;
+    // Replace even a return trip from the current position; neither the old
+    // destination nor the home station is a waypoint for the new visit.
     const path = approachPath(this.session.seats, this.proctor.position, seat);
     if (!path) return;
+    this.returning = false;
     this.focus = id;
     this.path = path;
   }

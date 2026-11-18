@@ -78,7 +78,7 @@ export function hud(stage = 1) {
 }
 export function inspection(exam, id, busy = '') {
   if (busy === 'returning')
-    return '<div class="overview-copy"><h2>교탁으로 돌아가고 있어요</h2><p>자리로 돌아온 뒤 다시 학생을 살펴볼 수 있어요.</p></div>';
+    return '<div class="overview-copy"><h2>교탁으로 돌아가고 있어요</h2><p>다른 학생을 누르면 바로 그쪽으로 이동해요.</p></div>';
   const seat = exam.seat(id);
   if (!seat)
     return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 다가가세요. 손을 든 학생도 살펴주세요.</p></div>`;

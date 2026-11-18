@@ -21,6 +21,12 @@ try {
       body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(seed=42,stage=1){super(seed,stage);window.testExam=this}}",
     }),
   );
+  await page.route(/\/src\/world\.js(?:\?t=\d+)?$/, (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: "export * from '/src/world.js?fixture'; import {Room as Base} from '/src/world.js?fixture'; export class Room extends Base {constructor(...args){super(...args);window.testRoom=this}}",
+    }),
+  );
   await page.addInitScript(() => {
     window.playedTones = [];
     const NativeAudioContext = window.AudioContext;
@@ -116,6 +122,29 @@ try {
   await advance(12000);
   assert.equal(await page.locator('#time').textContent(), before);
   await tap('[data-action=resume]');
+  await fresh();
+  await inspect(10);
+  await tap('[data-action=overview]');
+  await advance(200);
+  assert.equal(await page.evaluate(() => window.testRoom.returning), true);
+  assert.equal(await page.locator('#seat-targets').evaluate((el) => el.inert), false);
+  const redirectPosition = await page.evaluate(() => window.testRoom.proctor.position.toArray());
+  await tap('[data-seat="11"]');
+  assert.deepEqual(await page.evaluate(() => ({
+    returning: window.testRoom.returning,
+    focus: window.testRoom.focus,
+    position: window.testRoom.proctor.position.toArray(),
+  })), { returning: false, focus: 11, position: redirectPosition });
+  // A second choice while already walking replaces the route again.
+  await tap('[data-seat="12"]');
+  assert.equal(await page.evaluate(() => window.testRoom.focus), 12);
+  assert.equal(await page.locator('[data-action=report]').count(), 0);
+  await advance(200);
+  await page.screenshot({ path: 'test-results/redirect-in-motion.png', animations: 'disabled' });
+  for (let i = 0; i < 30 && !(await page.locator('[data-action=report]').count()); i++)
+    await advance(200);
+  assert.match(await page.locator('.inspection-heading h2').innerText(), /12번/);
+  console.log('Returning and walking can both be redirected by touch without teleporting or visiting home.');
   await fresh();
   const wrongRound = new Exam(await page.evaluate(() => window.testExam.seed), 3);
   const innocents = wrongRound.seats.filter(s => !s.guilty);

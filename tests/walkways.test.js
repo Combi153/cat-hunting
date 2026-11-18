@@ -47,6 +47,7 @@ test('observation waits for arrival and help completes after the physical action
   assert.equal(room.busy, '');
   assert.equal(room.help(), true);
   room.overview();
+  room.select(room.session.seats.find((s) => s.id !== request.id).id);
   assert.equal(room.focus, request.id);
   let completion = null;
   for (let t = 0; t < 10 && !completion; t += 0.1) completion = room.step(0.1);
@@ -56,37 +57,84 @@ test('observation waits for arrival and help completes after the physical action
   assert.equal(room.focus, null);
   assert.equal(room.help(), false);
   assert.equal(room.returning, true);
+  const next = room.session.seats.find((s) => s.id !== request.id);
+  room.select(next.id);
+  assert.equal(room.returning, false);
+  assert.equal(room.focus, next.id);
+  room.overview();
   room.step(10);
   assert.equal(room.returning, false);
   assert.deepEqual(room.proctor.position.toArray(), [PROCTOR_HOME.x, 0, PROCTOR_HOME.z]);
   assert.equal(room.proctor.rotation.y, Math.PI);
 });
 
-test('reports and observation exits return home before another visit', async () => {
+test('return trips can be redirected immediately without visiting home or teleporting', async () => {
   const { Room } = await import('../src/world.js');
   const { Vector3 } = await import('three');
-  for (const guilty of [false, true]) {
+  for (const outcome of ['correct', 'incorrect', 'overview']) {
     const room = Object.create(Room.prototype);
     room.session = new Exam(42, 2);
     room.proctor = { position: new Vector3(PROCTOR_HOME.x, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
     room.path = [];
-    const seat = room.session.seats.find((s) => s.guilty === guilty);
+    const seat = room.session.seats.find((s) => s.guilty === (outcome === 'correct'));
     room.select(seat.id);
     room.step(10);
-    room.session.report(seat.id);
-    room.returnHome();
-    room.select(12);
-    room.overview();
-    assert.equal(room.focus, null);
+    if (outcome === 'overview') room.overview();
+    else {
+      room.session.report(seat.id);
+      room.returnHome();
+    }
+    room.step(0.15);
     assert.equal(room.busy, 'returning');
+    const position = room.proctor.position.clone();
+    const next = room.session.seats.find((s) => s.id !== seat.id);
+    const expected = approachPath(room.session.seats, position, next);
+    room.select(next.id);
+    assert.equal(room.returning, false);
+    assert.equal(room.focus, next.id);
+    assert.deepEqual(room.proctor.position, position);
+    assert.deepEqual(room.path, expected);
     room.step(10);
-    assert.deepEqual(room.proctor.position.toArray(), [0, 0, 5.45]);
-    assert.equal(room.proctor.rotation.y, Math.PI);
-    room.select(12);
-    room.step(10);
+    assert.equal(room.busy, '');
+    assert.equal(room.proctor.position.x, expected.at(-1).x);
+    assert.equal(room.proctor.position.z, expected.at(-1).z);
     room.overview();
-    assert.equal(room.busy, 'returning');
+    room.step(10);
+    assert.deepEqual(room.proctor.position.toArray(), [PROCTOR_HOME.x, 0, PROCTOR_HOME.z]);
   }
+});
+
+test('repeated retargeting uses the current location and stays clear of furniture', async () => {
+  const { Room } = await import('../src/world.js');
+  const { Vector3 } = await import('three');
+  const room = Object.create(Room.prototype);
+  room.session = new Exam(42);
+  room.proctor = { position: new Vector3(0, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
+  room.path = [];
+  for (const id of [12, 1, 10, 3, 8, 4, 11, 2, 9, 5, 7, 6]) {
+    const position = room.proctor.position.clone();
+    room.select(id);
+    assert.deepEqual(room.proctor.position, position);
+    assert.equal(room.focus, id);
+    for (let i = 0; i < 25; i++) {
+      room.step(1 / 60);
+      assert.equal(blocked(room.session.seats, room.proctor.position.x, room.proctor.position.z), false);
+    }
+  }
+  room.step(10);
+  assert.equal(room.busy, '');
+  assert.equal(room.focus, 6);
+});
+
+test('students in the same aisle use the straight shortest path to the nearer side', () => {
+  const { seats } = new Exam(42);
+  // At the right side of the front-left desk, the rear-middle desk is reached
+  // directly along the shared aisle, without crossing desks or going home.
+  const start = { x: -1.125, z: seats[0].z + 0.22 };
+  const path = approachPath(seats, start, seats[10]);
+  assert.deepEqual(path, [{ x: -1.125, z: seats[10].z + 0.22 }]);
+  const direct = Math.abs(path[0].z - start.z);
+  assert.equal(direct, Math.hypot(path[0].x - start.x, path[0].z - start.z));
 });
 
 test('unobstructed approaches stay straight and return paths do not detour through a fixed station', () => {

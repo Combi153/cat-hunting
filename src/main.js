@@ -190,7 +190,7 @@ function render() {
   $('#time').textContent = clock(exam.duration - exam.time);
   $('#time').classList.toggle('urgent', exam.duration - exam.time <= 15);
   $('#play').classList.toggle('inspecting', Boolean(room.focus && !room.busy));
-  $('#seat-targets').inert = room.returning;
+  $('#seat-targets').inert = Boolean(room.action);
   put('#controls', ui.inspection(exam, room.focus, room.busy));
   if (room.focus) {
     const request = exam.requestFor(room.focus);
@@ -305,8 +305,8 @@ canvas.addEventListener('pointerup', (event) => {
   if (!touchStart || touchStart.id !== event.pointerId || paused || screen !== 'running') return;
   const dx = event.clientX - touchStart.x;
   if (room.focus && Math.abs(dx) > 45) next();
-  else if (room.focus && Math.hypot(dx, event.clientY - touchStart.y) < 12) act('overview');
-  else if (!room.focus) {
+  else if (room.focus && !room.busy && Math.hypot(dx, event.clientY - touchStart.y) < 12) act('overview');
+  else if ((!room.focus || room.busy) && Math.hypot(dx, event.clientY - touchStart.y) < 12) {
     const box = canvas.getBoundingClientRect();
     const candidate = exam.seats
       .filter((seat) => !seat.caught)
