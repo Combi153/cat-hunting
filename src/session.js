@@ -266,6 +266,13 @@ export class Exam {
       falseCalls: this.falseCalls,
       complaints: this.complaints.length,
       served: this.requests.filter((request) => request.done).length,
+      // Records and achievements read these; help already under way at the bell still counts as on time.
+      requests: this.requests.length,
+      helpedOnTime: this.requests.filter((request) => !request.late && (request.done || request.helping)).length,
+      catches: this.seats
+        .filter((seat) => seat.guilty && seat.caught)
+        .sort((a, b) => a.exitAt - b.exitAt)
+        .map((seat) => ({ kind: seat.kind, time: seat.exitAt })),
       missed: this.seats
         .filter((seat) => seat.guilty && !seat.caught)
         .map((seat) => ({ id: seat.id, kind: seat.kind })),

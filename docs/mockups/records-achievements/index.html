@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>기록실 목업</title>
+<style>
+@font-face { font-family: Jua; src: url('../../../public/fonts/Jua-Regular.ttf') format('truetype'); }
+:root {
+  --green: #295b46; --cream: #fffdf3; --line: #d3d9c8; --muted: #687663; --gold: #d49441;
+  --ink: #2d4136; --round: 'Jua', sans-serif;
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color: var(--ink);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #e8ecdf; padding: 28px 16px 60px; }
+h1, h2, h3, p { margin: 0; }
+.wrap { max-width: 1400px; margin: 0 auto; }
+.page-head { margin-bottom: 22px; }
+.page-head h1 { font: 34px var(--round); }
+.page-head p { color: var(--muted); margin-top: 6px; line-height: 1.6; font-size: 14px; }
+.phones { display: flex; gap: 22px; flex-wrap: wrap; }
+figure { margin: 0; }
+figcaption { font-size: 13px; font-weight: 700; margin: 0 0 8px 4px; }
+.phone { position: relative; width: 300px; height: 650px; background: var(--cream); border-radius: 30px; overflow: hidden;
+  border: 7px solid #26342c; box-shadow: 0 14px 40px #35452f30; font-size: 13px; }
+.scroll { height: 100%; overflow: hidden; padding: 14px 16px; }
+.fade::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 46px; background: linear-gradient(#fffdf300, var(--cream)); }
+/* 로비 (main 기준) */
+.topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.brand { font: 15px var(--round); display: flex; align-items: center; gap: 6px; }
+.brand img { width: 22px; height: 22px; }
+.icons { display: flex; gap: 6px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 10px; background: #edf0e4; border: 1px solid #d2d9c7; display: grid; place-items: center; }
+.icon-btn svg { width: 17px; height: 17px; }
+.icon-btn.trophy { background: #fff7e8; border-color: var(--gold); color: #a86d22; position: relative; }
+.icon-btn.trophy i { position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: #bb5b4e; border: 2px solid var(--cream); }
+.cover { height: 128px; border-radius: 16px; background: url('../../../public/art/exam-keyart.jpg') center 30% / cover; }
+.title { font: 44px var(--round); letter-spacing: -0.06em; margin: 10px 0 2px; }
+.lead { color: #55644e; font-size: 13px; line-height: 1.45; }
+.rules { display: flex; gap: 14px; font-size: 11.5px; margin: 10px 0 6px; align-items: center; }
+.rules .h { color: #bb5b4e; letter-spacing: -1px; }
+.how { font-size: 11px; color: var(--muted); line-height: 1.6; }
+.stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 10px 0; }
+.stages div { border-radius: 11px; background: #edf0e4; border: 1px solid #d2d9c7; text-align: center; padding: 5px 0 3px; font: 17px var(--round); color: #9aa394; }
+.stages div small { display: block; font: 9px sans-serif; }
+.stages div.on { background: var(--green); color: #fff; border-color: var(--green); }
+.stages div.open { color: var(--ink); background: #fff; }
+.btn { border-radius: 13px; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 750; font-size: 13px; }
+.primary { background: var(--green); color: #fffdf2; box-shadow: 0 3px 0 #163e2e; }
+.start { font: 17px var(--round); justify-content: space-between; padding: 0 14px; min-height: 48px; }
+.secondary { background: #edf0e4; border: 1px solid #d2d9c7; }
+.text-btn { text-align: center; color: var(--muted); font-size: 12px; padding: 6px 0; }
+.ad { margin-top: 10px; }
+.ad small { font-size: 9px; color: var(--muted); }
+.ad img { width: 100%; display: block; border-radius: 10px; margin-top: 2px; }
+.muted { color: var(--muted); }
+.small { font-size: 11px; }
+.center { text-align: center; }
+/* 기록실 */
+.head { display: grid; grid-template-columns: 70px 1fr 70px; align-items: center; margin-bottom: 8px; }
+.head .back { color: var(--muted); font-weight: 700; font-size: 12px; }
+.head h2 { font: 18px var(--round); text-align: center; }
+.tabs { display: flex; background: #edf0e4; border-radius: 12px; padding: 3px; margin: 4px 0 12px; }
+.tabs span { flex: 1; text-align: center; padding: 7px 0; border-radius: 9px; font-weight: 700; color: var(--muted); }
+.tabs span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px #0001; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.stat { background: #fff; border: 1px solid #e1e6d6; border-radius: 13px; padding: 8px 10px; }
+.stat span { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.stat b { display: block; white-space: nowrap; font: 19px var(--round); color: var(--green); margin-top: 1px; }
+h3 { font: 14px var(--round); font-weight: 400; margin: 11px 0 5px; }
+.card { background: #fff; border: 1px solid #e1e6d6; border-radius: 13px; padding: 4px 11px; }
+.row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e1e6d6; font-size: 12px; }
+.row:last-child { border-bottom: 0; }
+.row b { color: var(--green); }
+.row .lv { font: 14px var(--round); width: 46px; }
+.row.lock { color: #a7ae9f; }
+.dots { display: flex; gap: 4px; padding: 8px 0 4px; }
+.dots i { width: 21px; height: 21px; border-radius: 50%; background: var(--green); color: #fff; font: 11px/21px var(--round); text-align: center; font-style: normal; }
+.dots i.l { background: #ece9dc; color: #8f8a74; border: 1.5px solid #cfc9b4; line-height: 18px; }
+.tools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; text-align: center; padding: 7px 0; }
+.tools div { background: #f4f6ee; border-radius: 9px; padding: 4px 0; }
+.tools b { display: block; font: 16px var(--round); color: var(--green); }
+.tools span { font-size: 9.5px; color: var(--muted); }
+.badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.badge { background: #fff; border: 1px solid #e1e6d6; border-radius: 13px; padding: 8px 3px 7px; text-align: center; }
+.badge .ic { width: 38px; height: 38px; margin: 0 auto 4px; border-radius: 50%; display: grid; place-items: center; font-size: 19px; background: #fbefd9; border: 2px solid var(--gold); }
+.badge b { display: block; font: 12px var(--round); font-weight: 400; }
+.badge small { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.badge.lock .ic { background: #eceee6; border-color: #d4d8cb; filter: grayscale(1); opacity: .5; }
+.badge.lock b { color: #9aa394; }
+.badge.new { border-color: var(--gold); box-shadow: 0 0 0 2px #d4944133; position: relative; }
+.badge.new::before { content: 'NEW'; position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; color: #fff; background: #bb5b4e; border-radius: 6px; padding: 1px 4px; }
+.mini-bar { height: 4px; border-radius: 4px; background: #e5e9dc; margin: 4px 10px 0; overflow: hidden; }
+.mini-bar i { display: block; height: 100%; background: var(--gold); }
+/* 결과 */
+.ending { background: url('../../playtest/mobile/victory.png') center 10% / cover; }
+.ending .title-wrap { text-align: center; padding: 16px 10px 30px; background: linear-gradient(#fffaf0 72%, #fffaf000); }
+.ending .title-wrap .eyebrow { font-size: 11px; font-weight: 750; color: var(--green); }
+.ending .title-wrap h2 { font: 24px var(--round); margin-top: 3px; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fffdf3; border-radius: 22px 22px 0 0; box-shadow: 0 -6px 30px #3c42291c; padding: 12px 14px 10px; text-align: center; }
+.sheet .line { font: 16px var(--round); }
+.end-stats { display: flex; justify-content: center; gap: 16px; margin: 7px 0; font-size: 11px; color: var(--muted); }
+.end-stats b { color: var(--green); font-size: 14px; padding-left: 2px; }
+.unlock { display: flex; align-items: center; gap: 8px; background: #fff7e8; border: 1.5px solid var(--gold); border-radius: 12px; padding: 5px 10px; margin: 2px 0 8px; text-align: left; }
+.unlock .ic { font-size: 16px; }
+.unlock b { font: 13px var(--round); font-weight: 400; flex: 1; }
+.unlock em { font-style: normal; font-size: 10px; font-weight: 800; color: #a86d22; }
+.unlock span { color: #a86d22; font-weight: 700; font-size: 12px; }
+.sheet .btn { min-height: 38px; margin-top: 5px; }
+.sheet .text-btn { padding: 4px 0; }
+.notes { margin-top: 30px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 18px 22px; font-size: 13.5px; line-height: 1.7; }
+.notes h2 { font: 20px var(--round); margin: 4px 0 6px; }
+.notes table { border-collapse: collapse; width: 100%; margin: 6px 0 14px; font-size: 13px; }
+.notes td, .notes th { border-bottom: 1px solid #e5e9dc; padding: 6px 8px; text-align: left; vertical-align: top; }
+.notes th { background: #f4f6ee; }
+.notes ul { margin: 4px 0 10px; padding-left: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="page-head">
+  <h1>냥이잡기 · 기록실 (기록과 업적) 목업</h1>
+  <p>지금 main(45초·5단계·공유·배너) 화면을 바탕으로 그렸어요. 숫자는 예시 값이에요. 기록은 지금처럼 그 브라우저에만 저장하고 서버는 쓰지 않아요.</p>
+</div>
+
+<div class="phones">
+  <figure><figcaption>① 첫 화면 — 소리 버튼 옆에 트로피 버튼만 추가</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="topline"><span class="brand"><img src="../../../public/cat.svg" alt="">45초 시험 감독</span>
+        <span class="icons">
+          <span class="icon-btn trophy" title="기록실"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4M12 13v4m-4 3h8m-6-3h4"/></svg><i></i></span>
+          <span class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m11 5-5 4H3v6h3l5 4zM15 9a4 4 0 0 1 0 6m2-9a8 8 0 0 1 0 12"/></svg></span>
+        </span></div>
+      <div class="cover"></div>
+      <p class="title">냥이잡기</p>
+      <p class="lead">종이 울리기 전에 부정행위를 모두 찾아내세요.</p>
+      <div class="rules"><span>⏱ 45초</span><span><span class="h">♥♥♥</span> 생명 3개</span></div>
+      <p class="how">학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.</p>
+      <div class="stages"><div class="open">01</div><div class="open">02</div><div class="open">03</div><div class="on">04</div><div>05<small>잠김</small></div></div>
+      <div class="btn primary start">4단계 감독 시작 <span>→</span></div>
+      <div class="ad"><small>광고</small><img src="../../../public/thinkplace/thinkplace-banner.webp" alt=""></div>
+    </div></div>
+    <p class="small muted" style="margin:8px 4px 0;max-width:300px">빨간 점은 아직 확인하지 않은 새 업적이 있을 때만 떠요. 첫 화면 문구는 그대로예요.</p>
+  </figure>
+
+  <figure><figcaption>② 기록실 — 기록 탭</figcaption>
+    <div class="phone fade"><div class="scroll">
+      <div class="head"><span class="back">‹ 처음으로</span><h2>기록실</h2><span></span></div>
+      <div class="tabs"><span class="on">기록</span><span>업적 3/10</span></div>
+      <div class="stat-grid">
+        <div class="stat"><span>감독한 시험</span><b>23번</b></div>
+        <div class="stat"><span>통과</span><b>11번 · 48%</b></div>
+        <div class="stat"><span>최고 연속 통과</span><b>4번</b></div>
+        <div class="stat"><span>가장 빠른 전원 적발</span><b>17.4초</b></div>
+      </div>
+      <h3>단계별</h3>
+      <div class="card">
+        <div class="row"><span class="lv">1단계</span><span>통과 5번</span><b>17.4초</b></div>
+        <div class="row"><span class="lv">2단계</span><span>통과 4번</span><b>24.9초</b></div>
+        <div class="row"><span class="lv">3단계</span><span>통과 2번</span><b>31.0초</b></div>
+        <div class="row lock"><span class="lv">4단계</span><span>도전 3번</span><span>아직 통과 전</span></div>
+        <div class="row lock"><span class="lv">5단계</span><span>잠김</span><span>—</span></div>
+      </div>
+      <h3>최근 10번 <span class="small muted" style="font-family:sans-serif">· 숫자는 단계, 왼쪽이 최근</span></h3>
+      <div class="card"><div class="dots"><i class="l">4</i><i class="l">4</i><i>3</i><i class="l">3</i><i>2</i><i>1</i><i class="l">3</i><i>2</i><i class="l">2</i><i>1</i></div></div>
+      <h3>잡아낸 도구 (총 41명)</h3>
+      <div class="card"><div class="tools">
+        <div><b>8</b><span>AI 안경</span></div><div><b>7</b><span>이어폰</span></div><div><b>6</b><span>카메라</span></div>
+        <div><b>9</b><span>시계</span></div><div><b>4</b><span>카메라 펜</span></div><div><b>7</b><span>쪽지</span></div></div></div>
+      <h3>감독 습관</h3>
+      <div class="card">
+        <div class="row"><span>오인 신고</span><b>9번</b></div>
+        <div class="row"><span>민원</span><b>6번</b></div>
+      </div>
+    </div></div></figure>
+
+  <figure><figcaption>③ 기록실 — 업적 탭</figcaption>
+    <div class="phone"><div class="scroll">
+      <div class="head"><span class="back">‹ 처음으로</span><h2>기록실</h2><span></span></div>
+      <div class="tabs"><span>기록</span><span class="on">업적 3/10</span></div>
+      <div class="badges">
+        <div class="badge"><div class="ic">💚</div><b>무결점</b><small>3단계 이상, 생명 3개로 통과</small></div>
+        <div class="badge new"><div class="ic">⚡</div><b>번개 감독</b><small>3단계 이상, 20초 안에 전원 적발</small></div>
+        <div class="badge"><div class="ic">🧰</div><b>도구 박사</b><small>여섯 도구 모두 적발</small></div>
+        <div class="badge lock"><div class="ic">😅</div><b>아슬아슬</b><small>4단계 이상, 생명 1개로 통과</small></div>
+        <div class="badge lock"><div class="ic">🙋</div><b>친절한 선생님</b><small>3단계 이상, 요청 모두 제때</small></div>
+        <div class="badge lock"><div class="ic">⏰</div><b>종소리 직전</b><small>마지막 3초에 잡고 통과</small></div>
+        <div class="badge lock"><div class="ic">🔥</div><b>5연속 통과</b><small>지금 2번</small><div class="mini-bar"><i style="width:40%"></i></div></div>
+        <div class="badge lock"><div class="ic">🎖️</div><b>백전노장</b><small>누적 100명 41/100</small><div class="mini-bar"><i style="width:41%"></i></div></div>
+        <div class="badge lock"><div class="ic">🎓</div><b>졸업 감독관</b><small>5단계 통과</small></div>
+      </div>
+      <p class="small muted center" style="margin-top:10px">❓ 숨은 업적이 하나 더 있어요</p>
+    </div></div></figure>
+
+  <figure><figcaption>④ 결과 화면 — 새 업적은 한 줄만</figcaption>
+    <div class="phone ending"><div class="title-wrap"><p class="eyebrow">3 / 5 단계</p><h2>3단계 통과!</h2></div>
+      <div class="sheet">
+        <p class="line">“모두 수고했어요!”</p>
+        <div class="end-stats"><span>적발 <b>3/3</b></span><span>오인 <b>0</b></span><span>민원 <b>0</b></span></div>
+        <div class="unlock"><span class="ic">⚡</span><b><em>새 업적</em> 번개 감독</b><span style="font-weight:400;color:var(--muted);font-size:10.5px">20초 안에 전원 적발</span></div>
+        <div class="btn primary">4단계 도전 →</div>
+        <p class="text-btn">이 단계 다시 하기</p>
+        <div class="btn secondary">친구에게 공유하기</div>
+        <p class="text-btn">처음으로</p>
+        <div class="ad" style="text-align:left;margin-top:4px"><small>광고</small><img src="../../../public/thinkplace/thinkplace-banner.webp" alt=""></div>
+      </div></div>
+    <p class="small muted" style="margin:8px 4px 0;max-width:300px">새 업적이 없으면 이 줄이 없어서 지금 결과 화면과 똑같아요. 두 개 이상이면 "번개 감독 외 1개"로 한 줄에 줄여요. 누르는 버튼이 아니라 알림이라, 다음 단계로 가는 흐름은 그대로예요.</p>
+  </figure>
+</div>
+
+<div class="notes">
+  <h2>업적 10개</h2>
+  <table>
+    <tr><th>업적</th><th>조건</th><th>메모</th></tr>
+    <tr><td>💚 무결점</td><td>3단계 이상을 생명 3개 그대로 통과 (오인·민원 0)</td><td>실력</td></tr>
+    <tr><td>⚡ 번개 감독</td><td>3단계 이상에서 시작 20초 안에 범인을 모두 잡고 통과</td><td>실력</td></tr>
+    <tr><td>😅 아슬아슬</td><td>4단계 이상을 생명 1개 남기고 통과</td><td>재미</td></tr>
+    <tr><td>🙋 친절한 선생님</td><td>3단계 이상에서 손 든 학생 두 명을 모두 제때 돕고 통과</td><td>실력</td></tr>
+    <tr><td>⏰ 종소리 직전</td><td>마지막 범인을 남은 3초 안에 잡고 통과</td><td>재미</td></tr>
+    <tr><td>🔥 5연속 통과</td><td>다섯 번 연달아 통과 (단계 상관없음, 실패하면 처음부터)</td><td>꾸준함 · 진행 막대</td></tr>
+    <tr><td>🧰 도구 박사</td><td>안경·이어폰·카메라·시계·카메라 펜·쪽지를 한 번씩 다 잡기</td><td>꾸준함 · 누적</td></tr>
+    <tr><td>🎖️ 백전노장</td><td>누적 100명 적발</td><td>꾸준함 · 누적</td></tr>
+    <tr><td>🎓 졸업 감독관</td><td>5단계 통과</td><td>최종 목표 · 지금 '모든 단계 통과' 저장값과 연결</td></tr>
+    <tr><td>❓→😭 눈물바다</td><td>오인 신고 세 번으로 실패 (따기 전엔 조건을 숨김)</td><td>숨은 업적</td></tr>
+  </table>
+  <p class="muted">숫자(단계·20초·3초·5연속·100명)는 첫 제안값이에요. 플레이해 보고 조정할 수 있어요.</p>
+  <h2>지키는 것 (동생이 정해 둔 규칙)</h2>
+  <ul>
+    <li>첫 화면에 성적 문장을 다시 넣지 않아요. 트로피 버튼 하나만 늘어요.</li>
+    <li>게임 도중에는 업적 알림이나 적발 수를 보여 주지 않아요. 업적은 결과 화면과 기록실에서만 알려요.</li>
+    <li>업적 설명에 범인을 찾는 요령(힌트)을 넣지 않아요.</li>
+    <li>지금 저장된 기록(열린 단계·최근 10판)은 그대로 두고, 기록실용 저장 칸을 따로 만들어요.</li>
+  </ul>
+</div>
+</div>
+</body>
+</html>

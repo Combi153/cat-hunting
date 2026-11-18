@@ -36,6 +36,7 @@ npm run preview
 | [classroom.js](../../src/art/classroom.js), [dimensions.js](../../src/art/dimensions.js) | 교실·커튼과 책상 치수 기준 |
 | [sound.js](../../src/sound.js) | 종·신고·도움·승패 음향 |
 | [share.js](../../src/share.js) | 결과 버튼의 직접 기본 공유, 링크 복사·미지원/실패 대체 안내 |
+| [records.js](../../src/records.js) | 기록실의 누적 기록·업적 10개 판정, 이전 기록으로 채우기, 깨진 저장값 정리. 저장·화면과 분리된 순수 함수 |
 | [index.html](../../index.html) | 최초 문서와 공유 크롤러가 읽는 메타데이터 |
 
 ## 상태와 연결
@@ -47,6 +48,8 @@ npm run preview
 렌더링되는 포즈는 `Exam.behavior()`가 정하지만, 관찰 문구는 `Exam.observationText()`를 거친다. `behavior.text`의 내부 증거 설명을 그대로 UI에 노출하면 정상·부정행위의 동일 문구라는 현재 결정을 깨뜨릴 수 있다.
 
 저장 키는 `nyangijapgi.v2`다. 최근 10판, 열린 단계, 전체 완료, 음소거를 저장한다. 결과에는 `version: 2`, `ruleset: 4`, `duration: 45`와 단계·배치·승패·신고/민원 기록 등이 남는다. 이전 v1 저장을 지우지 않고 음소거 설정을 읽으며, 이전 기록만으로 새 단계를 자동 해제하지 않는다. 저장이 불가능한 환경에서도 플레이는 계속된다.
+
+기록실은 별도 키 `nyangijapgi.records.v1`을 쓴다. 키가 없으면 v2의 최근 10판으로 시험·통과·연속·단계별 횟수만 채우고, 누적 적발·오인·민원과 적발 시각·도구는 0에서 시작한다. 버전이 더 높은 기록은 덮어쓰지 않는다. Vite 빌드 대상이 Safari 14이므로 `structuredClone` 같은 최신 API를 쓰지 않는다. 결과의 `catches`(도구·적발 시각), `requests`, `helpedOnTime`이 기록과 업적의 입력이다. 결과 화면용 `achievements`는 v2 기록에 넣지 않는다.
 
 ## 검증 명령
 
@@ -64,6 +67,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:asset
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:review
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:share
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analytics
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:records
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.
@@ -76,6 +80,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analy
 | `test:assets` | 실제 행동 주기가 나타날 때 접근해 새 소품·일상 행동 캡처 |
 | `test:review` | 실패 후 여섯 행동 재생·소품 복귀·순환, 결과 불변, 화면 크기, 모두 적발한 생명 패배·재도전 |
 | `test:share` | 네 결과의 기본 공유 API 대역, 취소·거절·미지원·지연 응답, 실제 브라우저 클립보드, 직접 복사, 포커스·화면 크기. 외부 앱 전송은 미검증 |
+| `test:records` | 4단계를 생명 1개로 통과해 업적을 실제로 얻고, 결과 한 줄·320px에서 다음 단계 버튼 위치·트로피 점·NEW 1회 표시·새로고침 후 유지, 네 화면 크기의 가로 넘침 없음 |
 | `npm run build` | 배포용 정적 파일 생성. 게임 플레이 검증을 대신하지 않음 |
 
 자동 캡처는 Git에서 제외된 `test-results/`에 나온다. 검토한 증거만 버전별 `docs/playtest/`에 복사하고 출처를 기록한다. 3D 검토에서는 스크린샷과 실제 동작을 함께 본다. 브라우저 시계를 멈춘 검증에서는 시작 후 첫 프레임이 그려진 뒤 좌석을 눌러야 하며, 이동은 버튼이 준비될 때까지 시간을 진행한다. 실행 중 소스를 바꾸면 Vite 갱신으로 게임이 초기화될 수 있다.
