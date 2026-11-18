@@ -93,12 +93,12 @@ h2 {
   background: transparent;
 }
 .cover-art {
-  height: clamp(160px, 30svh, 280px);
+  height: clamp(120px, 22svh, 200px);
   border-radius: 24px 24px 5px 5px;
   background: #e7e5d7 url('/art/exam-keyart.jpg') 52% 45% / cover;
 }
 .cover-copy {
-  padding: 24px 8px 8px;
+  padding: 18px 8px 8px;
 }
 .eyebrow {
   font-size: 12px;
@@ -107,7 +107,7 @@ h2 {
   color: var(--green);
 }
 .cover-copy h1 {
-  font-size: clamp(58px, 10svh, 76px);
+  font-size: clamp(48px, 8svh, 64px);
   letter-spacing: -0.06em;
   margin: 7px 0 2px;
 }
@@ -405,6 +405,7 @@ h2 {
   background: linear-gradient(#fffaf0ef, #fffaf000);
 }
 .ending-title h1 {
+  word-break: keep-all;
   font-size: clamp(28px, 5svh, 38px);
   margin-top: 8px;
 }
@@ -658,4 +659,72 @@ h2 {
   .ending-bottom {
     padding: 12px 15px 6px;
   }
+}
+
+.stage-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 18px 0 14px;
+}
+.stage-picker button {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  padding: 9px 2px;
+  min-height: 76px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #edf0e6;
+}
+.stage-picker small,
+.stage-picker span {
+  font-size: 10px;
+}
+.stage-picker b {
+  font: 24px var(--round);
+}
+.stage-picker [aria-pressed='true'] {
+  background: var(--green);
+  color: var(--cream);
+  border-color: var(--green);
+}
+.stage-brief {
+  margin-bottom: 18px;
+  padding: 16px;
+  background: #f1efdf;
+  border-radius: 12px;
+}
+.stage-brief h2 {
+  margin: 8px 0;
+  font-size: 20px;
+  line-height: 1.4;
+}
+.stage-brief > p:last-child,
+.next-brief p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.next-brief {
+  padding: 10px 12px;
+  background: #edf0e6;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.next-brief b {
+  font-size: 13px;
+}
+.campaign-clear {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--green);
+  margin-bottom: 12px;
+}
+.clue.concerned {
+  color: #9b5435;
+  background: #f6e9d6;
+  border-radius: 8px;
+  padding: 6px 10px;
 }

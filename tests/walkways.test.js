@@ -34,7 +34,7 @@ test('observation waits for arrival and help completes after the physical action
   const { Room } = await import('../src/world.js');
   const { Vector3 } = await import('three');
   const room = Object.create(Room.prototype);
-  room.session = new Exam(42);
+  room.session = new Exam(42, 2);
   room.proctor = { position: new Vector3(PROCTOR_HOME.x, 0, PROCTOR_HOME.z), rotation: { y: 0 } };
   room.path = [];
   room.action = null;
@@ -67,7 +67,7 @@ test('reports and observation exits return home before another visit', async () 
   const { Vector3 } = await import('three');
   for (const guilty of [false, true]) {
     const room = Object.create(Room.prototype);
-    room.session = new Exam(42);
+    room.session = new Exam(42, 2);
     room.proctor = { position: new Vector3(PROCTOR_HOME.x, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
     room.path = [];
     const seat = room.session.seats.find((s) => s.guilty === guilty);
@@ -86,5 +86,41 @@ test('reports and observation exits return home before another visit', async () 
     room.step(10);
     room.overview();
     assert.equal(room.busy, 'returning');
+  }
+});
+
+test('unobstructed approaches stay straight and return paths do not detour through a fixed station', () => {
+  const { seats } = new Exam(42);
+  const seat = seats[0],
+    start = { x: seat.x - 1.125, z: seat.z + 1.5 };
+  const path = approachPath(seats, start, seat);
+  assert.equal(path.length, 1);
+  assert.equal(path[0].x, start.x);
+  const nearHome = { x: 0.4, z: 5.45 };
+  assert.deepEqual(stationPath(seats, nearHome, 'home'), [PROCTOR_HOME]);
+});
+
+test('frame-by-frame walking avoids furniture and turns gradually', async () => {
+  const { Room } = await import('../src/world.js');
+  const { Vector3 } = await import('three');
+  const room = Object.create(Room.prototype);
+  room.session = new Exam(42);
+  room.proctor = { position: new Vector3(0, 0, 5.45), rotation: { y: Math.PI } };
+  room.path = [];
+  for (const seat of room.session.seats) {
+    room.select(seat.id);
+    for (let frame = 0; frame < 900 && room.busy; frame++) {
+      const before = room.proctor.rotation.y;
+      room.step(1 / 60);
+      assert.equal(blocked(room.session.seats, room.proctor.position.x, room.proctor.position.z), false);
+      const turn = Math.atan2(
+        Math.sin(room.proctor.rotation.y - before),
+        Math.cos(room.proctor.rotation.y - before),
+      );
+      assert.ok(Math.abs(turn) < 0.7);
+    }
+    assert.equal(room.busy, '');
+    room.returnHome();
+    room.step(12);
   }
 });

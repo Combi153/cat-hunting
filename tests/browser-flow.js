@@ -19,7 +19,7 @@ try {
   await page.route(/\/src\/session\.js(?:\?t=\d+)?$/, (route) =>
     route.fulfill({
       contentType: 'application/javascript',
-      body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(seed=42){super(seed)}}",
+      body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(seed=42,stage=1){super(seed,stage)}}",
     }),
   );
   await page.addInitScript(() => {
@@ -37,6 +37,7 @@ try {
       }
     };
     // Preserve a pre-upgrade browser's saved exam, but its score is not the new game's UI.
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ unlocked: 2 }));
     localStorage.setItem('nyangijapgi.v1', JSON.stringify({ history: [{ score: 85 }], muted: true }));
   });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
@@ -77,7 +78,7 @@ try {
   assert.equal(await page.locator('select, #stick, [data-action=journal]').count(), 0);
   assert.equal(await page.locator('#caught, #tasks').count(), 0);
   assert.equal(await page.locator('#seat-targets').innerText(), '');
-  const fixture = new Exam(42);
+  const fixture = new Exam(42, 2);
   const normal = fixture.seats.filter((seat) => !seat.guilty);
   await inspect(normal[0].id);
   const selectedBeforeSwipe = await page.locator('.inspection-heading h2').innerText();
@@ -160,8 +161,8 @@ try {
       .filter((s) => s.guilty)
       .map((s) => s.id)
       .join(',');
-  while (signature(new Exam(nextSeed)) === signature(new Exam(missed.seed))) nextSeed++;
-  const success = new Exam(nextSeed);
+  while (signature(new Exam(nextSeed, 2)) === signature(new Exam(missed.seed, 2))) nextSeed++;
+  const success = new Exam(nextSeed, 2);
   await tap('[data-action=pause]');
   await tap('#overlay [data-action=sound]');
   await tap('[data-action=resume]');
@@ -222,7 +223,7 @@ try {
   ]) {
     await page.setViewportSize({ width, height });
     await advance(1000);
-    await inspect(new Exam(42).seats.find((seat) => !seat.guilty).id);
+    await inspect(new Exam(42, 2).seats.find((seat) => !seat.guilty).id);
     const bounds = await page.locator('[data-action=report]').boundingBox();
     assert.ok(
       bounds.x >= 0 &&

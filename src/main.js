@@ -1,5 +1,6 @@
 import './style.css';
 import { Exam, clock, seatNo } from './session.js';
+import { stageNumber, unlockStage } from './stages.js';
 import * as ui from './ui.js';
 import { activateSound, bell, reportSound, serviceSound, finale } from './sound.js';
 
@@ -13,13 +14,16 @@ function load() {
       history: (Array.isArray(value.history) ? value.history : [])
         .filter((round) => round?.version === 2 && ['win', 'health', 'missed'].includes(round.reason))
         .slice(0, 10),
+      unlocked: stageNumber(value.unlocked ?? 1),
+      completed: value.completed === true,
       muted: value.muted ?? legacy.muted === true,
     };
   } catch {
-    return { history: [], muted: false };
+    return { history: [], muted: false, unlocked: 1, completed: false };
   }
 }
 const saved = load();
+let selectedStage = saved.unlocked;
 function save() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(saved));
@@ -50,7 +54,7 @@ function home() {
   $('#overlay').hidden = true;
   $('#play').hidden = true;
   $('#lobby').hidden = false;
-  put('#lobby', ui.lobby(saved));
+  put('#lobby', ui.lobby(saved, selectedStage));
 }
 function notice(text, hurt = false) {
   $('#notice').textContent = text;
@@ -83,7 +87,8 @@ function resume() {
   previous = performance.now();
   if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
 }
-async function start() {
+async function start(stage = selectedStage) {
+  selectedStage = Math.min(saved.unlocked, stageNumber(stage));
   if (loading) return;
   loading = true;
   const button = document.activeElement;
@@ -92,21 +97,23 @@ async function start() {
   try {
     const { Room } = await import('./world.js');
     const lastSeed = exam?.seed ?? saved.history[0]?.seed;
-    const last = Number.isInteger(lastSeed) ? new Exam(lastSeed) : null;
+    const last = Number.isInteger(lastSeed)
+      ? new Exam(lastSeed, exam?.stage ?? saved.history[0]?.stage ?? 1)
+      : null;
     const signature = (round) =>
       round.seats
         .filter((seat) => seat.guilty)
         .map((seat) => seat.id)
         .join(',');
-    exam = new Exam();
+    exam = new Exam(undefined, selectedStage);
     // A fresh round visibly changes culprit seats, including after a reload.
-    while (last && signature(last) === signature(exam)) exam = new Exam((exam.seed + 1) >>> 0);
+    while (last && signature(last) === signature(exam)) exam = new Exam((exam.seed + 1) >>> 0, selectedStage);
     $('#lobby').hidden = true;
     $('#play').hidden = false;
     $('#overlay').hidden = true;
     $('#ending').hidden = true;
     $('#play').className = '';
-    put('#play-header', ui.hud());
+    put('#play-header', ui.hud(exam.stage));
     if (!room) room = new Room($('#room'));
     room.resize();
     room.reset(exam);
@@ -147,6 +154,8 @@ function finish() {
   if (screen !== 'running') return;
   screen = 'ended';
   const result = exam.result();
+  saved.unlocked = unlockStage(saved.unlocked, result);
+  if (result.reason === 'win' && result.stage === 5) saved.completed = true;
   saved.history.unshift(result);
   saved.history.length = Math.min(saved.history.length, 10);
   save();
@@ -156,7 +165,7 @@ function finish() {
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
   $('#ending').innerHTML = ui.ending(result);
   $('#ending').hidden = false;
-  $('#ending [data-action=start]').focus({ preventScroll: true });
+  $('#ending button').focus({ preventScroll: true });
   $('#notice').textContent = '';
   if (!saved.muted) finale(result.reason === 'win');
 }
@@ -182,7 +191,8 @@ function render() {
         ? request.type === 'paper'
           ? '“선생님, 답안지를 바꾸고 싶어요.”'
           : '“햇빛이 눈부셔요. 커튼 좀 닫아 주세요.”'
-        : exam.behavior(exam.seat(room.focus)).text;
+        : exam.observationText(room.focus);
+    $('.clue').classList.toggle('concerned', !room.busy && exam.watchWarning(room.focus));
     if ($('.clue').textContent !== speech) $('.clue').textContent = speech;
   }
   put(
@@ -202,7 +212,9 @@ function render() {
   );
 }
 function act(action) {
-  if (action === 'start') return start();
+  if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage);
+  if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
+    return start(exam.stage + 1);
   if (action === 'home') return home();
   if (action === 'sound') {
     saved.muted = !saved.muted;
@@ -241,6 +253,11 @@ function act(action) {
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button');
   if (!button || button.disabled || (paused && !$('#overlay').contains(button))) return;
+  if (button.dataset.level && screen === 'home') {
+    selectedStage = Math.min(saved.unlocked, stageNumber(button.dataset.level));
+    home();
+    return;
+  }
   if (button.dataset.seat) select(Number(button.dataset.seat));
   else act(button.dataset.action);
 });
@@ -315,8 +332,14 @@ function tick(now) {
       notice('“고맙습니다, 선생님.”');
     }
     exam.step(dt);
+    exam.observe(room.focus && !room.busy ? room.focus : null, dt);
     if (health > exam.health) {
-      notice('기다리던 학생이 도움을 받지 못해 속상해해요.', true);
+      notice(
+        exam.complaints.at(-1)?.reason === 'observation'
+          ? '오래 지켜보던 학생이 집중하기 어렵다고 이야기해요.'
+          : '기다리던 학생이 도움을 받지 못해 속상해해요.',
+        true,
+      );
       if (!saved.muted) reportSound(false);
     }
     if (now - renderedAt > 120) {

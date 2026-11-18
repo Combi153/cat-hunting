@@ -64,6 +64,8 @@ export class Room {
     this.focus = null;
     this.ending = null;
     this.path = [];
+    this.speed = 0;
+    this.walkDistance = 0;
     this.action = null;
     this.returning = false;
     this.curtainProgress = 0;
@@ -155,20 +157,37 @@ export class Room {
     if (this.ending) return null;
     let remaining = dt;
     while (this.path.length && remaining > 0) {
+      const slice = Math.min(remaining, 1 / 40);
       const next = this.path[0],
         p = this.proctor.position;
       const distance = Math.hypot(next.x - p.x, next.z - p.z);
-      this.proctor.rotation.y = Math.atan2(next.x - p.x, next.z - p.z);
-      const used = Math.min(remaining, distance / 3.3);
-      const fraction = distance ? Math.min(1, (used * 3.3) / distance) : 1;
+      const heading = Math.atan2(next.x - p.x, next.z - p.z);
+      this.face(heading, slice);
+      const total = this.path.reduce((sum, point, i) => {
+        const from = i ? this.path[i - 1] : p;
+        return sum + Math.hypot(point.x - from.x, point.z - from.z);
+      }, 0);
+      const turn = Math.abs(
+        Math.atan2(Math.sin(heading - this.proctor.rotation.y), Math.cos(heading - this.proctor.rotation.y)),
+      );
+      const desired = Math.min(2.7, Math.sqrt(total * 9)) * Math.max(0.25, Math.cos(turn));
+      this.speed = (this.speed || 0) + Math.max(-slice * 7, Math.min(slice * 7, desired - (this.speed || 0)));
+      const travel = Math.min(distance, this.speed * slice);
+      const fraction = distance > 0.0001 ? travel / distance : 1;
       p.x += (next.x - p.x) * fraction;
       p.z += (next.z - p.z) * fraction;
-      remaining -= used;
-      if (fraction >= 1) this.path.shift();
+      this.walkDistance = (this.walkDistance || 0) + travel;
+      remaining -= slice;
+      if (distance - travel < 0.003) {
+        p.x = next.x;
+        p.z = next.z;
+        this.path.shift();
+      }
     }
+    if (!this.path.length) this.speed = 0;
     if (!this.path.length && this.returning) {
       this.returning = false;
-      this.proctor.rotation.y = Math.PI;
+      this.face(Math.PI, remaining);
     }
     if (!this.path.length && this.action) {
       this.action.elapsed += remaining;
@@ -185,12 +204,18 @@ export class Room {
       }
     } else if (!this.path.length && this.focus) {
       const seat = this.session.seat(this.focus);
-      this.proctor.rotation.y = Math.atan2(
-        seat.x - this.proctor.position.x,
-        seat.z - this.proctor.position.z,
-      );
+      this.face(Math.atan2(seat.x - this.proctor.position.x, seat.z - this.proctor.position.z), remaining);
     }
+    if (!this.path.length && !this.focus && !this.action) this.face(Math.PI, dt);
     return null;
+  }
+  face(angle, dt) {
+    const difference = Math.atan2(
+      Math.sin(angle - this.proctor.rotation.y),
+      Math.cos(angle - this.proctor.rotation.y),
+    );
+    this.proctor.rotation.y += difference * (1 - Math.exp(-dt * 12));
+    if (Math.abs(difference) < 0.01) this.proctor.rotation.y = angle;
   }
   finish(result) {
     this.focus = null;
@@ -250,6 +275,10 @@ export class Room {
         updateEnding(student, 'villain', this.ending.elapsed);
       } else {
         updateStudent(student, { time: elapsed + seat.offset, pose: exam.behavior(seat).pose });
+        if (exam.watchWarning(seat.id)) {
+          student.userData.clay.head.rotation.x = -0.07;
+          student.userData.clay.head.rotation.y = Math.sin(elapsed * 2) * 0.12;
+        }
         if (seat.cleared) updateUpset(student, elapsed - seat.accusedAt);
       }
     }
@@ -258,7 +287,7 @@ export class Room {
       updateEnding(this.proctor, this.ending.reason === 'win' ? 'win' : 'sad', this.ending.elapsed);
     else if (!this.ending)
       updateProctor(this.proctor, {
-        time: elapsed,
+        time: this.path.length ? (this.walkDistance || 0) * 0.85 : elapsed,
         walking: this.path.length > 0,
         reaching: Boolean(this.action && !this.path.length),
       });

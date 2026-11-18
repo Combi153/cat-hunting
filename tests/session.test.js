@@ -1,127 +1,146 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Exam, EXAM_DURATION, MAX_HEALTH } from '../src/session.js';
+import { Exam, EXAM_DURATION } from '../src/session.js';
+import { STAGES, stageNumber, unlockStage } from '../src/stages.js';
 
-test('90-second exams seed three culprits and two innocent requests reproducibly', () => {
+test('five reproducible stages introduce more cases, mimics, hiding and pressure', () => {
   assert.equal(EXAM_DURATION, 90);
-  assert.equal(MAX_HEALTH, 3);
-  for (let seed = 0; seed < 250; seed++) {
-    const exam = new Exam(seed);
-    assert.equal(exam.seats.length, 12);
-    assert.equal(exam.seats.filter((seat) => seat.guilty).length, 3);
-    assert.equal(new Set(exam.seats.filter((seat) => seat.guilty).map((seat) => seat.kind)).size, 3);
-    assert.ok(exam.requests.every((request) => !exam.seat(request.id).guilty));
-    assert.deepEqual(new Exam(seed).seats, exam.seats);
-    assert.deepEqual(new Exam(seed).requests, exam.requests);
-  }
+  for (let stage = 1; stage <= 5; stage++)
+    for (let seed = 0; seed < 100; seed++) {
+      const exam = new Exam(seed, stage),
+        rules = STAGES[stage - 1];
+      assert.equal(exam.stage, stage);
+      assert.equal(exam.seats.length, 12);
+      assert.equal(exam.seats.filter((s) => s.guilty).length, rules.culprits);
+      assert.equal(new Set(exam.seats.filter((s) => s.guilty).map((s) => s.kind)).size, rules.culprits);
+      assert.equal(exam.seats.filter((s) => s.sensitive).length, rules.sensitive);
+      assert.equal(exam.requests.length, rules.requests.length);
+      assert.ok(exam.requests.every((r) => !exam.seat(r.id).guilty && r.deadline < 90));
+      assert.deepEqual(exam.seats, new Exam(seed, stage).seats);
+    }
 });
 
-test('normal students mostly write, never display a cheating prop, and each culprit offers multiple clues', () => {
-  for (let seed = 0; seed < 80; seed++) {
-    const exam = new Exam(seed);
-    // Service time is excluded from normal body-language sampling.
-    exam.requests.forEach((request) => {
-      request.done = true;
-    });
-    for (const seat of exam.seats) {
-      let writing = 0,
-        proofs = 0,
-        firstProof = Infinity,
-        lastProof = 0;
-      for (let time = 0; time < 90; time += 0.5) {
-        exam.time = time;
-        const behavior = exam.behavior(seat);
-        writing += behavior.pose === 'write' ? 1 : 0;
-        if (behavior.pose.startsWith('proof-')) {
-          assert.ok(seat.guilty);
-          proofs++;
-          firstProof = Math.min(firstProof, time);
-          lastProof = time;
+test('innocent lookalikes share gestures but never show cheating evidence; every culprit repeats readable clues', () => {
+  for (let stage = 1; stage <= 5; stage++)
+    for (let seed = 0; seed < 40; seed++) {
+      const exam = new Exam(seed, stage);
+      exam.requests.forEach((r) => (r.done = true));
+      for (const seat of exam.seats) {
+        let proofs = 0,
+          clear = 0,
+          writing = 0,
+          windows = 0,
+          wasProof = false;
+        for (let time = 0; time < 90; time += 0.25) {
+          exam.time = time;
+          const { pose } = exam.behavior(seat);
+          const proof = pose.startsWith('proof-');
+          if (proof) {
+            assert.ok(seat.guilty);
+            proofs++;
+            if (!wasProof) windows++;
+          }
+          if (pose.startsWith('clear-')) clear++;
+          if (pose === 'write') writing++;
+          wasProof = proof;
         }
-      }
-      if (!seat.guilty) assert.ok(writing / 180 >= 0.8);
-      else {
-        assert.ok(proofs >= 24);
-        assert.ok(firstProof <= 55 && lastProof >= 89);
+        if (seat.guilty) {
+          assert.ok(proofs >= 24);
+          assert.ok(windows >= 2);
+        } else if (seat.mimic) assert.ok(clear > 15);
+        else assert.ok(writing / 360 > 0.8);
       }
     }
+});
+
+test('later students briefly hide on arrival, then expose the same scheduled evidence again', () => {
+  const exam = new Exam(42, 3),
+    seat = exam.seats.find((s) => s.guilty);
+  exam.time = seat.first + 2.1;
+  assert.match(exam.behavior(seat).pose, /^proof-/);
+  exam.observe(seat.id, 0.1);
+  assert.equal(exam.behavior(seat).pose, 'write');
+  exam.observe(seat.id, 1.5);
+  assert.match(exam.behavior(seat).pose, /^proof-/);
+  exam.observe(null, 0.1);
+  assert.equal(exam.watchTime, 0);
+  const normal = exam.seats.find((s) => !s.guilty);
+  exam.observe(normal.id, 0.1);
+  assert.match(exam.behavior(normal).text, /손을 멈추고/);
+  assert.equal(exam.watchWarning(normal.id), false);
+});
+
+test('sensitive students warn before a single complaint; leaving or helping prevents pressure', () => {
+  const exam = new Exam(42, 4),
+    seat = exam.seats.find((s) => s.sensitive);
+  exam.observe(seat.id, 4.6);
+  assert.ok(exam.watchWarning(seat.id));
+  assert.equal(exam.health, 3);
+  exam.observe(null, 0.1);
+  exam.observe(seat.id, 3);
+  assert.equal(exam.watchWarning(seat.id), false);
+  exam.observe(seat.id, 5);
+  assert.equal(exam.health, 2);
+  assert.equal(exam.complaints[0].reason, 'observation');
+  exam.observe(seat.id, 20);
+  assert.equal(exam.health, 2);
+  const request = exam.requests[0];
+  exam.seat(request.id).sensitive = true;
+  exam.time = request.start;
+  exam.observe(request.id, 30);
+  assert.equal(exam.health, 2);
+});
+
+test('reports are judgments without frame-timing requirements, duplicate accusations never double-charge', () => {
+  const exam = new Exam(42, 5),
+    culprit = exam.seats.find((s) => s.guilty);
+  assert.equal(exam.report(culprit.id).correct, true);
+  assert.equal(exam.report(culprit.id), null);
+  for (const normal of exam.seats.filter((s) => !s.guilty).slice(0, 3)) {
+    assert.equal(exam.report(normal.id).correct, false);
+    assert.equal(exam.report(normal.id), null);
+  }
+  assert.equal(exam.reason, 'health');
+  assert.equal(exam.health, 0);
+  const time = exam.time;
+  exam.step(100);
+  assert.equal(exam.time, time);
+});
+
+test('request deadlines charge once, active help is protected, and all five stages can finish successfully', () => {
+  for (let stage = 1; stage <= 5; stage++) {
+    const exam = new Exam(42, stage);
+    assert.equal(exam.serve(exam.requests[0].id), false);
+    exam.seats.filter((s) => s.guilty).forEach((s) => exam.report(s.id));
+    for (const [i, request] of exam.requests.entries()) {
+      exam.step(request.start - exam.time);
+      if (i === 0) {
+        exam.step(request.deadline - exam.time);
+        assert.equal(exam.health, 2);
+        exam.step(0.5);
+        assert.equal(exam.health, 2);
+      } else request.helping = true;
+      assert.ok(exam.serve(request.id));
+      assert.equal(exam.serve(request.id), false);
+    }
+    assert.equal(exam.over, false);
+    exam.step(90);
+    assert.equal(exam.reason, 'win');
+    assert.equal(exam.result().stage, stage);
+    assert.equal(exam.result().served, exam.requests.length);
+    assert.equal(exam.health, 2);
   }
 });
 
-test('reporting needs no notes, evidence selector or same-frame timing, and ignores repeated submissions', () => {
-  const exam = new Exam(42);
-  const culprit = exam.seats.find((seat) => seat.guilty);
-  exam.time = 0;
-  assert.equal(exam.behavior(culprit).pose, 'write');
-  assert.equal(exam.report(culprit.id).correct, true);
-  assert.equal(exam.report(culprit.id), null);
-  assert.equal(exam.caught, 1);
-  assert.equal(exam.health, 3);
-});
-
-test('three mistaken reports exhaust health immediately and block further gameplay', () => {
-  const exam = new Exam(42);
-  const normal = exam.seats.filter((seat) => !seat.guilty);
-  assert.equal(exam.report(normal[0].id).correct, false);
-  assert.equal(exam.health, 2);
-  assert.equal(exam.report(normal[0].id), null);
-  exam.report(normal[1].id);
-  exam.report(normal[2].id);
-  assert.equal(exam.health, 0);
-  assert.equal(exam.reason, 'health');
-  assert.equal(exam.over, true);
-  assert.equal(exam.time, 0);
-  const before = exam.result();
-  exam.step(95);
-  assert.equal(exam.report(exam.seats.find((seat) => seat.guilty).id), null);
-  assert.equal(exam.serve(exam.requests[0].id), false);
-  assert.deepEqual({ ...exam.result(), date: before.date }, before);
-});
-
-test('each delayed request costs one life, can still be served, and cannot be served before it starts', () => {
-  const exam = new Exam(42);
-  const [paper, curtain] = exam.requests;
-  assert.equal(exam.serve(paper.id), false);
-  exam.step(paper.deadline);
-  assert.equal(exam.health, 2);
-  exam.step(2);
-  assert.equal(exam.health, 2);
-  assert.ok(exam.serve(paper.id));
-  assert.equal(exam.serve(paper.id), false);
-  exam.step(curtain.start - exam.time);
-  assert.ok(exam.serve(curtain.id));
-  assert.ok(exam.curtain);
+test('timeout reveals missed cases, and progression only advances on a win and stops at five', () => {
+  const exam = new Exam(42, 1);
   exam.step(90);
-  assert.equal(exam.health, 2);
-  assert.equal(exam.result().served, 2);
-});
-
-test('survival requires both lasting 90 seconds and catching everyone', () => {
-  const idle = new Exam(23);
-  idle.step(90);
-  assert.equal(idle.reason, 'missed');
-  assert.equal(idle.health, 1);
-  assert.equal(idle.result().missed.length, 3);
-  assert.equal('score' in idle.result(), false);
-
-  const success = new Exam(23);
-  success.seats.filter((seat) => seat.guilty).forEach((seat) => success.report(seat.id));
-  assert.equal(success.over, false);
-  success.step(28);
-  success.serve(success.requests[0].id);
-  success.step(40);
-  success.serve(success.requests[1].id);
-  success.step(21.99);
-  assert.equal(success.over, false);
-  success.step(0.01);
-  assert.equal(success.reason, 'win');
-  assert.equal(success.health, 3);
-
-  const exhausted = new Exam(23);
-  exhausted.seats.filter((seat) => seat.guilty).forEach((seat) => exhausted.report(seat.id));
-  exhausted.seats
-    .filter((seat) => !seat.guilty)
-    .slice(0, 3)
-    .forEach((seat) => exhausted.report(seat.id));
-  assert.equal(exhausted.reason, 'health');
+  assert.equal(exam.reason, 'missed');
+  assert.equal(exam.result().missed.length, 2);
+  assert.equal(unlockStage(1, exam.result()), 1);
+  for (let stage = 1; stage <= 5; stage++)
+    assert.equal(unlockStage(stage, { reason: 'win', stage }), Math.min(5, stage + 1));
+  assert.equal(unlockStage(4, { reason: 'win', stage: 1 }), 4);
+  assert.equal(stageNumber('bad'), 1);
+  assert.equal(stageNumber(99), 5);
 });

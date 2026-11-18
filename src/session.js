@@ -1,3 +1,4 @@
+import { STAGES, stageNumber } from './stages.js';
 export const TYPES = {
   glasses: {
     name: 'AI 안경',
@@ -57,7 +58,11 @@ const ordinary = [
   { pose: 'clear-ear', text: '흘러내린 머리카락을 귀 뒤로 넘겼다. 손에는 아무것도 없다.' },
 ];
 export class Exam {
-  constructor(seed = Math.floor(Math.random() * 4294967296)) {
+  constructor(seed = Math.floor(Math.random() * 4294967296), stage = 1) {
+    this.stage = stageNumber(stage);
+    this.rules = STAGES[this.stage - 1];
+    this.watching = null;
+    this.watchTime = 0;
     this.seed = seed;
     const random = examRandom(seed);
     this.duration = EXAM_DURATION;
@@ -82,27 +87,66 @@ export class Exam {
         cleared: false,
         exitAt: null,
         first: 7 + random() * 12,
-        period: 18 + random() * 5,
+        period: this.rules.cycle + random() * 3,
         ordinary: Math.floor(random() * ordinary.length),
         offset: random() * 8,
       })),
     );
-    // Spread three different leads over the room without identifying suspects in the UI.
-    const devices = shuffled(Object.keys(TYPES), random);
-    for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, 3).entries()) {
+    const devices = shuffled(this.rules.kinds, random);
+    for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, this.rules.culprits).entries()) {
       const culprit = this.seats[row * xs.length + Math.floor(random() * xs.length)];
       culprit.guilty = true;
-      culprit.kind = devices[wave];
-      culprit.first = [5, 25, 49][wave] + random() * 3;
+      culprit.kind = devices[wave % devices.length];
+      culprit.first = [5, 22, 39, 52][wave] + random() * 3;
     }
     const normal = shuffled(
       this.seats.filter((seat) => !seat.guilty),
       random,
     );
-    this.requests = [this.newRequest(normal[0], 'paper', 28), this.newRequest(normal[1], 'curtain', 68)];
+    for (const seat of normal) seat.mimic = random() < this.rules.mimics;
+    for (const seat of shuffled(this.seats, random).slice(0, this.rules.sensitive)) seat.sensitive = true;
+    this.requests = this.rules.requests.map((start, i) =>
+      this.newRequest(normal[i], i === 1 ? 'curtain' : 'paper', start),
+    );
   }
   newRequest(seat, type, start) {
-    return { id: seat.id, type, start, deadline: start + 18, done: false, late: false };
+    return { id: seat.id, type, start, deadline: start + this.rules.deadline, done: false, late: false };
+  }
+  observe(id, dt) {
+    if (this.over) return;
+    if (this.watching !== id) {
+      this.watching = id;
+      this.watchTime = 0;
+    }
+    const seat = this.seat(id);
+    if (!seat || seat.caught || this.requestFor(id)) {
+      this.watchTime = 0;
+      return;
+    }
+    this.watchTime += Math.max(0, dt);
+    if (seat.sensitive && !seat.pressured && this.watchTime >= this.rules.patience) {
+      seat.pressured = true;
+      this.complaints.push({ id, time: this.time, reason: 'observation' });
+      this.damage('오랜 관찰로 인한 민원', id);
+    }
+  }
+  watchWarning(id) {
+    const seat = this.seat(id);
+    return (
+      this.watching === id &&
+      seat?.sensitive === true &&
+      !seat.pressured &&
+      !this.requestFor(id) &&
+      this.watchTime >= this.rules.patience - 3
+    );
+  }
+  observationText(id) {
+    if (this.watchWarning(id)) return '“선생님… 계속 보고 계시면 집중하기 어려워요.”';
+    const seat = this.seat(id),
+      behavior = this.behavior(seat);
+    if (this.stage > 1 && this.watchTime < 0.9 && /^(proof|clear)-/.test(behavior.pose))
+      return TYPES[seat.kind].cue;
+    return behavior.text;
   }
   seat(id) {
     return this.seats.find((seat) => seat.id === id);
@@ -119,16 +163,22 @@ export class Exam {
   behavior(seat) {
     if (seat.caught) return { pose: 'exit', text: '부정행위를 확인해 퇴실했다.' };
     if (this.requestFor(seat.id)) return { pose: 'hand', text: '손을 들고 감독관의 도움을 기다리고 있다.' };
+    if (this.rules.hide && this.watching === seat.id && this.watchTime < this.rules.hide)
+      return { pose: 'write', text: '감독관을 보더니 손을 멈추고 시험지로 시선을 돌렸다.' };
     if (seat.guilty && this.time >= seat.first) {
-      // A final attempt before the bell gives a missed late-game clue one more readable window.
-      if (this.time >= this.duration - 10)
+      if (this.rules.grace && this.time >= this.duration - this.rules.grace)
         return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
       const phase = (this.time - seat.first) % seat.period;
       if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
-      if (phase < 8) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
+      if (phase < 2 + this.rules.proof) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
     }
     if (seat.cleared) return { pose: 'write', text: '눈가를 붉힌 채, 말없이 답안지를 채우고 있다.' };
     if (!seat.guilty) {
+      if (seat.mimic) {
+        const phase = (this.time + seat.offset) % seat.period;
+        if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
+        if (phase < 2 + this.rules.proof) return { pose: 'clear-' + seat.kind, text: TYPES[seat.kind].clear };
+      }
       const phase = (this.time + seat.offset) % 32;
       if (phase >= 25 && phase < 29) return ordinary[seat.ordinary];
     }
@@ -189,6 +239,7 @@ export class Exam {
   result() {
     return {
       version: 2,
+      stage: this.stage,
       seed: this.seed,
       date: Date.now(),
       reason: this.reason,
