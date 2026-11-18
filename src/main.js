@@ -59,6 +59,7 @@ function put(selector, content) {
   }
 }
 function home() {
+  sharing.reset();
   if (screen === 'running') gameAnalytics.leave(exam);
   screen = 'home';
   paused = false;
@@ -103,6 +104,7 @@ function resume() {
 async function start(stage = selectedStage, source = 'lobby') {
   selectedStage = Math.min(saved.unlocked, stageNumber(stage));
   if (loading) return;
+  sharing.reset();
   loading = true;
   track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
   const button = document.activeElement;
@@ -235,7 +237,8 @@ function act(action) {
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
-  if (action === 'share' && screen === 'ended') return sharing.open(exam.result());
+  if (action === 'share' && screen === 'ended') return sharing.share(exam.result());
+  if (action === 'share-copy' && screen === 'ended') return sharing.copy(exam.result());
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
       room.closeReview();

@@ -35,7 +35,7 @@ npm run preview
 | [characters.js](../../src/art/characters.js) | 학생·감독관 리그, 소품, 표정, 행동 애니메이션 |
 | [classroom.js](../../src/art/classroom.js), [dimensions.js](../../src/art/dimensions.js) | 교실·커튼과 책상 치수 기준 |
 | [sound.js](../../src/sound.js) | 종·신고·도움·승패 음향 |
-| [share.js](../../src/share.js) | 결과 공유 선택창, 기본 공유·링크 복사·직접 복사 대체 동작 |
+| [share.js](../../src/share.js) | 결과 버튼의 직접 기본 공유, 링크 복사·미지원/실패 대체 안내 |
 | [index.html](../../index.html) | 최초 문서와 공유 크롤러가 읽는 메타데이터 |
 
 ## 상태와 연결

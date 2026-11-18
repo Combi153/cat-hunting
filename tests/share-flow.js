@@ -20,8 +20,8 @@ try {
     window.shareMode = 'success';
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     Object.defineProperty(navigator, 'share', { configurable: true, value: async data => {
-      window.shared.push({ data, activated: navigator.userActivation.isActive });
-      if (window.shareMode === 'pending') return new Promise(resolve => { window.finishShare = resolve; });
+      window.shared.push({ data, activated: navigator.userActivation.isActive, dialogOpen: document.querySelector('#share-dialog').open });
+      if (window.shareMode === 'pending') return new Promise((resolve, reject) => { window.finishShare = resolve; window.failShare = reject; });
       if (window.shareMode !== 'success') throw new DOMException('Test outcome', window.shareMode);
     } });
     window.nativeShare = navigator.share;
@@ -56,12 +56,10 @@ try {
     await finish(stage, reason);
     const saved = await page.evaluate(() => localStorage.getItem('nyangijapgi.v2'));
     await tap('share');
-    assert.match(await page.locator('#share-summary').innerText(), expected);
-    assert.equal(await page.evaluate(() => document.activeElement.dataset.share), 'native');
-    await shareTap('native');
     await dialog.waitFor({ state: 'hidden' });
     const last = await page.evaluate(() => window.shared.at(-1));
     assert.equal(last.activated, true);
+    assert.equal(last.dialogOpen, false, 'the result button must open the native share sheet without a web dialog');
     assert.equal(last.data.url, publicUrl);
     assert.match(last.data.text, expected);
     assert.deepEqual(Object.keys(last.data).sort(), ['text', 'title', 'url']);
@@ -74,14 +72,15 @@ try {
     window.copyCalls = [];
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { window.copyCalls.push(text); } } });
   });
+  await page.evaluate(() => { window.shareMode = 'AbortError'; });
   await tap('share');
-  for (const [mode, message] of [['AbortError', /취소/], ['NotAllowedError', /링크를 복사/]]) {
-    await page.evaluate(mode => { window.shareMode = mode; }, mode);
-    await shareTap('native');
-    assert.match(await status.innerText(), message);
-    assert.deepEqual(await page.evaluate(() => window.copyCalls), []);
-    assert.equal(await dialog.isVisible(), true);
-  }
+  assert.equal(await dialog.isVisible(), false);
+  assert.deepEqual(await page.evaluate(() => window.copyCalls), []);
+  await page.evaluate(() => { window.shareMode = 'NotAllowedError'; });
+  await tap('share');
+  assert.match(await status.innerText(), /링크를 복사/);
+  assert.equal(await dialog.isVisible(), true);
+  assert.deepEqual(await page.evaluate(() => window.copyCalls), []);
   await shareTap('copy');
   assert.deepEqual(await page.evaluate(() => window.copyCalls), [publicUrl]);
   assert.match(await status.innerText(), /링크를 복사했어요/);
@@ -89,19 +88,18 @@ try {
   await dialog.waitFor({ state: 'hidden' });
   assert.equal(await page.evaluate(() => document.activeElement.dataset.action), 'share');
 
-  // Slow share is guarded against double submission; a late result must not
-  // close or rewrite a newly opened panel.
+  // A second press cannot launch another native request. Leaving the result
+  // prevents a late rejection from opening a copy panel over a new screen.
   await page.evaluate(() => { window.shareMode = 'pending'; });
   await tap('share');
-  await shareTap('native');
-  assert.equal(await page.locator('[data-share="native"]').isDisabled(), true);
-  assert.equal(await page.locator('[data-share="copy"]').isDisabled(), true);
-  await shareTap('close');
+  const calls = await page.evaluate(() => window.shared.length);
   await tap('share');
-  await page.evaluate(() => window.finishShare());
-  assert.equal(await dialog.isVisible(), true);
-  assert.equal(await status.innerText(), '');
-  await shareTap('close');
+  assert.equal(await page.evaluate(() => window.shared.length), calls);
+  assert.equal(await dialog.isVisible(), false);
+  await tap('home');
+  await page.evaluate(() => window.failShare(new DOMException('Late failure', 'NotAllowedError')));
+  assert.equal(await dialog.isVisible(), false);
+  await finish(1, 'missed');
 
   // Unsupported API and canShare(false) both retain a working copy option.
   for (const unsupported of ['canShare', 'share']) {
@@ -109,7 +107,7 @@ try {
       Object.defineProperty(navigator, key, { configurable: true, value: key === 'canShare' ? () => false : undefined });
     }, unsupported);
     await tap('share');
-    assert.equal(await page.locator('[data-share="native"]').isHidden(), true);
+    assert.equal(await page.locator('[data-share="native"]').count(), 0);
     assert.equal(await page.evaluate(() => document.activeElement.dataset.share), 'copy');
     await shareTap('copy');
     assert.match(await status.innerText(), /링크를 복사했어요/);
@@ -119,8 +117,8 @@ try {
   // Real browser clipboard, then denied/unavailable fallbacks with selectable URL.
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   await page.evaluate(() => { delete navigator.clipboard; });
-  await tap('share');
-  await shareTap('copy');
+  await tap('share-copy');
+  await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
   assert.match(await status.innerText(), /링크를 복사했어요/);
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), publicUrl);
   await shareTap('close');
@@ -128,8 +126,8 @@ try {
     await page.evaluate(mode => {
       Object.defineProperty(navigator, 'clipboard', { configurable: true, value: mode === 'missing' ? undefined : { writeText: async () => { throw new DOMException('Denied', 'NotAllowedError'); } } });
     }, mode);
-    await tap('share');
-    await shareTap('copy');
+    await tap('share-copy');
+    await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
     assert.match(await status.innerText(), /자동으로 복사할 수 없어요/);
     assert.equal(await page.locator('#share-url').inputValue(), publicUrl);
     assert.deepEqual(await page.locator('#share-url').evaluate(el => [document.activeElement === el, el.selectionStart, el.selectionEnd]), [true, 0, publicUrl.length]);
@@ -150,10 +148,13 @@ try {
       await page.locator('[data-action="share"]').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `test-results/share-${reason}-${width}.png` });
       await tap('share');
+      assert.equal(await dialog.isVisible(), false);
+      await tap('share-copy');
+      await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
       await page.screenshot({ path: `test-results/share-options-${width}.png` });
       const box = await dialog.boundingBox();
       assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height);
-      for (const action of ['native', 'copy', 'close']) {
+      for (const action of ['copy', 'close']) {
         await page.locator(`[data-share="${action}"]`).scrollIntoViewIfNeeded();
         const b = await page.locator(`[data-share="${action}"]`).boundingBox();
         assert.ok(b.height >= 44 && b.width >= 44 && b.y >= 0 && b.y + b.height <= height);
@@ -172,7 +173,7 @@ try {
   await page.locator('#ending').waitFor({ state: 'hidden' });
   assert.equal(await dialog.isVisible(), false);
   assert.deepEqual(errors, []);
-  console.log('Sharing: four outcomes, activated native handoff, cancel/error, copy, real clipboard, manual fallback, pending requests, focus and four layouts passed.');
+  console.log('Sharing: one-tap native handoff without intermediate UI for four outcomes, cancel/error, copy, real clipboard, manual fallback, pending requests, focus and four layouts passed.');
 } finally {
   await browser.close();
 }

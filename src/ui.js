@@ -120,6 +120,7 @@ export function ending(result) {
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
     <button class="secondary share-open" data-action="share">친구에게 공유하기</button>
+    <button class="text-btn" data-action="share-copy">링크 복사</button>
     <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
