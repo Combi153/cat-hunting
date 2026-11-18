@@ -17,6 +17,12 @@
 
 `6c613d0`의 배포가 READY가 된 것과 공개 별칭에 연결된 것을 확인했다. 이는 당시 확인 기록이다. 이후 변경을 배포할 때는 현재 배포 커밋과 상태를 다시 확인한다. 일회성 배포 주소보다 위 공개 주소를 공유·대표 주소로 사용한다.
 
+## 분석 확장 배포 — 2026-11-18
+
+분석 기능 `bda0ca4`와 검증 문서 `ff13bc5`를 main에 푸시했다. Vercel `chanmins-projects/cat-hunting` 프로덕션 배포 `dpl_8DMPt9D1FaDcBj689YwF5ZAGhNQu`의 READY와 Git SHA `ff13bc5908453d0d71acb4ec0207294bc4005c0e`, 공개 별칭 `cat-hunting.vercel.app` 연결을 확인했다. 원격 빌드는 약 7.6초다.
+
+공개 HTML·JS HTTP 200, `G-TV3RS6L0MR`, 새 이벤트 이름과 배포 버전을 확인했다. 공개 Chrome 390×844에서 실제 결과·다시보기·공유 자동 복사·배너·재도전을 수행해 GA 큐 생성과 페이지 오류 없음을 확인했다. GA/배너 목적지 요청은 가로채 운영 데이터를 오염시키지 않았다. 실기기 메신저 전달·GA 일반 보고서 실측·서버 런타임 로그/드레인 점검은 수행하지 않았다. 이번 후속 기록은 게임 코드 변경이 없는 문서 갱신이다.
+
 ## 결과 공유 배포 — 2026-11-18
 
 공유 기능 커밋 `6882e14`를 `main`에 푸시했다. Vercel `chanmins-projects/cat-hunting` 프로덕션 배포 `dpl_2XG3SPicaLF7pA39UaCUANN8c5zp`의 READY, 대상 커밋과 공개 별칭 `cat-hunting.vercel.app` 연결을 확인했다. 원격 빌드는 약 5.9초였다.
