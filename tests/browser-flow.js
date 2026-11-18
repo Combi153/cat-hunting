@@ -82,6 +82,10 @@ try {
       await tap('[data-action=leave]');
       await tap('#overlay [data-action=home]');
     }
+    if (await page.locator('#lobby [data-action=start]').isDisabled()) {
+      await page.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} }));
+      await tap('#lobby [data-action=share]');
+    }
     await start();
     return new Exam(await page.evaluate(() => window.testExam.seed), 3);
   };

@@ -1,6 +1,6 @@
 // Share only the public game URL and a short result, never the current page's
 // preview address, query parameters, saved history or culprit identities.
-export function createResultSharing(dialog, url, toast, send = () => {}, getContext = () => ({})) {
+export function createResultSharing(dialog, url, toast, send = () => {}, getContext = () => ({}), onReward = () => {}) {
   const copyButton = dialog.querySelector('[data-share="copy"]');
   const summary = dialog.querySelector('#share-summary');
   const status = dialog.querySelector('#share-status');
@@ -17,7 +17,9 @@ export function createResultSharing(dialog, url, toast, send = () => {}, getCont
   }
 
   function shareData(result) {
-    const text = result.reason === 'win'
+    const text = !result
+      ? '45초 안에 부정행위를 찾아라! 너는 몇 단계까지 가능해?'
+      : result.reason === 'win'
       ? result.stage === 5
         ? '냥이잡기 다섯 시험 모두 통과! 너도 도전해 봐!'
         : `냥이잡기 ${result.stage}단계 통과! 너도 찾아낼 수 있어?`
@@ -56,8 +58,9 @@ export function createResultSharing(dialog, url, toast, send = () => {}, getCont
       await navigator.clipboard.writeText(url);
       if (current === generation) {
         event(context, 'copy', 'copied');
+        onReward('copy', context);
         if (dialog.open) dialog.close();
-        toast.textContent = '링크를 복사했어요';
+        toast.textContent = '링크를 복사했어요 · 재도전 3회 추가!';
         toastTimer = setTimeout(clearToast, 3000);
       }
     } catch {
@@ -99,7 +102,12 @@ export function createResultSharing(dialog, url, toast, send = () => {}, getCont
         // The result button opens the OS share sheet directly, in this click.
         await navigator.share(data);
         // OS handoff is not delivery confirmation.
-        if (current === generation) event(context, 'native', 'resolved');
+        if (current === generation) {
+          event(context, 'native', 'resolved');
+          onReward('native', context);
+          toast.textContent = '재도전 기회 3회를 받았어요!';
+          toastTimer = setTimeout(clearToast, 3000);
+        }
       } catch (error) {
         if (current === generation) {
           event(context, 'native', error.name === 'AbortError' ? 'cancelled' : 'error');

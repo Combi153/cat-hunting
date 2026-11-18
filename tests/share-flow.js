@@ -46,7 +46,7 @@ try {
   const dialog = page.locator('#share-dialog');
   const status = page.locator('#share-status');
   const toast = page.locator('#share-toast');
-  const copied = () => page.waitForFunction(() => document.querySelector('#share-toast').textContent === '링크를 복사했어요');
+  const copied = () => page.waitForFunction(() => document.querySelector('#share-toast').textContent === '링크를 복사했어요 · 재도전 3회 추가!');
   async function finish(stage, reason) {
     if (await page.locator('#lobby').isHidden()) await tap('home');
     await page.locator(`[data-level="${stage}"]`).tap();
@@ -183,7 +183,7 @@ try {
     for (const [width, height] of [[320,568], [390,844], [568,320], [1167,813]]) {
       await page.setViewportSize({ width, height });
       await page.clock.runFor(200);
-      await page.locator('[data-action="share"]').scrollIntoViewIfNeeded();
+      await page.locator('#ending [data-action="share"]').scrollIntoViewIfNeeded();
       await page.screenshot({ path: `test-results/share-${reason}-${width}.png` });
       await tap('share');
       assert.equal(await dialog.isVisible(), false);

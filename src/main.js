@@ -6,6 +6,7 @@ import { activateSound, bell, reportSound, serviceSound, finale } from './sound.
 import { createAnalytics, createGameAnalytics } from './analytics.js';
 import { createEngagementAnalytics } from './engagement-analytics.js';
 import { createResultSharing } from './share.js';
+import { createRetryAllowance, RETRY_STORAGE_KEY } from './retries.js';
 
 const track = createAnalytics({
   buildVersion: __BUILD_VERSION__,
@@ -17,7 +18,17 @@ const gameAnalytics = createGameAnalytics(track);
 const engagement = createEngagementAnalytics(track);
 
 const $ = (selector) => document.querySelector(selector);
-const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'), track, () => engagement.shareContext());
+const retries = createRetryAllowance({
+  getItem: key => localStorage.getItem(key),
+  setItem: (key, value) => localStorage.setItem(key, value),
+});
+const sharing = createResultSharing($('#share-dialog'), $('link[rel="canonical"]').href, $('#share-toast'), track,
+  () => screen === 'ended' ? engagement.shareContext() : { share_placement: 'lobby' },
+  (method, context) => {
+    const allowance = retries.reward();
+    track('retry_reward', { ...context, interaction_action: method, retry_remaining: allowance.remaining });
+    refreshRetries();
+  });
 const storageKey = 'nyangijapgi.v2';
 function load() {
   try {
@@ -54,6 +65,14 @@ let previous = performance.now(),
 let previousFocus = null,
   touchStart = null;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
+function refreshRetries() {
+  if (screen === 'running') return;
+  const root = screen === 'home' ? '#lobby' : '#ending';
+  const { remaining } = retries.current();
+  if ($(`${root} .retry-status`)) put(`${root} .retry-status`, ui.retryStatus(remaining));
+  for (const button of document.querySelectorAll(`${root} [data-action=start], ${root} [data-action=advance]`))
+    button.disabled = loading || remaining === 0;
+}
 function put(selector, content) {
   const element = $(selector);
   if (element._content !== content) {
@@ -70,7 +89,8 @@ function home() {
   $('#overlay').hidden = true;
   $('#play').hidden = true;
   $('#lobby').hidden = false;
-  put('#lobby', ui.lobby(saved, selectedStage));
+  put('#lobby', ui.lobby(saved, selectedStage, retries.current().remaining));
+  refreshRetries();
 }
 function notice(text, hurt = false) {
   $('#notice').textContent = text;
@@ -106,6 +126,11 @@ function resume() {
 async function start(stage = selectedStage, source = 'lobby') {
   selectedStage = Math.min(saved.unlocked, stageNumber(stage));
   if (loading) return;
+  if (retries.current().remaining === 0) {
+    refreshRetries();
+    $(`${screen === 'home' ? '#lobby' : '#ending'} [data-action=share]`)?.focus();
+    return;
+  }
   sharing.reset();
   loading = true;
   track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
@@ -114,6 +139,8 @@ async function start(stage = selectedStage, source = 'lobby') {
   if (!saved.muted) activateSound();
   try {
     const { Room } = await import('./world.js');
+    // A different tab may have spent the final chance while the room loaded.
+    if (retries.current().remaining === 0) return;
     const lastSeed = exam?.seed ?? saved.history[0]?.seed;
     const last = Number.isInteger(lastSeed)
       ? new Exam(lastSeed, exam?.stage ?? saved.history[0]?.stage ?? 1)
@@ -153,6 +180,7 @@ async function start(stage = selectedStage, source = 'lobby') {
   } finally {
     loading = false;
     if (button?.isConnected && button.tagName === 'BUTTON') button.disabled = false;
+    refreshRetries();
   }
 }
 function select(id) {
@@ -176,6 +204,7 @@ function finish() {
   if (screen !== 'running') return;
   screen = 'ended';
   const result = exam.result();
+  if (result.reason !== 'win') retries.fail();
   engagement.finish(exam, gameAnalytics.end(exam));
   saved.unlocked = unlockStage(saved.unlocked, result);
   if (result.reason === 'win' && result.stage === 5) saved.completed = true;
@@ -186,7 +215,10 @@ function finish() {
   paused = false;
   $('#overlay').hidden = true;
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
-  $('#ending').innerHTML = ui.ending(result);
+  $('#ending').innerHTML = ui.ending(result, retries.current().remaining);
+  refreshRetries();
+  if (retries.current().remaining === 0)
+    track('retry_exhausted', { ...engagement.shareContext(), retry_remaining: 0 });
   $('#ending').hidden = false;
   $('#ending button').focus({ preventScroll: true });
   $('#notice').textContent = '';
@@ -241,13 +273,15 @@ function act(action) {
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
-  if (action === 'share' && screen === 'ended') return sharing.share(exam.result());
+  if (action === 'share' && (screen === 'ended' || screen === 'home'))
+    return sharing.share(screen === 'ended' ? exam.result() : null);
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
       engagement.closeReview();
       room.closeReview();
       $('#play').classList.remove('reviewing');
-      $('#ending').innerHTML = ui.ending(room.ending);
+      $('#ending').innerHTML = ui.ending(room.ending, retries.current().remaining);
+      refreshRetries();
       $('#ending [data-action=review]')?.focus({ preventScroll: true });
     } else {
       const selection = room.review(action === 'review-prev' ? -1 : action === 'review-next' ? 1 : 0);
@@ -362,6 +396,7 @@ canvas.addEventListener('pointercancel', () => {
   touchStart = null;
 });
 document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) refreshRetries();
   engagement.visibility(!document.hidden);
   if (document.hidden && screen === 'running') gameAnalytics.event('level_background', exam);
   if (document.hidden && !paused) pause();
@@ -369,6 +404,12 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('blur', () => {
   if (!paused) pause();
 });
+window.addEventListener('focus', refreshRetries);
+window.addEventListener('storage', event => {
+  if (event.key === RETRY_STORAGE_KEY || event.key === null) refreshRetries();
+});
+// Refresh an open lobby/result at midnight without interrupting an active exam.
+setInterval(refreshRetries, 1000);
 new ResizeObserver(() => {
   if (room && !$('#play').hidden) room.resize();
 }).observe(canvas);

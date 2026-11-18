@@ -35,7 +35,8 @@ npm run preview
 | [characters.js](../../src/art/characters.js) | 학생·감독관 리그, 소품, 표정, 행동 애니메이션 |
 | [classroom.js](../../src/art/classroom.js), [dimensions.js](../../src/art/dimensions.js) | 교실·커튼과 책상 치수 기준 |
 | [sound.js](../../src/sound.js) | 종·신고·도움·승패 음향 |
-| [share.js](../../src/share.js) | 결과 버튼의 직접 기본 공유, 링크 복사·미지원/실패 대체 안내 |
+| [retries.js](../../src/retries.js) | 한국 날짜·하루 재도전 잔액, 별도 로컬 저장과 메모리 대체 |
+| [share.js](../../src/share.js) | 로비·결과의 기본 공유, 링크 복사·대체 안내와 성공 보상 콜백 |
 | [index.html](../../index.html) | 최초 문서와 공유 크롤러가 읽는 메타데이터 |
 
 ## 상태와 연결
@@ -46,7 +47,7 @@ npm run preview
 
 렌더링되는 포즈는 `Exam.behavior()`가 정하지만, 관찰 문구는 `Exam.observationText()`를 거친다. `behavior.text`의 내부 증거 설명을 그대로 UI에 노출하면 정상·부정행위의 동일 문구라는 현재 결정을 깨뜨릴 수 있다.
 
-저장 키는 `nyangijapgi.v2`다. 최근 10판, 열린 단계, 전체 완료, 음소거를 저장한다. 결과에는 `version: 2`, `ruleset: 4`, `duration: 45`와 단계·배치·승패·신고/민원 기록 등이 남는다. 이전 v1 저장을 지우지 않고 음소거 설정을 읽으며, 이전 기록만으로 새 단계를 자동 해제하지 않는다. 저장이 불가능한 환경에서도 플레이는 계속된다.
+저장 키는 `nyangijapgi.v2`다. 최근 10판, 열린 단계, 전체 완료, 음소거를 저장한다. 결과에는 `version: 2`, `ruleset: 4`, `duration: 45`와 단계·배치·승패·신고/민원 기록 등이 남는다. 이전 v1 저장을 지우지 않고 음소거 설정을 읽으며, 이전 기록만으로 새 단계를 자동 해제하지 않는다. 저장이 불가능한 환경에서도 플레이는 계속된다. 재도전은 별도 `nyangijapgi.retries.v1`의 `{day, remaining}`을 사용한다. 한국 시간 자정에 3회로 초기화하고 실패 결과에서만 차감한다. 공유 성공 응답/복사 성공 콜백마다 3회를 더한다. 저장 실패 시 메모리에서 유지하며, 시작 전과 3D 모듈 로드 후에 잔액을 확인한다. 로비·결과는 1초 주기, 포커스/탭 복귀와 storage 이벤트로 갱신한다. 서버 원자성이나 사람별 식별을 제공하지 않는다.
 
 ## 검증 명령
 
@@ -64,6 +65,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:asset
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:review
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:share
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analytics
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:retries
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.
@@ -76,6 +78,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analy
 | `test:assets` | 실제 행동 주기가 나타날 때 접근해 새 소품·일상 행동 캡처 |
 | `test:review` | 실패 후 여섯 행동 재생·소품 복귀·순환, 결과 불변, 화면 크기, 모두 적발한 생명 패배·재도전 |
 | `test:share` | 네 결과의 기본 공유 API 대역, 취소·거절·미지원·지연 응답, 실제 브라우저 클립보드, 직접 복사, 포커스·화면 크기. 외부 앱 전송은 미검증 |
+| `test:retries` | 성공 불차감·실패 3회·잠금/다시보기·새로고침·반복 공유·취소/실패/중복/늦은 응답·실제 복사·한국 자정·화면 크기 |
 | `npm run build` | 배포용 정적 파일 생성. 게임 플레이 검증을 대신하지 않음 |
 
 자동 캡처는 Git에서 제외된 `test-results/`에 나온다. 검토한 증거만 버전별 `docs/playtest/`에 복사하고 출처를 기록한다. 3D 검토에서는 스크린샷과 실제 동작을 함께 본다. 브라우저 시계를 멈춘 검증에서는 시작 후 첫 프레임이 그려진 뒤 좌석을 눌러야 하며, 이동은 버튼이 준비될 때까지 시간을 진행한다. 실행 중 소스를 바꾸면 Vite 갱신으로 게임이 초기화될 수 있다.

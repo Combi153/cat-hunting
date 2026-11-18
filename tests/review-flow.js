@@ -17,7 +17,11 @@ try {
     contentType: 'application/javascript',
     body: "export * from '/src/world.js?fixture'; import {Room as Base} from '/src/world.js?fixture'; export class Room extends Base {constructor(...args){super(...args);window.testRoom=this}}",
   }));
-  await page.addInitScript(() => localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true })));
+  await page.addInitScript(() => {
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true }));
+    // Each asset fixture starts a new browser-day allowance; quota is tested separately.
+    localStorage.removeItem('nyangijapgi.retries.v1');
+  });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
   const tap = action => page.locator(`[data-action=${action}]`).filter({ visible: true }).tap();

@@ -56,7 +56,12 @@ function sponsorBanner(placement) {
     </a>
   </aside>`;
 }
-export function lobby(saved, selected = 1) {
+export function retryStatus(remaining) {
+  return `<strong>오늘 남은 재도전 <b>${remaining}</b>회</strong>
+    <p>${remaining === 0 ? '기회를 모두 썼어요. 공유하고 3회 더 도전하세요.' : '실패할 때만 1회 차감 · 성공하면 그대로!'}</p>
+    <small>매일 밤 12시(한국 시간) 3회로 충전</small>`;
+}
+export function lobby(saved, selected = 1, remaining = 3) {
   return `<div class="lobby-wrap">
     <header class="topline"><span class="brand"><img src="/cat.svg" alt="">45초 시험 감독</span>
     <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
@@ -67,7 +72,9 @@ export function lobby(saved, selected = 1) {
     <p class="how">학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.</p>
     <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
-    <button class="primary start-btn" data-action="start">${selected}단계 감독 시작 ${icon('arrow')}</button>
+    <div class="retry-status" role="status">${retryStatus(remaining)}</div>
+    <button class="primary start-btn" data-action="start" ${remaining === 0 ? 'disabled' : ''}>${selected}단계 감독 시작 ${icon('arrow')}</button>
+    <button class="secondary share-open" data-action="share">공유하고 3회 더 받기</button>
     ${sponsorBanner('lobby')}
     </section>
     <footer class="creator-credit">
@@ -101,7 +108,7 @@ export function inspection(exam, id, busy = '') {
     }
     </div>${request ? '' : '<p class="decision-hint">화면을 누르면 교실로 돌아가요.</p>'}`;
 }
-export function ending(result) {
+export function ending(result, remaining = 3) {
   const win = result.reason === 'win';
   const villain = result.missed[0];
   const finalStage = win && result.stage === 5;
@@ -122,8 +129,9 @@ export function ending(result) {
     ${explanation ? `<p>${explanation}</p>` : ''}
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
+    <div class="retry-status" role="status">${retryStatus(remaining)}</div>
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
-    <button class="secondary share-open" data-action="share">친구에게 공유하기</button>
+    <button class="secondary share-open" data-action="share">공유하고 3회 더 받기</button>
     <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
