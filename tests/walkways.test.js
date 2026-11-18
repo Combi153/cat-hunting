@@ -34,7 +34,7 @@ test('observation waits for arrival and help completes after the physical action
   const { Room } = await import('../src/world.js');
   const { Vector3 } = await import('three');
   const room = Object.create(Room.prototype);
-  room.session = new Exam(42, 2);
+  room.session = new Exam(42, 3);
   room.proctor = { position: new Vector3(PROCTOR_HOME.x, 0, PROCTOR_HOME.z), rotation: { y: 0 } };
   room.path = [];
   room.action = null;

@@ -170,7 +170,7 @@ export class Room {
       const turn = Math.abs(
         Math.atan2(Math.sin(heading - this.proctor.rotation.y), Math.cos(heading - this.proctor.rotation.y)),
       );
-      const desired = Math.min(2.7, Math.sqrt(total * 9)) * Math.max(0.25, Math.cos(turn));
+      const desired = Math.min(3.0, Math.sqrt(total * 9)) * Math.max(0.25, Math.cos(turn));
       this.speed = (this.speed || 0) + Math.max(-slice * 7, Math.min(slice * 7, desired - (this.speed || 0)));
       const travel = Math.min(distance, this.speed * slice);
       const fraction = distance > 0.0001 ? travel / distance : 1;

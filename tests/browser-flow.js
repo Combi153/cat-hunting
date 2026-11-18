@@ -35,8 +35,8 @@ try {
         return oscillator;
       }
     };
-    // Preserve a pre-upgrade browser's saved exam, but its score is not the new game's UI.
-    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ unlocked: 2 }));
+    // Stage 3 is the first with both help types. Preserve pre-upgrade saves, too.
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ unlocked: 3 }));
     localStorage.setItem('nyangijapgi.v1', JSON.stringify({ history: [{ score: 85 }], muted: true }));
   });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
@@ -77,7 +77,7 @@ try {
       await tap('#overlay [data-action=home]');
     }
     await start();
-    return new Exam(await page.evaluate(() => window.testExam.seed), 2);
+    return new Exam(await page.evaluate(() => window.testExam.seed), 3);
   };
   const health = () => page.locator('#health [role=img]').getAttribute('aria-label');
 
@@ -87,7 +87,7 @@ try {
   assert.equal(await page.locator('select, #stick, [data-action=journal]').count(), 0);
   assert.equal(await page.locator('#caught, #tasks, .stage-brief, .next-brief').count(), 0);
   assert.equal(await page.locator('#seat-targets').innerText(), '');
-  const fixture = new Exam(42, 2);
+  const fixture = new Exam(42, 3);
   const normal = fixture.seats.filter((seat) => !seat.guilty);
   await inspect(normal[0].id);
   const selectedBeforeSwipe = await page.locator('.inspection-heading h2').innerText();
@@ -117,7 +117,7 @@ try {
   assert.equal(await page.locator('#time').textContent(), before);
   await tap('[data-action=resume]');
   await fresh();
-  const wrongRound = new Exam(await page.evaluate(() => window.testExam.seed), 2);
+  const wrongRound = new Exam(await page.evaluate(() => window.testExam.seed), 3);
   const innocents = wrongRound.seats.filter(s => !s.guilty);
   await inspect(innocents[0].id);
   await tap('[data-action=report]');
@@ -167,7 +167,7 @@ try {
   });
 
   await start();
-  const success = new Exam(await page.evaluate(() => window.testExam.seed), 2);
+  const success = new Exam(await page.evaluate(() => window.testExam.seed), 3);
   await tap('[data-action=pause]');
   await tap('#overlay [data-action=sound]');
   await tap('[data-action=resume]');

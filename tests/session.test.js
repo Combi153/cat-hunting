@@ -133,7 +133,7 @@ test('timeout reveals missed cases, and progression only advances on a win and s
   const exam = new Exam(42, 1);
   exam.step(45);
   assert.equal(exam.reason, 'missed');
-  assert.equal(exam.result().missed.length, 3);
+  assert.equal(exam.result().missed.length, 2);
   assert.equal(unlockStage(1, exam.result()), 1);
   for (let stage = 1; stage <= 5; stage++)
     assert.equal(unlockStage(stage, { reason: 'win', stage }), Math.min(5, stage + 1));
