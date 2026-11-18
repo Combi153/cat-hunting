@@ -86,7 +86,12 @@ function refreshRetries() {
   if (screen === 'running') return;
   const root = screen === 'home' ? '#lobby' : '#ending';
   const { remaining } = retries.current();
-  if ($(`${root} .retry-status`)) put(`${root} .retry-status`, ui.retryStatus(remaining));
+  if ($(`${root} .retry-status`)) put(`${root} .retry-status`, ui.retryStatus(remaining, screen === 'ended'));
+  const reward = $('#ending .result-retries');
+  if (reward) {
+    reward.classList.toggle('is-empty', remaining === 0);
+    reward.querySelector('.retry-empty').hidden = remaining > 0;
+  }
   for (const button of document.querySelectorAll(`${root} [data-action=start], ${root} [data-action=advance]`))
     button.disabled = loading || remaining === 0;
 }

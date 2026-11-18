@@ -85,11 +85,22 @@ try {
         assert.ok(geometry.canvas.right <= geometry.sheet.left + 1, 'landscape actions must stay beside the character');
       }
       // Every action remains reachable by native scroll, including the banner.
-      for (const button of await page.locator('#result-actions button:not(:disabled), #result-actions a').all()) {
+      for (const button of await page.locator('#result-actions button:not(:disabled), #result-actions a, #result-actions summary').all()) {
         await button.scrollIntoViewIfNeeded();
         const b=await button.boundingBox();
         assert.ok(b.y>=0 && b.y+b.height<=height+1 && b.height>=44);
       }
+      assert.equal(await page.locator('#result-actions [data-action=home]').count(), 1, 'one route to the lobby');
+      await page.locator('.retry-details summary').tap();
+      assert.equal(await page.locator('.retry-details').getAttribute('open'), '');
+      await page.clock.runFor(1100);
+      assert.equal(await page.locator('.retry-details').getAttribute('open'), '', 'balance refresh must preserve open rules');
+      await page.locator('.retry-details summary').tap();
+      await page.clock.runFor(200);
+      await page.locator('.ending-scroll').evaluate(el => {
+        el.scrollTop = Math.max(0, el.querySelector('.ending-spacer').clientHeight - 12);
+      });
+      await page.screenshot({path:`test-results/results-clean-${reason}-${stage}-${width}.png`});
       if (!landscape) {
         await tap('result-toggle');
         await page.waitForFunction(() => document.querySelector('.ending-scroll').scrollTop === 0);

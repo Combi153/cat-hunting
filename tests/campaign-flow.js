@@ -76,7 +76,7 @@ try {
     assert.equal(saved.history[0].stage, stage);
     assert.equal(saved.history[0].caught, fixture.rules.culprits);
     assert.equal(saved.history[0].duration, 45);
-    assert.equal(await page.locator('.stage-brief, .next-brief, #ending details').count(), 0);
+    assert.equal(await page.locator('.stage-brief, .next-brief, #ending details:not(.retry-details)').count(), 0);
     assert.equal(saved.unlocked, Math.min(5, stage + 1));
     if (stage === 2) {
       await page.setViewportSize({ width: 320, height: 568 });

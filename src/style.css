@@ -554,6 +554,8 @@ h2 {
   pointer-events: none;
 }
 .ending-title {
+  position: relative;
+  z-index: 1;
   padding: max(16px, env(safe-area-inset-top)) 20px 12px;
   text-align: center;
   background: linear-gradient(#fffaf0ef, #fffaf000);
@@ -568,6 +570,7 @@ h2 {
   color: #894d39;
 }
 .ending-scroll {
+  z-index: 1;
   position: absolute;
   inset: 0;
   overflow-y: auto;
@@ -582,7 +585,7 @@ h2 {
 }
 .ending-bottom {
   position: relative;
-  min-height: var(--result-peek);
+  min-height: max(var(--result-peek), calc(100% - var(--result-heading)));
   padding: 0 20px max(16px, env(safe-area-inset-bottom));
   background: var(--cream);
   border-radius: 25px 25px 0 0;
@@ -632,22 +635,73 @@ h2 {
 .ending-bottom .primary {
   width: 100%;
 }
-.ending-bottom details {
+.result-secondary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px 0 2px;
+}
+.result-secondary .text-btn { flex: 1; padding-inline: 4px; font-size: 12px; }
+.result-secondary::before { content: ''; width: 1px; height: 14px; background: var(--line); order: 1; }
+.result-secondary .text-btn + .text-btn { order: 2; }
+.result-retries {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 8px;
+  margin-top: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.ending-bottom .retry-details {
   text-align: left;
-  font-size: 12px;
-  padding: 0 0 10px;
-  max-height: 140px;
-  overflow: auto;
+  min-width: 0;
   line-height: 1.5;
 }
-.ending-bottom summary {
-  min-height: 32px;
+.retry-details summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
   cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-.ending-bottom details p {
-  padding: 5px 0;
+.retry-details summary::-webkit-details-marker { display: none; }
+.retry-details .retry-status { margin: 0; padding: 0; border: 0; text-align: left; }
+.retry-details .retry-status strong { font-size: 12px; font-weight: 400; }
+.retry-details .retry-status b { font-size: 16px; margin-left: 3px; }
+.retry-chevron { color: var(--muted); transition: transform .15s; }
+.retry-details[open] .retry-chevron { transform: rotate(180deg); }
+.retry-details p, .retry-empty {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  word-break: keep-all;
 }
+.retry-details p { padding: 4px 0 8px; }
+.result-retries .share-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #edf0e6;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+}
+.result-retries.is-empty .share-open { background: var(--green); color: var(--cream); }
+.retry-empty { grid-column: 1 / -1; text-align: left; padding-top: 6px; }
+.ending-bottom .sponsor-banner { margin-top: 20px; }
 .confetti {
+  z-index: 0;
   position: absolute;
   inset: 0;
   overflow: hidden;

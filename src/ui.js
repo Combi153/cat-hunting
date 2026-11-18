@@ -56,7 +56,8 @@ function sponsorBanner(placement) {
     </a>
   </aside>`;
 }
-export function retryStatus(remaining) {
+export function retryStatus(remaining, compact = false) {
+  if (compact) return `<strong>재도전 <b>${remaining}</b>회</strong>`;
   return `<strong>오늘 남은 재도전 <b>${remaining}</b>회</strong>
     <p>${remaining === 0 ? '기회를 모두 썼어요. 공유하고 3회 더 도전하세요.' : '실패할 때만 1회 차감 · 성공하면 그대로!'}</p>
     <small>매일 밤 12시(한국 시간) 3회로 충전</small>`;
@@ -133,11 +134,17 @@ export function ending(result, remaining = 3) {
     ${explanation ? `<p>${explanation}</p>` : ''}
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
     <div id="result-actions">
-    ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
-    <div class="retry-status" role="status">${retryStatus(remaining)}</div>
-    ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
-    <button class="secondary share-open" data-action="share">공유하고 3회 더 받기</button>
-    <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div></div></div>
+    ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
+    ${!finalStage ? `<nav class="result-secondary" aria-label="다른 선택">${win ? '<button class="text-btn" data-action="start">이 단계 다시 하기</button>' : '<button class="text-btn review-open" data-action="review">부정행위 다시 보기</button>'}<button class="text-btn" data-action="home">처음으로</button></nav>` : ''}
+    <div class="result-retries">
+      <details class="retry-details">
+        <summary><span class="retry-status" role="status">${retryStatus(remaining, true)}</span><span class="retry-chevron" aria-hidden="true">⌄</span></summary>
+        <p>실패할 때만 1회 차감해요.<br>매일 밤 12시(한국 시간) 3회로 충전돼요.</p>
+      </details>
+      <button class="share-open" data-action="share" aria-label="공유하고 3회 더 받기">공유로 +3회 ${icon('arrow', 15)}</button>
+      <p class="retry-empty" ${remaining > 0 ? 'hidden' : ''}>오늘 기회를 모두 썼어요. 공유하면 다시 도전할 수 있어요.</p>
+    </div>
+    ${sponsorBanner('result')}</div></div></div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
 

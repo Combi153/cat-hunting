@@ -29,7 +29,7 @@ try {
   await page.goto(origin);
   const tap = action => page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap();
   const status = () => page.locator('.retry-status').filter({ visible: true });
-  const balance = async n => assert.match(await status().innerText(), new RegExp(`오늘 남은 재도전 ${n}회`));
+  const balance = async n => assert.match(await status().innerText(), new RegExp(`재도전 ${n}회`));
   const raw = () => page.evaluate(() => localStorage.getItem('nyangijapgi.retries.v1'));
   const events = name => page.evaluate(name => window.events.filter(e => e.name === name), name);
   const start = async () => {
