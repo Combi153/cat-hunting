@@ -32,3 +32,21 @@ test('both writing hands clear the desktop and the pencil tip stays on the paper
     assert.ok(Math.abs(paperGap) < 0.002, String(paperGap));
   }
 });
+
+test('the finale changes the face and lifts the winning proctor’s hands', async () => {
+  const { createProctor, updateEnding } = await import('../src/art/characters.js');
+  const student = createStudent(2);
+  updateEnding(student, 'villain', 1);
+  const face = student.userData.clay.head.userData.face;
+  assert.equal(face.grin.visible, true);
+  assert.ok(face.brows[0].rotation.z < 0);
+  const proctor = createProctor();
+  updateEnding(proctor, 'win', 1);
+  const rig = proctor.userData.clay;
+  assert.ok(rig.head.userData.face.grin.visible);
+  assert.ok(rig.left.wrist.y > 0.7 && rig.right.wrist.y > 0.7);
+  assert.equal(rig.clipboard.visible, false);
+  updateEnding(proctor, 'sad', 2);
+  assert.equal(rig.head.userData.face.grin.visible, false);
+  assert.ok(rig.head.rotation.x > 0.2);
+});

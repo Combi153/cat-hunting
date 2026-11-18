@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createStudent, createProctor, updateStudent, updateProctor, updateEnding } from './art/characters.js';
+import { createStudent, createProctor, updateStudent, updateEnding } from './art/characters.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
 
 export class Room {
@@ -102,6 +102,7 @@ export class Room {
   finish(result) {
     this.focus = null;
     this.ending = { ...result, id: result.missed[0]?.id, elapsed: 0 };
+    this.updateCamera(1, true);
   }
   updateCamera(dt, snap = false) {
     const seat = this.session.seat(this.ending?.id ?? this.focus);
@@ -154,6 +155,13 @@ export class Room {
     if (this.curtain !== exam.curtain) {
       this.curtain = exam.curtain;
       setCurtain(this.environment, this.curtain);
+    }
+    const shadowKey = exam.seats.filter((seat) => seat.caught)
+      .map((seat) => seat.id + ':' + Math.min(2, Math.floor(exam.time - seat.exitAt))).join(',') +
+      exam.curtain + Boolean(this.ending);
+    if (shadowKey !== this.shadowKey) {
+      this.shadowKey = shadowKey;
+      this.renderer.shadowMap.needsUpdate = true;
     }
     this.updateCamera(dt);
     this.renderer.render(this.scene, this.camera);
