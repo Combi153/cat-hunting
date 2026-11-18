@@ -125,14 +125,19 @@ export function ending(result, remaining = 3) {
       ? '오인과 민원으로 생명이 모두 소진됐어요.'
       : '놓친 부정행위자가 있어요.';
   return `<div class="ending-title"><p class="eyebrow">${result.stage} / 5 단계</p><h1>${title}</h1></div>
-    <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
+    <div class="ending-scroll" aria-label="시험 결과와 다음 행동">
+    <div class="ending-spacer" aria-hidden="true"></div>
+    <div class="ending-bottom">
+    <button class="ending-toggle" data-action="result-toggle" aria-expanded="false" aria-controls="result-actions"><span class="sheet-grip" aria-hidden="true"></span><span class="sheet-label">결과·버튼 보기 ↑</span></button>
+    <p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
     ${explanation ? `<p>${explanation}</p>` : ''}
     <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
+    <div id="result-actions">
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
     <div class="retry-status" role="status">${retryStatus(remaining)}</div>
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
     <button class="secondary share-open" data-action="share">공유하고 3회 더 받기</button>
-    <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div>
+    <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div></div></div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
 

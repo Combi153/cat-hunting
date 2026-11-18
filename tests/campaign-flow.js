@@ -81,6 +81,7 @@ try {
     if (stage === 2) {
       await page.setViewportSize({ width: 320, height: 568 });
       await advance(500);
+      await page.locator('[data-action=advance]').scrollIntoViewIfNeeded();
       const button = await page.locator('[data-action=advance]').boundingBox();
       assert.ok(button.y >= 0 && button.y + button.height <= 568);
       await page.screenshot({

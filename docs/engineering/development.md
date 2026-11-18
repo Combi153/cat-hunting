@@ -43,6 +43,8 @@ npm run preview
 
 `main.js`는 `home → running → ended` 화면 흐름을 관리한다. `Exam`이 게임 규칙과 시간을 갖고 `Room`이 위치·이동·도움 연출을 맡는다. 이동이 끝나기 전에는 신고·도움 버튼을 열지 않으며, 복귀·이동 중에는 새 학생 선택을 허용해 현재 위치에서 경로를 교체한다. `Room.select()`는 유효한 경로를 찾은 뒤 복귀 상태를 해제하며, 도움 행동 진행 중에만 학생 선택을 막는다. 도움 완료 시점과 시험 종료 시점은 연출과 규칙 양쪽을 함께 확인해야 한다.
 
+결과의 `.ending-scroll`은 네이티브 스크롤로 하단 카드를 올린다. `.ending-spacer`가 초기 캐릭터 공간을 확보하고, `result-toggle`이 펼치기/접기를 제공한다. 세로 결과 캔버스는 제목 100px·하단 카드 180px를 제외한 공간을 사용하며 결과 카메라만 별도로 맞춘다. 가로는 왼쪽 캐릭터·오른쪽 결과 패널이다. `showResult()`는 새 결과를 접고 다시보기 복귀 시 저장한 스크롤을 복원한다.
+
 실패 후 다시 보기는 `ended` 안의 표시 상태다. `Room.review()`/`closeReview()`가 대상과 재생 시계만 바꾸고 `Exam`은 진행하지 않는다. 적발 때 축소·퇴실한 학생의 표시 크기와 표정을 복원해 같은 소품·애니메이션을 재현한다. `ending.reviewIndex`가 있을 때 관찰 카메라를 사용하고 `.reviewing` 레이아웃에서 캔버스와 버튼 영역을 분리한다. 결과 복귀와 재도전 시 재생 상태를 해제한다. 다시 보기는 저장·진행을 바꾸지 않으며 열기·소품별 관찰 시간을 분석 이벤트로 기록한다.
 
 렌더링되는 포즈는 `Exam.behavior()`가 정하지만, 관찰 문구는 `Exam.observationText()`를 거친다. `behavior.text`의 내부 증거 설명을 그대로 UI에 노출하면 정상·부정행위의 동일 문구라는 현재 결정을 깨뜨릴 수 있다.
@@ -66,6 +68,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:revie
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:share
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:analytics
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:retries
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:results
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.
@@ -79,6 +82,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:retri
 | `test:review` | 실패 후 여섯 행동 재생·소품 복귀·순환, 결과 불변, 화면 크기, 모두 적발한 생명 패배·재도전 |
 | `test:share` | 네 결과의 기본 공유 API 대역, 취소·거절·미지원·지연 응답, 실제 브라우저 클립보드, 직접 복사, 포커스·화면 크기. 외부 앱 전송은 미검증 |
 | `test:retries` | 성공 불차감·실패 3회·잠금/다시보기·새로고침·반복 공유·취소/실패/중복/늦은 응답·실제 복사·한국 자정·화면 크기 |
+| `test:results` | 다섯 결과 유형·여섯 화면 크기의 움직이는 얼굴 경계, 초기 가림 없음, 펼치기/접기, 터치 스와이프·키보드, 버튼/배너 접근, 다시보기 복귀·실제 복사 |
 | `npm run build` | 배포용 정적 파일 생성. 게임 플레이 검증을 대신하지 않음 |
 
 자동 캡처는 Git에서 제외된 `test-results/`에 나온다. 검토한 증거만 버전별 `docs/playtest/`에 복사하고 출처를 기록한다. 3D 검토에서는 스크린샷과 실제 동작을 함께 본다. 브라우저 시계를 멈춘 검증에서는 시작 후 첫 프레임이 그려진 뒤 좌석을 눌러야 하며, 이동은 버튼이 준비될 때까지 시간을 진행한다. 실행 중 소스를 바꾸면 Vite 갱신으로 게임이 초기화될 수 있다.

@@ -15,7 +15,8 @@
     "phone": "npm run build && vite preview --host 0.0.0.0 --port 4173 --strictPort",
     "test:assets": "node tests/assets-flow.js",
     "test:analytics": "node tests/analytics-flow.js",
-    "test:retries": "node tests/retries-flow.js"
+    "test:retries": "node tests/retries-flow.js",
+    "test:results": "node tests/results-flow.js"
   },
   "dependencies": {
     "three": "0.180.0"

@@ -531,7 +531,14 @@ h2 {
   font-size: 16px;
 }
 #play.ended {
+  --result-peek: 180px;
+  --result-heading: 100px;
   grid-template-rows: minmax(0, 1fr);
+}
+.ended:not(.reviewing) #room {
+  position: absolute;
+  top: var(--result-heading);
+  height: calc(100% - var(--result-heading) - var(--result-peek));
 }
 .ended #play-header,
 .ended #controls,
@@ -547,31 +554,59 @@ h2 {
   pointer-events: none;
 }
 .ending-title {
-  padding: calc(26px + env(safe-area-inset-top)) 20px 40px;
+  padding: max(16px, env(safe-area-inset-top)) 20px 12px;
   text-align: center;
   background: linear-gradient(#fffaf0ef, #fffaf000);
 }
 .ending-title h1 {
   word-break: keep-all;
-  font-size: clamp(28px, 5svh, 38px);
+  font-size: clamp(25px, 4svh, 34px);
   margin-top: 8px;
 }
 .defeat .ending-title h1,
 .defeat .eyebrow {
   color: #894d39;
 }
-.ending-bottom {
-  flex-shrink: 0;
-  max-height: 75%;
+.ending-scroll {
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
   touch-action: pan-y;
-  padding: 16px 20px max(8px, env(safe-area-inset-bottom));
-  background: #fffdf3f5;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  scroll-padding-block: 60px 16px;
+}
+.ending-spacer {
+  height: calc(100% - var(--result-peek));
+  pointer-events: none;
+}
+.ending-bottom {
+  position: relative;
+  min-height: var(--result-peek);
+  padding: 0 20px max(16px, env(safe-area-inset-bottom));
+  background: var(--cream);
   border-radius: 25px 25px 0 0;
   box-shadow: 0 -6px 40px #3c42291c;
-  pointer-events: auto;
   text-align: center;
 }
+.ending-toggle {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 8px;
+  background: var(--cream);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.sheet-grip { width: 36px; height: 4px; background: #b8c3ad; border-radius: 4px; }
 .ending-line {
   font: 20px var(--round);
   margin-bottom: 6px;
@@ -722,19 +757,26 @@ h2 {
     width: 55%;
     padding-top: 12px;
   }
-  .ending-bottom {
+  .ending-scroll {
     position: absolute;
+    left: auto;
     right: 0;
     top: 0;
     bottom: 0;
     width: 45%;
-    max-height: none;
-    border-radius: 0;
-    overflow: auto;
-    padding: 16px;
+    overflow-y: auto;
   }
-  .ended #room {
+  .ending-spacer { display: none; }
+  .ending-toggle { display: none; }
+  .ending-bottom {
+    border-radius: 0;
+    padding: 16px;
+    min-height: 100%;
+  }
+  .ended:not(.reviewing) #room {
     width: 55%;
+    top: 75px;
+    height: calc(100% - 75px);
   }
   .ending-line {
     font-size: 18px;
@@ -762,7 +804,7 @@ h2 {
     font-size: 10px;
   }
   .ending-bottom {
-    padding: 12px 15px 6px;
+    padding-inline: 15px;
   }
 }
 

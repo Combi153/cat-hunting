@@ -64,7 +64,24 @@ let previous = performance.now(),
   toastUntil = 0;
 let previousFocus = null,
   touchStart = null;
+let resultScroll = 0;
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
+function syncResultSheet() {
+  const scroll = $('#ending .ending-scroll');
+  if (!scroll) return;
+  const expanded = scroll.scrollTop > 24;
+  const toggle = scroll.querySelector('.ending-toggle');
+  toggle.setAttribute('aria-expanded', String(expanded));
+  toggle.querySelector('.sheet-label').textContent = expanded ? '캐릭터 보기 ↓' : '결과·버튼 보기 ↑';
+}
+function showResult(scrollTop = 0) {
+  $('#ending').innerHTML = ui.ending(room.ending, retries.current().remaining);
+  $('#ending').hidden = false;
+  $('#ending .ending-scroll').scrollTop = scrollTop;
+  syncResultSheet();
+  refreshRetries();
+}
+$('#ending').addEventListener('scroll', syncResultSheet, true);
 function refreshRetries() {
   if (screen === 'running') return;
   const root = screen === 'home' ? '#lobby' : '#ending';
@@ -215,12 +232,13 @@ function finish() {
   paused = false;
   $('#overlay').hidden = true;
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
-  $('#ending').innerHTML = ui.ending(result, retries.current().remaining);
-  refreshRetries();
+  resultScroll = 0;
+  showResult();
   if (retries.current().remaining === 0)
     track('retry_exhausted', { ...engagement.shareContext(), retry_remaining: 0 });
-  $('#ending').hidden = false;
-  $('#ending button').focus({ preventScroll: true });
+  const toggle = $('#ending .ending-toggle');
+  (toggle.getClientRects().length ? toggle : $('#ending #result-actions button'))?.focus({ preventScroll: true });
+  room.resize();
   $('#notice').textContent = '';
   if (!saved.muted) finale(result.reason === 'win');
 }
@@ -267,6 +285,14 @@ function render() {
   );
 }
 function act(action) {
+  if (action === 'result-toggle' && screen === 'ended') {
+    const scroll = $('#ending .ending-scroll');
+    if (scroll) scroll.scrollTo({
+      top: scroll.scrollTop > 24 ? 0 : Math.max(0, scroll.querySelector('.ending-spacer').clientHeight - 12),
+      behavior: motion.matches ? 'instant' : 'smooth',
+    });
+    return;
+  }
   if (screen === 'ended' && !loading && ['start', 'advance', 'home', 'review', 'share', 'share-copy'].includes(action))
     engagement.action(({ start: 'retry', advance: 'advance', home: 'home', review: 'review', share: 'share', 'share-copy': 'copy' })[action]);
   if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage, screen === 'ended' ? 'retry' : 'lobby');
@@ -280,10 +306,10 @@ function act(action) {
       engagement.closeReview();
       room.closeReview();
       $('#play').classList.remove('reviewing');
-      $('#ending').innerHTML = ui.ending(room.ending, retries.current().remaining);
-      refreshRetries();
+      showResult(resultScroll);
       $('#ending [data-action=review]')?.focus({ preventScroll: true });
     } else {
+      if (action === 'review') resultScroll = $('#ending .ending-scroll')?.scrollTop ?? 0;
       const selection = room.review(action === 'review-prev' ? -1 : action === 'review-next' ? 1 : 0);
       if (!selection) return;
       engagement.review(selection, action === 'review' ? 'open' : 'navigate');

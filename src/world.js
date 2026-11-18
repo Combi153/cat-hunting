@@ -268,8 +268,9 @@ export class Room {
     } else if (this.ending) {
       const actor = seat ?? { x: 0, z: 2.8 };
       const y = seat ? 1.18 : 1.47;
-      height = Math.max(0.65, 0.55 / this.aspect);
-      this.target.set(actor.x, y - height * 0.38, actor.z + 0.14);
+      // The result canvas has its own space above the scrollable action sheet.
+      height = Math.max(0.82, 0.65 / this.aspect);
+      this.target.set(actor.x, y, actor.z + 0.14);
       this.position.set(actor.x + 0.12, y + 0.2, actor.z + 2.6);
     } else if (this.action?.request.type === 'curtain' && !this.path.length) {
       this.target.set(-4.5, 1.8, 1.4);
