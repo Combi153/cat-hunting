@@ -46,8 +46,8 @@ export function hearts(health) {
 }
 // Direct sponsor link; placement identifies the originating screen in UTM reports.
 function sponsorBanner(placement) {
-  return `<aside class="sponsor-banner" aria-label="생각하는 공간 광고">
-    <p class="sponsor-banner-label">광고</p>
+  return `<aside class="sponsor-banner" aria-label="생각하는 공간 홍보">
+    <p class="sponsor-banner-label">홍보</p>
     <a class="sponsor-banner-link" href="https://thinkplace.co.kr/?utm_source=cat_hunting&amp;utm_medium=banner&amp;utm_campaign=thinkplace&amp;utm_content=${placement}" target="_blank" rel="noopener noreferrer sponsored" aria-label="생각하는 공간 홈페이지 — 수업 알아보기 (새 탭)">
       <picture>
         <source srcset="/thinkplace/thinkplace-banner.webp" type="image/webp">
