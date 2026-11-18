@@ -77,11 +77,13 @@ export class Exam {
       offset: random() * 8,
     })));
     // Spread three different leads over the room without identifying suspects in the UI.
-    for (const row of shuffled([0, 1, 2, 3], random).slice(0, 3)) {
-      this.seats[row * 2 + Math.floor(random() * 2)].guilty = true;
+    for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, 3).entries()) {
+      const culprit = this.seats[row * 2 + Math.floor(random() * 2)];
+      culprit.guilty = true;
+      culprit.first = [5, 25, 49][wave] + random() * 3;
     }
     const normal = shuffled(this.seats.filter((seat) => !seat.guilty), random);
-    this.requests = [this.newRequest(normal[0], 'paper', 26), this.newRequest(normal[1], 'curtain', 58)];
+    this.requests = [this.newRequest(normal[0], 'paper', 28), this.newRequest(normal[1], 'curtain', 68)];
   }
   newRequest(seat, type, start) {
     return { id: seat.id, type, start, deadline: start + 18, done: false, late: false };

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f7f7f2" />
     <meta
       name="description"
-      content="수능 시험실을 직접 걸으며 학생을 살피는 3D 클레이 감독 게임, 냥이잡기."
+      content="90초 동안 부정행위자 세 명을 찾는 모바일 3D 시험 감독 게임, 냥이잡기."
     />
     <link rel="icon" type="image/svg+xml" href="/cat.svg" />
     <title>냥이잡기</title>
@@ -17,45 +17,13 @@
       <section id="play" aria-label="시험 감독" hidden>
         <div id="play-header"></div>
         <div id="viewfinder">
-          <canvas id="room" aria-label="3D 시험실. 학생을 눌러 다가가거나 화면을 쓸어 둘러보세요."></canvas>
-          <div id="hud">
-            <span id="target-marker" aria-hidden="true" hidden></span>
-            <div class="alerts">
-              <div id="tasks"></div>
-              <div id="feedback"></div>
-            </div>
-          </div>
+          <canvas id="room" aria-label="3D 시험실"></canvas>
+          <div id="seat-targets" aria-label="관찰할 학생"></div>
+          <div id="tasks" aria-label="학생 요청"></div>
           <div id="notice" role="status"></div>
+          <div id="ending" hidden></div>
         </div>
-        <div class="controls">
-          <div id="handover"></div>
-          <div id="patrol-map"></div>
-          <div id="context"></div>
-          <div id="touch">
-            <div class="move-pad">
-              <div id="stick" aria-label="이동 조이스틱">
-                <i></i><span aria-hidden="true">▴</span><span aria-hidden="true">▸</span
-                ><span aria-hidden="true">▾</span><span aria-hidden="true">◂</span>
-              </div>
-              <span class="pad-label" id="gait">이동</span>
-            </div>
-            <button id="leave-seat" data-action="unfocus" aria-label="관찰 끝내기">
-              <span aria-hidden="true">↩</span>돌아가기
-            </button>
-            <button
-              id="touch-action"
-              data-action="action"
-              aria-keyshortcuts="E"
-              title="상호작용 (키보드 E)"
-              disabled
-            >
-              <span class="action-caption"
-                ><small id="action-target">상호작용</small><strong id="action-verb">다가가세요</strong></span
-              >
-              <span class="action-key" aria-hidden="true">A</span>
-            </button>
-          </div>
-        </div>
+        <div id="controls"></div>
       </section>
       <div id="overlay" hidden></div>
     </div>

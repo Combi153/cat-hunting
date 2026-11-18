@@ -206,12 +206,12 @@ export function createClassroom(seats = []) {
   for (let x = -4.8; x < 5.1; x += 0.8) box(0.009, 0.003, 11.45, 'seam', x, -0.007, 0.15, 0.001);
   for (let z = -5.45; z < 5.9; z += 0.8) box(10.2, 0.003, 0.009, 'seam', 0, -0.006, z, 0.001);
   // Open ceiling, solid front/back walls, and a corridor wall with a recessed exit.
-  box(10.55, 3.48, 0.18, 'wall', 0, 1.73, 5.99, 0.025);
+
   box(10.55, 3.48, 0.18, 'wall', 0, 1.73, -5.69, 0.025);
   box(0.18, 3.48, 9.27, 'wall', 5.19, 1.73, 1.255, 0.025);
   box(0.18, 1.08, 1.55, 'wall', 5.19, 2.93, -4.3, 0.025);
   box(0.18, 3.48, 0.52, 'wall', 5.19, 1.73, -5.43, 0.025);
-  box(10.24, 0.12, 0.055, 'ivory', 0, 0.075, 5.87, 0.016);
+
   box(10.24, 0.12, 0.055, 'ivory', 0, 0.075, -5.57, 0.016);
   box(0.055, 0.12, 9.3, 'ivory', 5.08, 0.075, 1.25, 0.016);
 
@@ -251,67 +251,7 @@ export function createClassroom(seats = []) {
   for (const z of [-5.5, -2.725, 0.025, 2.775, 5.525]) box(0.18, 2, 0.29, 'wall', -5.19, 2.1, z, 0.025);
 
   // Front chalkboard: recessed sage surface, warm white frame, a chalk ledge.
-  box(5.96, 1.74, 0.13, 'rim', -0.2, 2.17, 5.82, 0.055);
-  box(5.69, 1.48, 0.055, 'dark', -0.2, 2.17, 5.733, 0.028);
-  box(5.98, 0.075, 0.22, 'ivory', -0.2, 1.285, 5.68, 0.025);
-  box(0.12, 0.035, 0.055, 'paper', -2.45, 1.34, 5.64, 0.01);
-  box(0.19, 0.07, 0.1, 'sage', 2.3, 1.355, 5.63, 0.02);
-  const chalk = lettering('1교시  ·  국어 영역', 3.3, 0.48, {
-    background: C.dark,
-    color: '#dbe3d3',
-    weight: 400,
-    size: 0.45,
-  });
-  plane(3.3, 0.48, chalk, -0.2, 2.4, 5.698, 0, Math.PI);
-  const notice = lettering('종료 전까지 조용히 응시해 주세요', 3.5, 0.26, {
-    background: C.dark,
-    color: '#b4c2af',
-    weight: 400,
-    size: 0.44,
-  });
-  plane(3.5, 0.26, notice, -0.2, 1.9, 5.697, 0, Math.PI);
-  box(4.15, 0.007, 0.008, 'sage', -0.2, 2.105, 5.696, 0.002);
-
-  // Analog wall clock, rendered once into its clay-rimmed disk.
-  const clockMat = new THREE.MeshStandardMaterial({
-    map: canvasTexture(384, 384, (ctx, w, h) => {
-      ctx.fillStyle = '#efede3';
-      ctx.fillRect(0, 0, w, h);
-      ctx.translate(w / 2, h / 2);
-      ctx.strokeStyle = '#777d71';
-      ctx.fillStyle = '#777d71';
-      for (let n = 0; n < 60; n++) {
-        const a = (n * Math.PI) / 30;
-        const big = n % 5 === 0;
-        ctx.lineWidth = big ? 5 : 2;
-        ctx.beginPath();
-        ctx.moveTo(Math.sin(a) * (big ? 139 : 148), -Math.cos(a) * (big ? 139 : 148));
-        ctx.lineTo(Math.sin(a) * 159, -Math.cos(a) * 159);
-        ctx.stroke();
-      }
-      ctx.lineCap = 'round';
-      ctx.lineWidth = 9;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(-66, -37);
-      ctx.stroke();
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(102, -59);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(0, 0, 10, 0, Math.PI * 2);
-      ctx.fill();
-    }),
-    roughness: 1,
-  });
-  cylinder(0.31, 0.07, 'charcoal', 3.6, 2.84, 5.79, Math.PI / 2);
-  const clockFace = new THREE.CircleGeometry(0.273, 48);
-  add(clockFace, clockMat, 3.6, 2.84, 5.748, 0, Math.PI);
-  clockFace.dispose();
-
-  // Back lockers, individual recessed fronts, small vents, and flat handles.
+  // A cutaway front lets the mobile camera see every student's hands.
   box(7.6, 1.63, 0.52, 'steel', -0.65, 0.825, -5.3, 0.055);
   for (let col = 0; col < 10; col++) {
     const x = -4.06 + col * 0.758;
@@ -417,13 +357,6 @@ export function createClassroom(seats = []) {
   box(0.225, 0.005, 0.285, 'paper', 0.46, 0.994, 4.57, 0.005, 0.09);
   const proctorSign = lettering('감독관', 0.43, 0.16, { size: 0.5 });
   plane(0.43, 0.16, proctorSign, 0, 0.67, 4.786, 0, Math.PI);
-  // Minimal ceiling fittings suggest a real room while leaving the view open.
-  for (const x of [-2.65, 2.65]) {
-    for (const z of [-2.55, 1.5]) {
-      box(0.55, 0.075, 1.32, 'rim', x, 3.3, z, 0.035);
-      box(0.41, 0.028, 1.17, 'paper', x, 3.251, z, 0.02);
-    }
-  }
 
   for (const [key, geometries] of batches) {
     const geometry = mergeGeometries(geometries, false);

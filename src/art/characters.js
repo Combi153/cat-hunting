@@ -140,13 +140,23 @@ function makeHead(index, proctor = false) {
   lump(shape, skin, [-0.205, -0.01, 0], [0.042, 0.065, 0.038]);
   lump(shape, skin, [0.205, -0.01, 0], [0.042, 0.065, 0.038]);
   lump(shape, skin, [0, -0.033, 0.186], [0.021, 0.027, 0.022]);
+  const face = new THREE.Group();
+  const eyes = [];
   for (const x of [-0.071, 0.071]) {
-    lump(shape, M.ink, [x, -0.018, 0.184], [0.011, 0.016, 0.008]);
+    eyes.push(lump(face, M.ink, [x, -0.018, 0.184], [0.011, 0.016, 0.008]));
     lump(shape, M.blush, [x * 1.58, -0.069, 0.166], [0.027, 0.011, 0.004]);
   }
-  box(shape, M.hair, [-0.072, 0.032, 0.18], [0.039, 0.009, 0.006], [0, 0, 0.06]);
-  box(shape, M.hair, [0.072, 0.032, 0.18], [0.039, 0.009, 0.006], [0, 0, -0.06]);
-  lump(shape, M.blush, [0, -0.111, 0.169], [0.026, 0.005, 0.004]);
+  const brows = [
+    box(face, M.hair, [-0.072, 0.032, 0.18], [0.039, 0.009, 0.006], [0, 0, 0.06]),
+    box(face, M.hair, [0.072, 0.032, 0.18], [0.039, 0.009, 0.006], [0, 0, -0.06]),
+  ];
+  const mouth = lump(face, M.blush, [0, -0.111, 0.169], [0.026, 0.005, 0.004]);
+  const grin = new THREE.Group();
+  const smileCurve = new THREE.QuadraticBezierCurve3(v(-0.064, -0.09, 0.174), v(0, -0.16, 0.195), v(0.064, -0.09, 0.174));
+  mesh(grin, new THREE.TubeGeometry(smileCurve, 14, 0.012, 6, false), M.white);
+  grin.visible = false;
+  head.add(face, grin);
+  head.userData.face = { eyes, brows, mouth, grin };
   // Flattened overlapping locks, with an asymmetric part, keep the silhouette
   // handmade without the round beads reading as animal ears.
   lump(shape, hair, [0, 0.105, -0.035], [0.222, 0.17, 0.187]);
@@ -470,7 +480,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     rw = v(0.13 + Math.sin(f * 6) * 0.009, 0.298, 0.56 + Math.cos(f * 4) * 0.012);
   for (const prop of r.props.group.children) prop.visible = false;
   r.props.earCase.visible = pose === 'proof-ear' && !stand;
-  r.pencil.visible = !stand && (pose === 'write' || pose === 'rest');
+  r.pencil.visible = !stand && (pose === 'write' || pose === 'rest' || pose === 'read');
   r.head.userData.glasses.visible = r.normalGlasses || pose === 'glasses';
   if (pose === 'glasses') {
     re.set(0.33, 0.39, 0.18);
@@ -484,6 +494,10 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   } else if (pose === 'ear' || pose === 'proof-ear' || pose === 'clear-ear') {
     re.set(0.34, 0.34, 0.1);
     rw.set(0.25, 0.61, 0.075);
+    if (pose === 'proof-ear') {
+      rw.set(0.25, 0.43, 0.47);
+      r.props.ear.position.set(0, -0.13, 0.29);
+    }
     r.props.ear.visible = pose === 'proof-ear';
   } else if (pose === 'camera' || pose === 'proof-camera' || pose === 'clear-camera') {
     re.set(0.29, 0.15, 0.3);
@@ -501,7 +515,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   } else if (pose === 'hand') {
     re.set(0.32, 0.63, 0.02);
     rw.set(0.3, 1.02, 0.04);
-  } else if (pose === 'rest') {
+  } else if (pose === 'rest' || pose === 'read') {
     rw.set(0.2, 0.3, 0.41);
     lw.set(-0.2, 0.3, 0.43);
     r.pencil.position.set(0.06, aboveDesk(r.upper, 0.65, 0.019), 0.65);
@@ -515,7 +529,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     rw.set(0.25, -0.045, swing * 1.6);
   }
   const leftOnDesk = !stand && !pose.endsWith('note');
-  const rightOnDesk = !stand && (pose === 'write' || pose === 'rest');
+  const rightOnDesk = !stand && (pose === 'write' || pose === 'rest' || pose === 'read');
   if (!stand) {
     if (le.z > 0.13) le.y = Math.max(le.y, aboveDesk(r.upper, le.z, 0.092));
     if (re.z > 0.13) re.y = Math.max(re.y, aboveDesk(r.upper, re.z, 0.092));
@@ -555,4 +569,29 @@ export function updateProctor(group, { time = 0, walking = false, quiet = false 
   r.pencil.visible = false;
   updateLegs(r, time, walking, quiet);
   syncInstances(r);
+}
+
+export function updateEnding(group, mood, time) {
+  const rig = group.userData.clay;
+  if (rig.proctor) updateProctor(group, { time });
+  else updateStudent(group, { time, pose: 'rest' });
+  const { eyes, brows, mouth, grin } = rig.head.userData.face;
+  const happy = mood === 'win';
+  const laughing = mood === 'villain';
+  mouth.visible = !(happy || laughing);
+  grin.visible = happy || laughing;
+  grin.rotation.z = laughing ? -0.18 : 0;
+  for (let i = 0; i < eyes.length; i++) {
+    eyes[i].scale.y = happy ? 0.006 : laughing ? 0.009 : 0.016;
+    brows[i].rotation.z = (i === 0 ? 1 : -1) * (laughing ? -0.42 : happy ? 0.18 : 0.36);
+  }
+  rig.head.rotation.x = happy ? -0.08 : laughing ? -0.05 + Math.sin(time * 9) * 0.06 : 0.32;
+  rig.head.rotation.z = laughing ? -0.07 : 0;
+  rig.upper.position.y += happy ? Math.max(0, Math.sin(time * 5)) * 0.07 : Math.sin(time * 9) * 0.012;
+  if (happy) {
+    rig.clipboard.visible = false;
+    setArm(rig.left, v(-0.32, 0.5, 0.03), v(-0.37, 0.8, 0.13), 1, true);
+    setArm(rig.right, v(0.32, 0.5, 0.03), v(0.37, 0.8, 0.13), 1, true);
+    syncInstances(rig);
+  }
 }

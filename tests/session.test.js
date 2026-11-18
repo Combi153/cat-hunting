@@ -35,8 +35,8 @@ test('normal students mostly write, never display a cheating prop, and each culp
       }
       if (!seat.guilty) assert.ok(writing / 180 >= 0.8);
       else {
-        assert.ok(proofs >= 36);
-        assert.ok(firstProof <= 22 && lastProof >= 65);
+        assert.ok(proofs >= 24);
+        assert.ok(firstProof <= 55 && lastProof >= 65);
       }
     }
   }
@@ -101,11 +101,11 @@ test('survival requires both lasting 90 seconds and catching everyone', () => {
   const success = new Exam(23);
   success.seats.filter((seat) => seat.guilty).forEach((seat) => success.report(seat.id));
   assert.equal(success.over, false);
-  success.step(26);
+  success.step(28);
   success.serve(success.requests[0].id);
-  success.step(32);
+  success.step(40);
   success.serve(success.requests[1].id);
-  success.step(31.99);
+  success.step(21.99);
   assert.equal(success.over, false);
   success.step(0.01);
   assert.equal(success.reason, 'win');
