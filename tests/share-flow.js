@@ -30,6 +30,15 @@ try {
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
   await page.goto(`${origin}/?preview=private#debug`);
   const tap = action => page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap();
+  // Exercise the same result button with native sharing unavailable.
+  const copyTap = async () => {
+    await page.evaluate(() => {
+      window.beforeCopyShare = navigator.share;
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    });
+    await tap('share');
+    await page.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: window.beforeCopyShare }));
+  };
   const shareTap = async action => {
     await page.locator(`[data-share="${action}"]`).tap();
     if (action === 'copy') await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
@@ -56,6 +65,7 @@ try {
 
   for (const [stage, reason, expected] of [[1, 'missed', /1단계 감독 실패/], [2, 'health', /2단계 감독 실패/], [3, 'win', /3단계 통과/], [5, 'win', /다섯 시험 모두 통과/]]) {
     await finish(stage, reason);
+    assert.equal(await page.locator('[data-action="share-copy"]').count(), 0);
     const saved = await page.evaluate(() => localStorage.getItem('nyangijapgi.v2'));
     await tap('share');
     await dialog.waitFor({ state: 'hidden' });
@@ -127,7 +137,7 @@ try {
       } } });
     });
     await tap('share');
-    await tap('share-copy');
+    await copyTap();
     assert.equal(await page.evaluate(() => window.pendingCopies), 1);
     await tap('home');
     await page.evaluate(outcome => outcome === 'resolve' ? window.resolveCopy() : window.rejectCopy(new Error('Late failure')), outcome);
@@ -139,7 +149,7 @@ try {
   // Real browser clipboard, then denied/unavailable fallbacks with selectable URL.
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
   await page.evaluate(() => { delete navigator.clipboard; });
-  await tap('share-copy');
+  await copyTap();
   await copied();
   assert.equal(await dialog.isVisible(), false);
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), publicUrl);
@@ -150,7 +160,7 @@ try {
     await page.evaluate(mode => {
       Object.defineProperty(navigator, 'clipboard', { configurable: true, value: mode === 'missing' ? undefined : { writeText: async () => { throw new DOMException('Denied', 'NotAllowedError'); } } });
     }, mode);
-    await tap('share-copy');
+    await copyTap();
     await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
     assert.match(await status.innerText(), /자동으로 복사할 수 없어요/);
     assert.equal(await page.locator('#share-url').inputValue(), publicUrl);
@@ -178,14 +188,14 @@ try {
       await tap('share');
       assert.equal(await dialog.isVisible(), false);
       await page.evaluate(() => { delete navigator.clipboard; });
-      await tap('share-copy');
+      await copyTap();
       await copied();
       assert.equal(await dialog.isVisible(), false);
       await page.screenshot({ path: `test-results/share-copied-${reason}-${width}.png` });
       const toastBox = await toast.boundingBox();
       assert.ok(toastBox.x >= 0 && toastBox.y >= 0 && toastBox.x + toastBox.width <= width && toastBox.y + toastBox.height <= height);
       await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }); });
-      await tap('share-copy');
+      await copyTap();
       await page.waitForFunction(() => !document.querySelector('[data-share="copy"]').disabled);
       await page.screenshot({ path: `test-results/share-options-${width}.png` });
       const box = await dialog.boundingBox();

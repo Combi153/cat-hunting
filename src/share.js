@@ -92,7 +92,6 @@ export function createResultSharing(dialog, url, toast) {
         if (pending === current) pending = null;
       }
     },
-    copy,
     reset() {
       // Leaving the result invalidates pending callbacks without changing play.
       generation++;

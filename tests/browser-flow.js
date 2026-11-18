@@ -204,10 +204,13 @@ try {
     path: 'test-results/mobile-missed-defeat.png',
   });
 
+  await tap('#ending [data-action=home]');
+  await tap('#lobby [data-action=sound]');
   await start();
   const success = new Exam(await page.evaluate(() => window.testExam.seed), 3);
   await tap('[data-action=pause]');
-  await tap('#overlay [data-action=sound]');
+  assert.equal(await page.locator('#overlay [data-action=sound]').count(), 0);
+  assert.equal(await page.locator('#overlay .secondary[data-action=leave]').innerText(), '시험 그만두기');
   await tap('[data-action=resume]');
   for (const culprit of success.seats.filter((seat) => seat.guilty).sort((a, b) => a.first - b.first)) {
     await inspect(culprit.id);
