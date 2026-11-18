@@ -230,10 +230,42 @@ export class Room {
     this.ending = { ...result, id: result.missed[0]?.id, elapsed: 0 };
     this.updateCamera(1, true);
   }
+  get reviewSeats() {
+    return this.session.seats.filter((seat) => seat.guilty)
+      .sort((a, b) => Number(a.caught) - Number(b.caught) || a.id - b.id);
+  }
+  review(offset = 0) {
+    if (!this.ending || this.ending.reason === 'win') return;
+    const seats = this.reviewSeats;
+    if (!seats.length) return;
+    const index = ((this.ending.reviewIndex ?? 0) + offset + seats.length) % seats.length;
+    Object.assign(this.ending, { reviewIndex: index, id: seats[index].id, elapsed: 0 });
+    const student = this.students.get(seats[index].id);
+    student.scale.setScalar(1);
+    student.userData.clay.lastTime = null;
+    const face = student.userData.clay.head.userData.face;
+    face.mouth.visible = true;
+    face.grin.visible = face.tears.visible = face.frown.visible = false;
+    face.eyes.forEach((eye) => { eye.scale.y = 0.016; });
+    face.brows.forEach((brow) => { brow.rotation.z = 0; });
+    this.renderer.shadowMap.needsUpdate = true;
+    return { seat: seats[index], index, total: seats.length };
+  }
+  closeReview() {
+    if (!this.ending) return;
+    delete this.ending.reviewIndex;
+    this.ending.id = this.ending.missed[0]?.id;
+    this.ending.elapsed = 0;
+    this.renderer.shadowMap.needsUpdate = true;
+  }
   updateCamera(dt, snap = false) {
     const seat = this.session.seat(this.ending?.id ?? this.focus);
     let height;
-    if (this.ending) {
+    if (this.ending?.reviewIndex != null && seat) {
+      this.target.set(seat.x, 1.0, seat.z + 0.24);
+      this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
+      height = Math.max(0.85, 0.72 / this.aspect);
+    } else if (this.ending) {
       const actor = seat ?? { x: 0, z: 2.8 };
       const y = seat ? 1.18 : 1.47;
       height = Math.max(0.65, 0.55 / this.aspect);
@@ -271,12 +303,19 @@ export class Room {
     if (this.ending) this.ending.elapsed += dt;
     for (const seat of exam.seats) {
       const student = this.students.get(seat.id);
-      student.visible = !seat.caught && (!this.ending || this.ending.id === seat.id);
+      const reviewing = this.ending?.reviewIndex != null;
+      student.visible = this.ending ? this.ending.id === seat.id && (reviewing || !seat.caught) : !seat.caught;
       if (seat.caught && exam.time - seat.exitAt < 1.1 && !this.ending) {
         student.visible = true;
         student.scale.setScalar(Math.max(0.01, 1 - (exam.time - seat.exitAt) / 1.1));
       }
-      if (this.ending && this.ending.id === seat.id) {
+      if (reviewing && this.ending.id === seat.id) {
+        // Re-enact the same game poses with time to inspect the prop. The exam
+        // and its saved outcome stay frozen, including students already caught.
+        const phase = this.ending.elapsed % 7;
+        const pose = phase < 1 ? seat.kind : phase < 5.5 ? 'proof-' + seat.kind : 'write';
+        updateStudent(student, { time: this.ending.elapsed, pose });
+      } else if (this.ending && this.ending.id === seat.id) {
         updateEnding(student, 'villain', this.ending.elapsed);
       } else {
         updateStudent(student, { time: elapsed + seat.offset, pose: exam.behavior(seat).pose });

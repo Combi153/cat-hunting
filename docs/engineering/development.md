@@ -41,6 +41,8 @@ npm run preview
 
 `main.js`는 `home → running → ended` 화면 흐름을 관리한다. `Exam`이 게임 규칙과 시간을 갖고 `Room`이 위치·이동·도움 연출을 맡는다. 이동이 끝나기 전에는 신고·도움 버튼을 열지 않으며, 복귀·이동 중에는 새 학생 선택을 허용해 현재 위치에서 경로를 교체한다. `Room.select()`는 유효한 경로를 찾은 뒤 복귀 상태를 해제하며, 도움 행동 진행 중에만 학생 선택을 막는다. 도움 완료 시점과 시험 종료 시점은 연출과 규칙 양쪽을 함께 확인해야 한다.
 
+실패 후 다시 보기는 `ended` 안의 표시 상태다. `Room.review()`/`closeReview()`가 대상과 재생 시계만 바꾸고 `Exam`은 진행하지 않는다. 적발 때 축소·퇴실한 학생의 표시 크기와 표정을 복원해 같은 소품·애니메이션을 재현한다. `ending.reviewIndex`가 있을 때 관찰 카메라를 사용하고 `.reviewing` 레이아웃에서 캔버스와 버튼 영역을 분리한다. 결과 복귀와 재도전 시 재생 상태를 해제한다. 다시 보기 자체는 저장하거나 분석 이벤트를 추가하지 않는다.
+
 렌더링되는 포즈는 `Exam.behavior()`가 정하지만, 관찰 문구는 `Exam.observationText()`를 거친다. `behavior.text`의 내부 증거 설명을 그대로 UI에 노출하면 정상·부정행위의 동일 문구라는 현재 결정을 깨뜨릴 수 있다.
 
 저장 키는 `nyangijapgi.v2`다. 최근 10판, 열린 단계, 전체 완료, 음소거를 저장한다. 결과에는 `version: 2`, `ruleset: 4`, `duration: 45`와 단계·배치·승패·신고/민원 기록 등이 남는다. 이전 v1 저장을 지우지 않고 음소거 설정을 읽으며, 이전 기록만으로 새 단계를 자동 해제하지 않는다. 저장이 불가능한 환경에서도 플레이는 계속된다.
@@ -58,6 +60,7 @@ npm run build
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:browser
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:campaign
 TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:assets
+TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:review
 ```
 
 설치된 Chrome 대신 Playwright Chromium을 쓰려면 `npx playwright install chromium` 후 `PLAYWRIGHT_CHANNEL`을 생략한다. 개발 서버 포트가 달라졌다면 `TEST_BASE_URL`도 맞춘다. 이 스크립트는 개발 모듈의 배치를 고정하는 라우트를 사용하므로 프로덕션 번들 검증 명령으로 사용하지 않는다.
@@ -68,6 +71,7 @@ TEST_BASE_URL=http://127.0.0.1:5173 PLAYWRIGHT_CHANNEL=chrome npm run test:asset
 | `test:browser` | 터치 관찰·신고·도움·복귀/이동 중 경로 전환·승패·음향·일시정지·화면 크기 |
 | `test:campaign` | 정답을 아는 고정 배치에서 다섯 단계 진행·저장·재도전 |
 | `test:assets` | 실제 행동 주기가 나타날 때 접근해 새 소품·일상 행동 캡처 |
+| `test:review` | 실패 후 여섯 행동 재생·소품 복귀·순환, 결과 불변, 화면 크기, 모두 적발한 생명 패배·재도전 |
 | `npm run build` | 배포용 정적 파일 생성. 게임 플레이 검증을 대신하지 않음 |
 
 자동 캡처는 Git에서 제외된 `test-results/`에 나온다. 검토한 증거만 버전별 `docs/playtest/`에 복사하고 출처를 기록한다. 3D 검토에서는 스크린샷과 실제 동작을 함께 본다. 브라우저 시계를 멈춘 검증에서는 시작 후 첫 프레임이 그려진 뒤 좌석을 눌러야 하며, 이동은 버튼이 준비될 때까지 시간을 진행한다. 실행 중 소스를 바꾸면 Vite 갱신으로 게임이 초기화될 수 있다.

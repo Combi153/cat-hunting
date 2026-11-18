@@ -755,3 +755,46 @@ h2 {
   border-radius: 8px;
   padding: 6px 10px;
 }
+
+.review-open {
+  width: 100%;
+  margin-bottom: 8px;
+}
+#play.reviewing #viewfinder {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+}
+.reviewing #room {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+.reviewing #ending {
+  position: static;
+  display: block;
+  pointer-events: auto;
+  min-height: 0;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+.review-panel {
+  padding: 16px 20px max(8px, env(safe-area-inset-bottom));
+  background: var(--cream);
+  text-align: center;
+  border-top: 1px solid var(--line);
+}
+.review-panel h2 { font: 22px var(--round); margin: 8px 0; }
+.review-panel > p:not(.eyebrow) { font-size: 12px; line-height: 1.5; color: var(--muted); }
+.review-nav { display: flex; gap: 10px; margin-top: 12px; }
+.review-nav button { flex: 1; }
+@media (orientation: landscape) {
+  #play.reviewing #viewfinder {
+    grid-template-columns: minmax(0, 1fr) min(40%, 320px);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .reviewing #ending { align-content: center; background: var(--cream); }
+  .review-panel { border-top: 0; }
+}

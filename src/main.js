@@ -231,6 +231,22 @@ function act(action) {
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
+  if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
+    if (action === 'review-close') {
+      room.closeReview();
+      $('#play').classList.remove('reviewing');
+      $('#ending').innerHTML = ui.ending(room.ending);
+      $('#ending [data-action=review]')?.focus({ preventScroll: true });
+    } else {
+      const selection = room.review(action === 'review-prev' ? -1 : action === 'review-next' ? 1 : 0);
+      if (!selection) return;
+      $('#play').classList.add('reviewing');
+      $('#ending').innerHTML = ui.review(selection);
+      $(`#ending [data-action=${action === 'review' ? 'review-close' : action}]`)?.focus({ preventScroll: true });
+    }
+    room.resize();
+    return;
+  }
   if (action === 'sound') {
     saved.muted = !saved.muted;
     if (!saved.muted) activateSound();
@@ -279,6 +295,8 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
+  if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null)
+    act('review-close');
   if (event.code === 'Escape' && screen === 'running') {
     if (paused) resume();
     else if (room.focus) act('overview');
@@ -368,7 +386,7 @@ function tick(now) {
     if (exam.over) finish();
   }
   if (room && (screen === 'running' || screen === 'ended') && !paused) {
-    const stillEnding = motion.matches && room.ending;
+    const stillEnding = motion.matches && room.ending && room.ending.reviewIndex == null;
     if (stillEnding) room.ending.elapsed = 0;
     room.draw(stillEnding ? 0 : Math.min(dt, 0.1), exam.time);
     if ((!room.focus || room.busy) && screen === 'running') {

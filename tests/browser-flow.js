@@ -171,6 +171,15 @@ try {
   const history = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')).history);
   assert.equal(history[0].health, 0);
   assert.equal(history[0].reason, 'health');
+  await tap('[data-action=review]');
+  await advance(1000);
+  assert.match(await page.locator('.review-panel').innerText(), /놓친 학생/);
+  assert.equal(await page.evaluate(() => window.testRoom.ending.id), history[0].missed[0].id);
+  await tap('[data-action=review-next]');
+  assert.equal(await page.evaluate(() => window.testRoom.ending.id), history[0].missed[1].id);
+  await tap('[data-action=review-prev]');
+  await tap('[data-action=review-close]');
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')).history), history);
   assert.ok(
     await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v1')).history[0].score === 85),
   );
@@ -217,6 +226,7 @@ try {
   assert.equal(win.reason, 'win');
   assert.equal(win.caught, 3);
   assert.equal(win.duration, 45);
+  assert.equal(await page.locator('[data-action=review]').count(), 0);
   assert.ok(await page.evaluate(() => window.playedTones.includes(1047)));
   // The same one-tap restart is available after victory.
   console.log(
