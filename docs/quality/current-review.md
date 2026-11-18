@@ -4,6 +4,18 @@
 
 [문서 홈](../README.md) · [검증 실행법](../engineering/development.md) · [미검증 항목](open-questions.md)
 
+## 모달 재정리·공유 주소 결합 수정 (2026-11-18)
+
+기준: `1f1aa5c` 위 변경. 개발 `127.0.0.1:5213`, 빌드 미리보기 `127.0.0.1:5214`, 설치된 Chrome·Playwright 모바일 에뮬레이션. 운영 GA 요청은 차단하거나 개발 환경 수집 제외를 사용했다.
+
+- 단위 36개·빌드와 `test:results`, `test:browser`, `test:campaign`, `test:share`, `test:retries`, `test:analytics`, `test:share-pages` 통과. 기존 Three.js 500kB 청크 경고 유지. 결과 다섯 유형×여섯 화면 크기의 캐릭터 반응·모달·다시보기·44px 조작·스크롤·포커스 복귀·저장 불변을 검사했다. 모델 변경이 없어 에셋 검사는 재실행하지 않았다.
+- 사용자 보고의 URL/문장 결합을 방지하도록 URL만 전달한다. 3단계 실패 포함 API 대역으로 독립 text/title이 없는 단일 URL을 확인했다. 정적 OG 소개·단계·축하 이미지와 실제 복사 URL은 유지한다. 공유 안내에 실제 카드 미리보기를 넣었고 결과와 공유 모달은 동시에 열지 않는다.
+- 공유 안내·대기·복사 실패에 시간 표시가 없으며 내부 지연 보상은 유지한다. 4.9초 무보상/5.1초 지급, 취소·실패·중복·늦은 응답·숨김 대기 제외를 검사했다. 기존 재도전 테스트 보조 함수가 공유 중 닫힌 결과 모달 때문에 시계를 추가 진행하던 문제는 공유 중 시계를 건드리지 않고 저장 잔액을 검사하도록 고쳤다.
+- 별도 무작위 1단계를 실제 시간으로 진행해 9번 관찰·시간 실패·다시보기·Escape 결과 복귀·공유 안내·실제 링크 복사를 수행했다. 즉시 보상 없이 결과로 돌아와 잔액 2→5를 확인했다. 360×606 화면과 실패 320px·전체 통과·작은 가로·노트북 자동 캡처를 직접 검토했다.
+- 실제 Android/iOS 카카오톡 전송·수신자 카드 UI는 미검증이다. API 입력 검사와 실제 앱 전달 완료를 구분한다. 자동 테스트는 초심자 성공률이나 바이럴 효과의 증거가 아니다. 게임 규칙·진행·저장·행동 모델은 변경하지 않았다.
+
+[모바일 실패](../playtest/modal-refinement/failure-360.png) · [320px 실패](../playtest/modal-refinement/failure-320.png) · [공유 안내](../playtest/modal-refinement/share-offer.png) · [복사 후 안내](../playtest/modal-refinement/share-wait.png) · [전체 통과](../playtest/modal-refinement/complete-320.png) · [가로](../playtest/modal-refinement/landscape.png) · [노트북](../playtest/modal-refinement/win-laptop.png)
+
 ## 반응 후 결과 모달·학습 다시보기·단계 공유 (2026-11-18)
 
 기준: `684e997` 위의 이번 변경. 개발 서버 `127.0.0.1:5211`, 빌드 미리보기 `127.0.0.1:5212`, 설치된 Chrome·Playwright 터치 에뮬레이션. 개발 환경은 운영 분석을 수집하지 않으며 빌드 페이지 검사도 GA 요청을 차단했다.

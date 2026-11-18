@@ -28,21 +28,24 @@ try{
  const send=()=>page.locator('[data-share=send]').tap();
  const close=()=>page.locator('[data-share=close]').tap();
  const waitReward=async before=>{
+  assert.doesNotMatch(await page.locator('#share-dialog').innerText(),/\d+\s*초|카운트다운/);
   await page.clock.runFor(4900);assert.equal(await balance(),before,'no early reward');
   await page.clock.runFor(200);assert.equal(await balance(),before+3);
   assert.equal(await page.locator('#share-dialog').evaluate(el=>el.open),false);
  };
- for(const result of [{stage:1,reason:'missed'},{stage:2,reason:'health'},{stage:3,reason:'win'},{stage:5,reason:'win'}]){
+ for(const result of [{stage:1,reason:'missed'},{stage:2,reason:'health'},{stage:3,reason:'missed'},{stage:3,reason:'win'},{stage:5,reason:'win'}]){
   if(await page.locator('#lobby').isHidden())await tap('home');
   await page.locator(`[data-level="${result.stage}"]`).tap();await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.clock.runFor(100);
   if(result.reason!=='missed')await page.evaluate(reason=>{for(const s of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(s.id)},result.reason);
   await page.clock.fastForward(46000);await revealResult(page);
   const before=await balance(), calls=await page.evaluate(()=>window.shared.length);
-  await offer();assert.equal(await balance(),before);assert.equal(await page.evaluate(()=>window.shared.length),calls,'offer does not invoke OS sharing');
+  await offer();assert.doesNotMatch(await page.locator('#share-dialog').innerText(),/5\s*초|카운트다운/);assert.equal(await balance(),before);assert.equal(await page.evaluate(()=>window.shared.length),calls,'offer does not invoke OS sharing');
   await send();assert.equal(await balance(),before,'native response does not grant immediately');
-  const last=await page.evaluate(()=>window.shared.at(-1));const {title,text,url}=shareContent(result);
-  assert.deepEqual(last.data,{title,text,url});assert.equal(last.activated,true);
-  assert.ok(!last.data.url.includes('private')&&!last.data.text.includes('번째'));
+  const last=await page.evaluate(()=>window.shared.at(-1));const {url}=shareContent(result);
+  assert.deepEqual(last.data,{url},'one URL prevents share targets concatenating prose into the address');assert.equal(last.activated,true);
+  assert.ok(!last.data.url.includes('private'));
+  assert.equal(await page.locator('dialog[open]').count(),1,'only one modal is open');
+  assert.doesNotMatch(await page.locator('#share-dialog').innerText(),/\d+\s*초|카운트다운/);
   await waitReward(before);
  }
  const completeUrl=shareContent({stage:5,reason:'win'}).url;

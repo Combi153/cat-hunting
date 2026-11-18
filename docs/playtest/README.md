@@ -36,3 +36,8 @@
 | [45-second/sleeve-adjust.png](45-second/sleeve-adjust.png), [45-second/wrist-rest.png](45-second/wrist-rest.png), [45-second/neck-stretch.png](45-second/neck-stretch.png), [45-second/reread.png](45-second/reread.png) | 추가한 네 가지 일상 행동 | [아트 검토](../product/art-direction.md) |
 
 45초 에셋 화면은 고정 배치와 제어된 브라우저 시계로 실제 게임의 행동이 나타날 때 캡처했다. 자유 플레이의 성공률이나 물리 휴대폰 성능 증거가 아니다. 새 캡처를 추가하면 해당 검증 문서에 날짜·커밋·조건·관찰을 적고 이 표에 연결한다.
+
+
+## 모달 재정리·공유 주소 결합 수정 (2026-11-18)
+
+`1f1aa5c` 위 변경, Chrome. [실패 360](modal-refinement/failure-360.png), [공유 안내](modal-refinement/share-offer.png), [복사 후 안내](modal-refinement/share-wait.png)는 무작위 실제 시간 플레이와 실제 클립보드다. [실패 320](modal-refinement/failure-320.png), [전체 통과](modal-refinement/complete-320.png), [가로](modal-refinement/landscape.png), [노트북](modal-refinement/win-laptop.png)은 무작위 배치·제어 시계·규칙 API로 결과를 생성한 자동 캡처를 검토한 것이다. 실제 카카오톡 전송 화면은 아니다. [현재 검증](../quality/current-review.md)

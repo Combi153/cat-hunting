@@ -123,20 +123,25 @@ export function ending(result, remaining = 3) {
       ? '오인과 민원으로 생명이 모두 소진됐어요.'
       : '놓친 부정행위자가 있어요.';
   const reaction = villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”';
+  const nextLabel = win && !finalStage ? `${result.stage + 1}단계 도전` : finalStage ? '다른 단계 다시 하기' : `${result.stage}단계 다시 도전`;
   return `<div class="ending-title"><p class="eyebrow">${result.stage} / 5 단계</p><h1>${title}</h1></div>
     <div class="ending-reaction"><p class="ending-line">${reaction}</p><button class="text-btn" data-action="result-open">결과 보기 ${icon('arrow', 15)}</button></div>
     <dialog id="result-dialog" class="result-dialog" aria-labelledby="result-title">
-      <button class="icon-btn result-close" data-action="result-close" aria-label="결과 닫고 캐릭터 보기">${icon('x')}</button>
-      <p class="eyebrow">${result.stage} / 5 단계</p><h2 id="result-title">${finalStage ? '모두 찾아냈어요!' : win ? result.stage + '단계 통과!' : '아쉬워요, 다시 살펴볼까요?'}</h2>
-      ${explanation ? `<p class="result-explanation">${explanation}</p>` : '<p class="result-explanation">' + (finalStage ? '다섯 번의 시험을 모두 지켜냈어요.' : '다음 시험도 지켜낼 수 있겠어요?') + '</p>'}
-      <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
+      <header class="result-header">
+        <p class="eyebrow">${result.stage}단계 · ${win ? '통과' : '시험 결과'}</p>
+        <button class="icon-btn result-close" data-action="result-close" aria-label="결과 닫고 캐릭터 보기">${icon('x')}</button>
+        <h2 id="result-title">${finalStage ? '모두 찾아냈어요!' : win ? result.stage + '단계 통과!' : '다시 살펴볼까요?'}</h2>
+        <p class="result-explanation">${explanation || (finalStage ? '다섯 번의 시험을 모두 지켜냈어요.' : '다음 시험에도 도전해 보세요.')}</p>
+      </header>
+      <dl class="end-stats"><div><dt>적발</dt><dd>${result.caught}<small> / ${result.caught + result.missed.length}</small></dd></div><div><dt>오인</dt><dd>${result.falseCalls}</dd></div><div><dt>민원</dt><dd>${result.complaints}</dd></div></dl>
       <div id="result-actions">
-        ${!win ? `<button class="primary review-open" data-action="review">${icon('eye')} 부정행위 다시 보기</button><p class="review-invitation">놓친 행동을 살펴보고 다음 시험을 준비해요.</p>` : ''}
-        ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button>` : finalStage ? '<button class="primary" data-action="home">다른 단계 다시 하기</button>' : `<button class="secondary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
-        <div class="retry-status" role="status">${retryStatus(remaining)}</div>
-        <button class="share-open text-btn" data-action="share">공유하고 3회 더 받기</button>
-        ${win && !finalStage ? '<button class="text-btn" data-action="start">이 단계 다시 하기</button>' : ''}
-        ${!finalStage ? '<button class="text-btn result-home" data-action="home">처음으로</button>' : ''}
+        ${!win ? `<button class="primary review-open" data-action="review">${icon('eye', 24)}<span><strong>부정행위 다시 보기</strong><small>놓친 행동을 가까이서 살펴봐요</small></span>${icon('arrow', 18)}</button>` : ''}
+        <button class="${win ? 'primary' : 'secondary'} result-retry" aria-label="${nextLabel}" data-action="${win && !finalStage ? 'advance' : finalStage ? 'home' : 'start'}"><span><strong>${nextLabel}</strong>${!finalStage ? `<span class="retry-status" role="status">${retryStatus(remaining)}</span>` : ''}</span>${icon('arrow', 18)}</button>
+        <div class="result-links">
+          <button class="share-open text-btn" data-action="share">공유하고 3회 더 받기</button>
+          ${!finalStage ? '<button class="text-btn result-home" data-action="home">처음으로</button>' : ''}
+        </div>
+        ${win && !finalStage ? '<button class="text-btn result-repeat" data-action="start">이 단계 다시 하기</button>' : ''}
         ${sponsorBanner('result')}
       </div>
     </dialog>

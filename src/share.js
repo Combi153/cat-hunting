@@ -22,16 +22,15 @@ export function createResultSharing(dialog, toast, send = () => {}, getContext =
   function waitForReward(method, current) {
     remaining = SHARE_REWARD_DELAY;
     lastTick = performance.now();
+    status.textContent = method === 'copy' ? '링크를 복사했어요.' : '잠시만 기다려 주세요.';
     manual.hidden = true;
     button.hidden = copyButton.hidden = true;
-    help.textContent = method === 'copy' ? '복사한 링크를 친구에게 보내고 돌아와 주세요.' : '공유를 마치고 돌아오셨나요? 잠시만 기다려 주세요.';
+    help.textContent = method === 'copy' ? '복사한 링크를 친구에게 보내고 돌아와 주세요.' : '재도전 기회를 준비하고 있어요.';
     const tick = () => {
       if (current !== generation) return;
       const now = performance.now();
       if (!document.hidden) remaining -= Math.max(0, now - lastTick);
       lastTick = now;
-      const message = `재도전 3회까지 ${Math.max(0, Math.ceil(remaining / 1000))}초`;
-      if (status.textContent !== message) status.textContent = message;
       if (remaining > 0) return;
       clearInterval(rewardTimer);
       onReward(method, context);
@@ -62,7 +61,7 @@ export function createResultSharing(dialog, toast, send = () => {}, getContext =
       input.value = shareContent(result).url;
       manual.hidden = false;
       help.textContent = '자동 복사가 막혀 있어요. 링크를 선택해 복사할 수 있어요.';
-      status.textContent = '자동 복사에 성공하면 5초 뒤 기회를 드려요.';
+      status.textContent = '복사를 허용한 뒤 다시 시도해 주세요.';
       input.focus(); input.select(); input.setSelectionRange(0, input.value.length);
     }
   }
@@ -72,8 +71,9 @@ export function createResultSharing(dialog, toast, send = () => {}, getContext =
     const current = ++generation;
     button.disabled = copyButton.disabled = true;
     status.textContent = '';
-    const { title, text, url } = shareContent(result);
-    const data = { title, text, url };
+    // Some Android share targets concatenate URL and text without a separator.
+    // Share one URL; the destination page supplies stage text and imagery via OG.
+    const data = { url: shareContent(result).url };
     let supported = !copyOnly && typeof navigator.share === 'function';
     try { if (supported && navigator.canShare) supported = navigator.canShare(data); } catch { supported = false; }
     if (!supported) {
@@ -106,9 +106,12 @@ export function createResultSharing(dialog, toast, send = () => {}, getContext =
       invalidate(); clearToast();
       result = nextResult;
       context = getContext();
-      dialog.querySelector('#share-title').textContent = exhausted ? '재도전 기회가 없어요' : '친구에게 도전장을 보내요';
-      summary.textContent = shareContent(result).text;
-      help.textContent = '공유를 마치고 돌아오면 5초 뒤 재도전 기회 3회를 드려요.';
+      dialog.querySelector('#share-title').textContent = exhausted ? '재도전 기회가 없어요' : '공유하고 3회 더 받기';
+      const content = shareContent(result);
+      summary.textContent = content.text;
+      dialog.querySelector('#share-preview-image').src = '/' + content.image;
+      dialog.querySelector('#share-preview-title').textContent = content.title;
+      help.textContent = '친구에게 게임을 공유하고 다시 도전해 보세요.';
       status.textContent = '';
       button.hidden = false;
       copyButton.hidden = manual.hidden = true;

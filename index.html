@@ -52,17 +52,23 @@
     <div id="share-toast" role="status" aria-live="polite" aria-atomic="true"></div>
     <dialog id="share-dialog" aria-labelledby="share-title" aria-describedby="share-summary">
       <div class="share-content">
-        <h2 id="share-title">친구에게 공유하기</h2>
-        <p id="share-summary"></p>
-        <p id="share-help"></p>
-        <button class="primary" data-share="send">공유하기</button>
-        <button class="secondary" data-share="copy" hidden>링크 다시 복사</button>
+        <header class="share-header">
+          <p class="eyebrow">친구에게 도전장 보내기</p>
+          <button class="icon-btn share-close" data-share="close" aria-label="공유 안내 닫기">×</button>
+          <h2 id="share-title">공유하고 3회 더 받기</h2>
+          <p id="share-help"></p>
+        </header>
+        <figure class="share-preview">
+          <img id="share-preview-image" alt="" width="1200" height="630">
+          <figcaption><strong id="share-preview-title"></strong><p id="share-summary"></p><span>cat-hunting.vercel.app</span></figcaption>
+        </figure>
         <div id="share-manual" hidden>
           <label for="share-url">게임 링크</label>
           <input id="share-url" type="url" readonly spellcheck="false">
         </div>
         <p id="share-status" role="status" aria-live="polite"></p>
-        <button class="text-btn" data-share="close">닫기</button>
+        <button class="primary" data-share="send">공유하기</button>
+        <button class="secondary" data-share="copy" hidden>링크 다시 복사</button>
       </div>
     </dialog>
     <script type="module" src="/src/main.js"></script>

@@ -73,10 +73,17 @@ function closeResult() {
 function openResult() {
   clearTimeout(resultTimer);
   const dialog = $('#result-dialog');
-  if (screen !== 'ended' || !dialog || dialog.open || room.ending?.reviewIndex != null) return;
+  if (screen !== 'ended' || !dialog || dialog.open || $('#share-dialog').open || room.ending?.reviewIndex != null) return;
   dialog.showModal();
   $('#result-actions button')?.focus({ preventScroll: true });
 }
+function shareResult(exhausted = false) {
+  closeResult();
+  sharing.share(screen === 'ended' ? exam.result() : null, exhausted);
+}
+$('#share-dialog').addEventListener('close', () => {
+  if (screen === 'ended') openResult();
+});
 function showResult(immediate = false) {
   clearTimeout(resultTimer);
   $('#ending').innerHTML = ui.ending(room.ending, retries.current().remaining);
@@ -150,7 +157,7 @@ async function start(stage = selectedStage, source = 'lobby') {
   if (loading) return;
   if (retries.current().remaining === 0) {
     refreshRetries();
-    sharing.share(screen === 'ended' ? exam.result() : null, true);
+    shareResult(true);
     return;
   }
   sharing.reset();
@@ -165,7 +172,7 @@ async function start(stage = selectedStage, source = 'lobby') {
     // A different tab may have spent the final chance while the room loaded.
     if (retries.current().remaining === 0) {
       if (screen === 'ended') openResult();
-      sharing.share(screen === 'ended' ? exam.result() : null, true);
+      shareResult(true);
       return;
     }
     const lastSeed = exam?.seed ?? saved.history[0]?.seed;
@@ -302,7 +309,7 @@ function act(action) {
     return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
   if (action === 'share' && (screen === 'ended' || screen === 'home'))
-    return sharing.share(screen === 'ended' ? exam.result() : null);
+    return shareResult();
   if (screen === 'ended' && ['review', 'review-prev', 'review-next', 'review-close'].includes(action)) {
     if (action === 'review-close') {
       engagement.closeReview();

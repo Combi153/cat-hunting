@@ -29,7 +29,12 @@ try {
   await page.clock.pauseAt(new Date('2026-11-18T14:01:00Z'));
   await page.goto(origin);
   const tap = async action => { await revealResult(page); return page.locator(`[data-action="${action}"]`).filter({ visible: true }).first().tap(); };
-  const balance = async n => { await revealResult(page); assert.match(await page.locator('.retry-status').filter({visible:true}).innerText(),new RegExp(`재도전 ${n}회`)); };
+  const balance = async n => {
+    if (await page.locator('#share-dialog').evaluate(el => el.open)) {
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.retries.v1')).remaining), n);
+      return;
+    }
+    await revealResult(page); assert.match(await page.locator('.retry-status').filter({visible:true}).innerText(),new RegExp(`재도전 ${n}회`)); };
   const raw = () => page.evaluate(()=>localStorage.getItem('nyangijapgi.retries.v1'));
   const events = name => page.evaluate(name=>window.events.filter(e=>e.name===name),name);
   const start = async()=>{await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.locator('#ending').waitFor({state:'hidden'});await page.clock.runFor(100)};
