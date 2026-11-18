@@ -233,11 +233,6 @@ h2 {
   color: var(--muted);
   border-bottom: 1px solid var(--line);
 }
-#caught {
-  color: var(--green);
-  font-weight: 750;
-  font-size: 12px;
-}
 #viewfinder {
   position: relative;
   min-height: 0;
@@ -258,72 +253,32 @@ h2 {
 }
 #seat-targets button {
   position: absolute;
-  min-width: 44px;
+  width: 44px;
+  height: 44px;
   min-height: 44px;
-  padding: 0 5px 18px;
-  transform: translate(-50%, -15%);
+  padding: 0;
+  transform: translate(-50%, -50%);
   background: transparent;
-  color: #fdfbf0;
-  font: 14px var(--round);
   pointer-events: auto;
+  border-radius: 50%;
 }
-#seat-targets button::before {
-  position: absolute;
-  content: '';
-  z-index: -1;
-  top: 0;
-  height: 25px;
-  left: 1px;
-  right: 1px;
-  border-radius: 8px;
-  background: #365c48e8;
-  box-shadow: 0 2px 4px #22362622;
+#seat-targets button:focus-visible {
+  outline: 2px solid var(--green);
+  background: #fff5;
 }
-#seat-targets button.caught {
-  color: #556c4c;
-  opacity: 0.9;
-}
-#seat-targets button.caught::before {
-  background: #e0e8d3;
+#seat-targets button:disabled {
+  visibility: hidden;
 }
 .inspecting #seat-targets {
   display: none;
 }
-#tasks {
+#blink {
   position: absolute;
-  top: 9px;
-  left: 10px;
-  right: 10px;
-  display: grid;
-  gap: 6px;
-  justify-items: start;
+  inset: 0;
+  background: #15201c;
+  opacity: 0;
   pointer-events: none;
-}
-.request {
-  pointer-events: auto;
-  background: #fff9e8f7;
-  border: 1px solid #d5b66c;
-  border-left: 4px solid #bf883b;
-  border-radius: 10px;
-  padding: 7px 11px;
-  text-align: left;
-  min-height: 48px;
-  box-shadow: 0 3px 12px #453e2920;
-}
-.request b {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-}
-.request small {
-  display: block;
-  margin-top: 3px;
-  font-size: 11px;
-  color: #7c693d;
-}
-.request.late {
-  border-color: #b75c47;
+  z-index: 2;
 }
 #notice {
   position: absolute;

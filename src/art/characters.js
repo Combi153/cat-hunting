@@ -159,8 +159,19 @@ function makeHead(index, proctor = false) {
   );
   mesh(grin, new THREE.TubeGeometry(smileCurve, 14, 0.012, 6, false), M.white);
   grin.visible = false;
-  head.add(face, grin);
-  head.userData.face = { eyes, brows, mouth, grin };
+  const tears = new THREE.Group();
+  for (const x of [-0.085, 0.085]) lump(tears, M.white, [x, -0.075, 0.182], [0.012, 0.035, 0.009]);
+  tears.visible = false;
+  const frown = new THREE.Group();
+  const curve = new THREE.QuadraticBezierCurve3(
+    v(-0.037, -0.125, 0.176),
+    v(0, -0.085, 0.19),
+    v(0.037, -0.125, 0.176),
+  );
+  mesh(frown, new THREE.TubeGeometry(curve, 12, 0.006, 5, false), M.blush);
+  frown.visible = false;
+  head.add(face, grin, tears, frown);
+  head.userData.face = { eyes, brows, mouth, grin, tears, frown };
   // Flattened overlapping locks, with an asymmetric part, keep the silhouette
   // handmade without the round beads reading as animal ears.
   lump(shape, hair, [0, 0.105, -0.035], [0.222, 0.17, 0.187]);
@@ -554,7 +565,7 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
   syncInstances(r);
 }
 
-export function updateProctor(group, { time = 0, walking = false, quiet = false } = {}) {
+export function updateProctor(group, { time = 0, walking = false, quiet = false, reaching = false } = {}) {
   const r = group.userData.clay;
   if (!r) return;
   r.stand = 1;
@@ -568,6 +579,8 @@ export function updateProctor(group, { time = 0, walking = false, quiet = false 
   r.head.rotation.y = Math.sin(time * 0.4) * 0.025;
   setArm(r.left, v(-0.255, 0.2, -0.035), v(-0.26, -0.045, 0.065), 1);
   setArm(r.right, v(0.26, 0.2, swing), v(0.25, -0.05, swing * 1.7), 1);
+  if (reaching) setArm(r.right, v(0.29, 0.5, 0.12), v(0.25, 0.8, 0.4 + Math.sin(time * 3) * 0.08), 1, true);
+  for (const eye of r.head.userData.face.eyes) eye.scale.y = time % 12 > 11.82 ? 0.002 : 0.016;
   r.clipboard.position.set(-0.283, 0.015, 0.088);
   r.clipboard.rotation.set(-0.08, -0.15, -0.08);
   r.pencil.visible = false;
@@ -575,11 +588,30 @@ export function updateProctor(group, { time = 0, walking = false, quiet = false 
   syncInstances(r);
 }
 
+export function updateUpset(group, time) {
+  const r = group.userData.clay;
+  const { eyes, brows, mouth, grin, tears, frown } = r.head.userData.face;
+  mouth.visible = grin.visible = false;
+  frown.visible = true;
+  tears.visible = true;
+  const sobbing = time < 4;
+  for (let i = 0; i < eyes.length; i++) {
+    eyes[i].scale.y = sobbing ? 0.005 : 0.009;
+    brows[i].rotation.z = (i === 0 ? 1 : -1) * 0.45;
+  }
+  tears.position.y = sobbing ? -((time * 0.06) % 0.05) : -0.02;
+  r.head.rotation.x = 0.26 + (sobbing ? Math.sin(time * 8) * 0.025 : 0);
+  r.head.rotation.z = Math.sin(time * 8) * (sobbing ? 0.045 : 0.008);
+  if (sobbing) r.upper.position.y += Math.sin(time * 15) * 0.009;
+  syncInstances(r);
+}
+
 export function updateEnding(group, mood, time) {
   const rig = group.userData.clay;
   if (rig.proctor) updateProctor(group, { time });
   else updateStudent(group, { time, pose: 'rest' });
-  const { eyes, brows, mouth, grin } = rig.head.userData.face;
+  const { eyes, brows, mouth, grin, tears, frown } = rig.head.userData.face;
+  tears.visible = frown.visible = false;
   const happy = mood === 'win';
   const laughing = mood === 'villain';
   mouth.visible = !(happy || laughing);

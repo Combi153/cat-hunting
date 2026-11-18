@@ -50,3 +50,16 @@ test('the finale changes the face and lifts the winning proctor’s hands', asyn
   assert.equal(rig.head.userData.face.grin.visible, false);
   assert.ok(rig.head.rotation.x > 0.2);
 });
+
+test('wrongly accused students remain tearful after the first sobbing reaction', async () => {
+  const { updateUpset } = await import('../src/art/characters.js');
+  const student = createStudent(1);
+  for (const time of [0.2, 3, 25, 89]) {
+    updateStudent(student, { time, pose: 'write' });
+    updateUpset(student, time);
+    const face = student.userData.clay.head.userData.face;
+    assert.ok(face.tears.visible && face.frown.visible);
+    assert.equal(face.grin.visible, false);
+    assert.ok(face.brows[0].rotation.z > 0.4);
+  }
+});

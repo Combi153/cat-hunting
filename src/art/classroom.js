@@ -379,10 +379,12 @@ export function createClassroom(seats = []) {
 }
 
 export function setCurtain(group, closed) {
+  const progress = Math.max(0, Math.min(1, Number(closed)));
   for (const curtain of group.userData.curtains || []) {
     const { center, side } = curtain.userData;
-    curtain.scale.z = closed ? 1.25 : 0.26;
-    curtain.position.z = center + side * (closed ? 0.625 : 1.1);
+    curtain.scale.z = 0.26 + progress * 0.99;
+    curtain.position.z = center + side * (1.1 - progress * 0.475);
   }
-  group.userData.curtainClosed = Boolean(closed);
+  group.userData.curtainClosed = progress === 1;
+  group.userData.curtainProgress = progress;
 }

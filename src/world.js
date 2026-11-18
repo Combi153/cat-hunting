@@ -1,5 +1,13 @@
 import * as THREE from 'three';
-import { createStudent, createProctor, updateStudent, updateEnding } from './art/characters.js';
+import {
+  createStudent,
+  createProctor,
+  updateStudent,
+  updateEnding,
+  updateProctor,
+  updateUpset,
+} from './art/characters.js';
+import { approachPath, stationPath } from './walkways.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
 
 export class Room {
@@ -56,8 +64,11 @@ export class Room {
     this.focus = null;
     this.ending = null;
     this.curtain = false;
-    this.proctor.visible = false;
-    this.proctor.position.set(0, 0, 2.8);
+    this.path = [];
+    this.action = null;
+    this.curtainProgress = 0;
+    this.proctor.visible = true;
+    this.proctor.position.set(0, 0, 3.7);
     this.renderer.shadowMap.needsUpdate = true;
     this.updateCamera(1, true);
     this.draw(0, 0);
@@ -106,10 +117,75 @@ export class Room {
   select(id) {
     const seat = this.session.seat(id);
     if (!seat || seat.caught) return;
+    if (this.action) return;
+    const path = approachPath(this.session.seats, this.proctor.position, seat);
+    if (!path) return;
     this.focus = id;
+    this.path = path;
+  }
+  get busy() {
+    return this.action ? 'helping' : this.path.length ? 'walking' : '';
+  }
+  overview() {
+    if (this.action) return;
+    this.focus = null;
+    this.path = [];
+  }
+  help() {
+    if (this.busy) return false;
+    const request = this.session.requestFor(this.focus);
+    if (!request) return false;
+    const path =
+      request.type === 'curtain' ? stationPath(this.session.seats, this.proctor.position, 'window') : [];
+    if (!path) return false;
+    request.helping = true;
+    this.action = { request, elapsed: 0 };
+    this.path = path;
+    return true;
+  }
+  step(dt) {
+    if (this.ending) return null;
+    let remaining = dt;
+    while (this.path.length && remaining > 0) {
+      const next = this.path[0],
+        p = this.proctor.position;
+      const distance = Math.hypot(next.x - p.x, next.z - p.z);
+      this.proctor.rotation.y = Math.atan2(next.x - p.x, next.z - p.z);
+      const used = Math.min(remaining, distance / 3.3);
+      const fraction = distance ? Math.min(1, (used * 3.3) / distance) : 1;
+      p.x += (next.x - p.x) * fraction;
+      p.z += (next.z - p.z) * fraction;
+      remaining -= used;
+      if (fraction >= 1) this.path.shift();
+    }
+    if (!this.path.length && this.action) {
+      this.action.elapsed += remaining;
+      const { request, elapsed } = this.action;
+      if (request.type === 'curtain') {
+        this.proctor.rotation.y = -Math.PI / 2;
+        this.curtainProgress = Math.min(1, elapsed / 1.8);
+      }
+      if (elapsed >= (request.type === 'curtain' ? 2.1 : 1.1)) {
+        const completed = this.session.serve(request.id);
+        this.action = null;
+        if (request.type === 'curtain') this.focus = null;
+        return completed ? request : null;
+      }
+    } else if (!this.path.length && this.focus) {
+      const seat = this.session.seat(this.focus);
+      this.proctor.rotation.y = Math.atan2(
+        seat.x - this.proctor.position.x,
+        seat.z - this.proctor.position.z,
+      );
+    }
+    return null;
   }
   finish(result) {
     this.focus = null;
+    this.path = [];
+    this.action = null;
+    this.proctor.position.set(0, 0, 2.8);
+    this.proctor.rotation.y = 0;
     this.ending = { ...result, id: result.missed[0]?.id, elapsed: 0 };
     this.updateCamera(1, true);
   }
@@ -122,14 +198,18 @@ export class Room {
       height = Math.max(0.65, 0.55 / this.aspect);
       this.target.set(actor.x, y - height * 0.38, actor.z + 0.14);
       this.position.set(actor.x + 0.12, y + 0.2, actor.z + 2.6);
-    } else if (seat) {
+    } else if (this.action?.request.type === 'curtain' && !this.path.length) {
+      this.target.set(-4.5, 1.8, 1.4);
+      this.position.set(-0.5, 3.0, 3.1);
+      height = Math.max(1.65, 1.6 / this.aspect);
+    } else if (seat && !this.busy) {
       this.target.set(seat.x, 1.0, seat.z + 0.24);
       this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
       height = Math.max(0.85, 0.72 / this.aspect);
     } else {
       this.target.set(0, this.aspect > 1 ? 1 : 0.5, -0.55);
       this.position.set(0, 8.5, 10.5);
-      height = Math.max(this.aspect > 1 ? 3.45 : 4.65, 3.05 / this.aspect);
+      height = Math.max(this.aspect > 1 ? 3.45 : 4.65, 3.55 / this.aspect);
     }
     const blend = snap ? 1 : 1 - Math.exp(-dt * 10);
     this.camera.position.lerp(this.position, blend);
@@ -139,7 +219,7 @@ export class Room {
     this.updateProjection();
     this.camera.updateMatrixWorld();
   }
-  anchor(seat, height = 1.9) {
+  anchor(seat, height = 1.0) {
     this.projected.set(seat.x, height, seat.z).project(this.camera);
     return { x: (1 + this.projected.x) * 50, y: (1 - this.projected.y) * 50 };
   }
@@ -157,15 +237,20 @@ export class Room {
         updateEnding(student, 'villain', this.ending.elapsed);
       } else {
         updateStudent(student, { time: elapsed + seat.offset, pose: exam.behavior(seat).pose });
+        if (seat.cleared) updateUpset(student, elapsed - seat.accusedAt);
       }
     }
-    this.proctor.visible = Boolean(this.ending && !this.ending.id);
-    if (this.proctor.visible)
+    this.proctor.visible = !this.ending || !this.ending.id;
+    if (this.ending && this.proctor.visible)
       updateEnding(this.proctor, this.ending.reason === 'win' ? 'win' : 'sad', this.ending.elapsed);
-    if (this.curtain !== exam.curtain) {
-      this.curtain = exam.curtain;
-      setCurtain(this.environment, this.curtain);
-    }
+    else if (!this.ending)
+      updateProctor(this.proctor, {
+        time: elapsed,
+        walking: this.path.length > 0,
+        reaching: Boolean(this.action && !this.path.length),
+      });
+    setCurtain(this.environment, this.curtainProgress);
+    if (this.busy) this.renderer.shadowMap.needsUpdate = true;
     const shadowKey =
       exam.seats
         .filter((seat) => seat.caught)

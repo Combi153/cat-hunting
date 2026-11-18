@@ -113,6 +113,7 @@ async function start() {
     paused = false;
     screen = 'running';
     $('#notice').textContent = '';
+    $('#blink').style.opacity = '0';
     toastUntil = 0;
     previous = performance.now();
     render();
@@ -165,73 +166,38 @@ function render() {
   put('#health', ui.hearts(exam.health));
   $('#time').textContent = clock(exam.duration - exam.time);
   $('#time').classList.toggle('urgent', exam.duration - exam.time <= 15);
-  $('#caught').textContent = '적발 ' + exam.caught + ' / 3';
-  $('.round-status span:last-child').textContent =
-    exam.caught === 3 ? '모두 잡았어요! 남은 요청을 도와주세요' : '종이 울릴 때까지 지켜주세요';
-  $('#play').classList.toggle('inspecting', Boolean(room.focus));
-  put('#controls', ui.inspection(exam, room.focus));
+  $('#play').classList.toggle('inspecting', Boolean(room.focus && !room.busy));
+  put('#controls', ui.inspection(exam, room.focus, room.busy));
   if (room.focus) {
     const request = exam.requestFor(room.focus);
-    const speech = request
-      ? request.type === 'paper'
-        ? '“선생님, 답안지를 바꾸고 싶어요.”'
-        : '“햇빛이 눈부셔요. 커튼 좀 닫아 주세요.”'
-      : exam.behavior(exam.seat(room.focus)).text;
+    const speech = room.busy
+      ? room.action
+        ? room.action.request.type === 'curtain'
+          ? '눈부시지 않게 커튼을 닫으러 가요.'
+          : '새 답안지를 건네고 있어요.'
+        : '학생에게 다가가고 있어요.'
+      : request
+        ? request.type === 'paper'
+          ? '“선생님, 답안지를 바꾸고 싶어요.”'
+          : '“햇빛이 눈부셔요. 커튼 좀 닫아 주세요.”'
+        : exam.behavior(exam.seat(room.focus)).text;
     if ($('.clue').textContent !== speech) $('.clue').textContent = speech;
   }
   put(
     '#seat-targets',
     exam.seats
-      .map((seat) => {
-        const request = exam.requestFor(seat.id);
-        return (
+      .map(
+        (seat) =>
           '<button data-seat="' +
           seat.id +
           '" aria-label="' +
           seatNo(seat.id) +
           '번 학생 관찰" ' +
           (seat.caught ? 'disabled' : '') +
-          ' class="' +
-          (seat.caught ? 'caught' : '') +
-          '">' +
-          seatNo(seat.id) +
-          (seat.caught ? ' ✓' : request ? ' ✋' : '') +
-          '</button>'
-        );
-      })
-      .join(''),
-  );
-  put(
-    '#tasks',
-    exam
-      .liveRequests()
-      .map(
-        (request) =>
-          '<button data-seat="' +
-          request.id +
-          '" class="request ' +
-          (request.late ? 'late' : '') +
-          '">' +
-          '<b>' +
-          ui.icon('hand', 16) +
-          seatNo(request.id) +
-          '번 · ' +
-          (request.type === 'paper' ? '답안지 부탁해요' : '눈이 부셔요') +
-          '</b><small data-deadline="' +
-          request.deadline +
-          '" data-late="' +
-          request.late +
-          '"></small></button>',
+          '></button>',
       )
       .join(''),
   );
-  for (const timer of $('#tasks').querySelectorAll('small')) {
-    const text =
-      timer.dataset.late === 'true'
-        ? '민원 접수 · 지금도 도와줄 수 있어요'
-        : '탭해서 돕기 · ' + Math.max(0, Math.ceil(Number(timer.dataset.deadline) - exam.time)) + '초';
-    if (timer.textContent !== text) timer.textContent = text;
-  }
 }
 function act(action) {
   if (action === 'start') return start();
@@ -253,21 +219,19 @@ function act(action) {
   if (paused) return;
   if (action === 'pause') return pause();
   if (action === 'overview') {
-    room.focus = null;
+    room.overview();
     render();
     return;
   }
   if (action === 'next') return next();
+  if (room.busy) return;
   if (action === 'report') {
     const outcome = exam.report(room.focus);
     if (!outcome) return;
     if (!saved.muted) reportSound(outcome.correct);
     notice(outcome.text, !outcome.correct);
   }
-  if (action === 'serve' && exam.serve(room.focus)) {
-    if (!saved.muted) serviceSound();
-    notice(seatNo(room.focus) + '번 “고맙습니다, 선생님!”');
-  }
+  if (action === 'serve') room.help();
   render();
   if (exam.over) finish();
 }
@@ -305,6 +269,7 @@ canvas.addEventListener('pointerup', (event) => {
   if (!touchStart || touchStart.id !== event.pointerId || paused || screen !== 'running') return;
   const dx = event.clientX - touchStart.x;
   if (room.focus && Math.abs(dx) > 45) next();
+  else if (room.focus && Math.hypot(dx, event.clientY - touchStart.y) < 12) act('overview');
   else if (!room.focus) {
     const box = canvas.getBoundingClientRect();
     const candidate = exam.seats
@@ -341,9 +306,14 @@ function tick(now) {
   previous = now;
   if (screen === 'running' && !paused) {
     const health = exam.health;
+    const completed = room.step(Math.min(dt, exam.duration - exam.time));
+    if (completed) {
+      if (!saved.muted) serviceSound();
+      notice('“고맙습니다, 선생님.”');
+    }
     exam.step(dt);
     if (health > exam.health) {
-      notice('학생 요청이 늦어 민원이 들어왔어요. 생명 −1', true);
+      notice('기다리던 학생이 도움을 받지 못해 속상해해요.', true);
       if (!saved.muted) reportSound(false);
     }
     if (now - renderedAt > 120) {
@@ -356,7 +326,13 @@ function tick(now) {
     const stillEnding = motion.matches && room.ending;
     if (stillEnding) room.ending.elapsed = 0;
     room.draw(stillEnding ? 0 : Math.min(dt, 0.1), exam.time);
-    if (!room.focus && screen === 'running') {
+    const blinkPhase = exam.time % 12;
+    const blink =
+      screen === 'running' && !motion.matches && !room.busy && blinkPhase > 11.76
+        ? Math.sin(((blinkPhase - 11.76) / 0.24) * Math.PI) * 0.72
+        : 0;
+    $('#blink').style.opacity = String(Math.max(0, blink));
+    if ((!room.focus || room.busy) && screen === 'running') {
       for (const button of $('#seat-targets').children) {
         const anchor = room.anchor(exam.seat(Number(button.dataset.seat)));
         button.style.left = anchor.x + '%';

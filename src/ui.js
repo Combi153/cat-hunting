@@ -49,10 +49,10 @@ export function lobby(saved) {
     <header class="topline"><span class="brand"><img src="/cat.svg" alt="">90초 시험 감독</span>
     <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
     <div class="cover-art" role="img" aria-label="점토 교실에서 안경을 고쳐 쓰는 학생"></div>
-    <section class="cover-copy"><p class="eyebrow">조용한 교실, 수상한 세 명</p><h1>냥이잡기</h1>
+    <section class="cover-copy"><p class="eyebrow">조용한 교실, 숨겨진 비밀</p><h1>냥이잡기</h1>
     <p class="lead">평범한 손짓일까, 몰래 보는 정답일까?</p>
     <div class="rules"><span>${icon('clock')} 1분 30초</span><span>${hearts(3)} 생명 3개</span></div>
-    <p class="how">학생을 탭해 관찰하고, 확신이 들면 바로 신고해요.<br>오인·민원은 생명 −1. 세 명을 잡고 끝까지 버텨요.</p>
+    <p class="how">학생을 탭하면 감독관이 다가가요. 잘 살펴본 뒤 신고해 주세요.<br>손을 든 학생도 도와주며, 종이 울릴 때까지 교실을 지켜요.</p>
     <button class="primary start-btn" data-action="start">감독 시작 ${icon('arrow')}</button>
     ${saved.history.length ? `<p class="last-round">최근 ${saved.history.length}판 중 ${wins}번 성공 · 이번엔 새로운 배치예요.</p>` : ''}
     </section></div>`;
@@ -60,38 +60,40 @@ export function lobby(saved) {
 export function hud() {
   return `<header class="hud-top"><div id="health">${hearts(3)}</div><strong id="time">01:30</strong>
     <button class="icon-btn" data-action="pause" aria-label="일시정지">${icon('pause')}</button></header>
-    <div class="round-status"><span id="caught">적발 0 / 3</span><span>종이 울릴 때까지 지켜주세요</span></div>`;
+    <div class="round-status"><span>종이 울릴 때까지 지켜주세요</span></div>`;
 }
-export function inspection(exam, id) {
+export function inspection(exam, id, busy = '') {
   const seat = exam.seat(id);
   if (!seat)
-    return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 살펴보세요. 조용하다가도 딴짓할 수 있어요.</p></div>`;
+    return `<div class="overview-copy"><h2>누가 몰래 답을 보고 있을까요?</h2><p>학생을 탭해 다가가세요. 손을 든 학생도 살펴주세요.</p></div>`;
+  if (busy)
+    return `<div class="inspection-heading"><button class="back" data-action="overview" ${busy === 'helping' ? 'disabled' : ''}>‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>이동 중</span></div><p class="clue" aria-live="polite"></p><p class="decision-hint">${busy === 'helping' ? '잠시만 기다려 주세요.' : '학생 곁에 도착하면 자세히 살펴볼 수 있어요.'}</p>`;
   const request = exam.requestFor(id);
 
-  return `<div class="inspection-heading"><button class="back" data-action="overview" aria-label="교실로 돌아가기">‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${seat.caught ? '적발 완료' : seat.cleared ? '정상 확인' : '관찰 중'}</span></div>
+  return `<div class="inspection-heading"><button class="back" data-action="overview" aria-label="교실로 돌아가기">‹ 교실</button><h2>${seatNo(id)}번 학생</h2><span>${seat.caught ? '적발 완료' : seat.cleared ? '오해였어요' : '관찰 중'}</span></div>
     <p class="clue" aria-live="polite"></p>
     <div class="decision">
     <button class="secondary" data-action="next">다음 학생 ›</button>
     ${
       request
         ? `<button class="primary" data-action="serve">${request.type === 'paper' ? '새 답안지 건네기' : '커튼 닫아주기'}</button>`
-        : `<button class="report" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '정상 학생이에요' : '신고하기'}</button>`
+        : `<button class="${seat.cleared ? 'secondary' : 'report'}" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '확인 완료' : '신고하기'}</button>`
     }
-    </div><p class="decision-hint">${request ? '요청을 들어주면 민원을 막을 수 있어요.' : '수상한 물건과 행동을 보고 판단하세요. 오인하면 ♥ −1'}</p>`;
+    </div><p class="decision-hint">${request ? '도움이 필요한 학생이에요.' : '학생 화면을 탭하면 교실로 돌아가요.'}</p>`;
 }
 export function ending(result) {
   const win = result.reason === 'win';
   const villain = result.missed[0];
   const title = win ? '완벽하게 지켜냈어요!' : result.reason === 'health' ? '감독 실패!' : '들키지 않았지!';
   const explanation = win
-    ? '부정행위자 세 명 모두 적발. 시험이 무사히 끝났어요.'
+    ? '부정행위를 모두 찾아냈어요. 시험이 무사히 끝났어요.'
     : result.reason === 'health'
-      ? '오인과 민원으로 생명이 모두 닳았어요.'
+      ? '거듭된 오해와 기다림에 교실의 신뢰를 잃었어요.'
       : '종이 울렸어요. 부정행위자가 끝까지 남아 있었어요.';
   return `<div class="ending-title"><p class="eyebrow">${win ? '감독 성공' : '감독 실패'}</p><h1>${title}</h1></div>
     <div class="ending-bottom"><p class="ending-line">${villain ? seatNo(villain.id) + '번 “' + TYPES[villain.kind].taunt + '”' : win ? '“모두 수고했어요!”' : '“다음 시험은 꼭 지켜낼 거예요.”'}</p>
     <p>${explanation}</p>
-    <div class="end-stats"><span>적발 <b>${result.caught}/3</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
+    <div class="end-stats"><span>적발 <b>${result.caught}/${result.caught + result.missed.length}</b></span><span>오인 <b>${result.falseCalls}</b></span><span>민원 <b>${result.complaints}</b></span></div>
     ${villain ? `<details><summary>놓친 단서 보기</summary>${result.missed.map((seat) => `<p><b>${seatNo(seat.id)}번</b> ${TYPES[seat.kind].proof}</p>`).join('')}</details>` : ''}
     <button class="primary" data-action="start">새 배치로 한 판 더 ${icon('arrow')}</button>
     <button class="text-btn" data-action="home">처음으로</button></div>

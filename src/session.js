@@ -69,7 +69,7 @@ export class Exam {
     this.complaints = [];
     this.curtain = false;
     this.events = [];
-    const xs = [-1.35, 1.35];
+    const xs = [-2.25, 0, 2.25];
     const zs = [2.4, 0.1, -2.2, -4.5];
     this.seats = zs.flatMap((z, row) =>
       xs.map((x, col) => ({
@@ -90,7 +90,7 @@ export class Exam {
     // Spread three different leads over the room without identifying suspects in the UI.
     const devices = shuffled(Object.keys(TYPES), random);
     for (const [wave, row] of shuffled([0, 1, 2, 3], random).slice(0, 3).entries()) {
-      const culprit = this.seats[row * 2 + Math.floor(random() * 2)];
+      const culprit = this.seats[row * xs.length + Math.floor(random() * xs.length)];
       culprit.guilty = true;
       culprit.kind = devices[wave];
       culprit.first = [5, 25, 49][wave] + random() * 3;
@@ -127,6 +127,7 @@ export class Exam {
       if (phase < 2) return { pose: seat.kind, text: TYPES[seat.kind].cue };
       if (phase < 8) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
     }
+    if (seat.cleared) return { pose: 'write', text: '눈가를 붉힌 채, 말없이 답안지를 채우고 있다.' };
     if (!seat.guilty) {
       const phase = (this.time + seat.offset) % 32;
       if (phase >= 25 && phase < 29) return ordinary[seat.ordinary];
@@ -144,14 +145,15 @@ export class Exam {
       return { correct: true, text: seatNo(id) + '번 · ' + TYPES[seat.kind].name + ' 적발!' };
     }
     seat.cleared = true;
+    seat.accusedAt = this.time;
     this.falseCalls++;
     this.damage('오인 신고', id);
-    return { correct: false, text: seatNo(id) + '번은 정상 학생이에요. 오인 신고 · 생명 −1' };
+    return { correct: false, text: '“저는 그냥 문제를 풀고 있었는데…” 잘못 짚었어요.' };
   }
   damage(reason, id) {
     if (this.over) return;
     this.health = Math.max(0, this.health - 1);
-    this.events.push({ id, time: this.time, text: reason + ' · 생명 −1' });
+    this.events.push({ id, time: this.time, text: reason });
     if (this.health === 0) {
       this.over = true;
       this.reason = 'health';
@@ -173,7 +175,7 @@ export class Exam {
     if (this.over) return;
     this.time = Math.min(this.duration, this.time + Math.max(0, dt));
     for (const request of this.liveRequests()) {
-      if (!request.late && this.time >= request.deadline && !this.over) {
+      if (!request.helping && !request.late && this.time >= request.deadline && !this.over) {
         request.late = true;
         this.complaints.push({ id: request.id, time: this.time });
         this.damage('요청 지연 민원', request.id);
