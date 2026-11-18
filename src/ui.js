@@ -44,14 +44,16 @@ export function hearts(health) {
     '</span>'
   );
 }
-// Local mock creative only: no ad network, tracking, or outbound destination.
-function adPreview() {
-  return `<aside class="ad-preview" aria-label="임시 광고 배너 미리보기">
-    <p class="ad-preview-label">광고 · 미리보기</p>
-    <div class="ad-preview-creative" role="img" aria-label="가상 광고: 냥이네 쉼터. 감독 끝! 커피 한 잔 어때요?">
-      <img src="/art/cafe-ad-preview.jpg" alt="" width="900" height="300" decoding="async">
-      <span class="ad-preview-copy" aria-hidden="true"><strong>냥이네 쉼터</strong><span>감독 끝! 커피 한 잔 어때요?</span></span>
-    </div>
+// Direct sponsor link; placement identifies the originating screen in UTM reports.
+function sponsorBanner(placement) {
+  return `<aside class="sponsor-banner" aria-label="생각하는 공간 광고">
+    <p class="sponsor-banner-label">광고</p>
+    <a class="sponsor-banner-link" href="https://thinkplace.co.kr/?utm_source=cat_hunting&amp;utm_medium=banner&amp;utm_campaign=thinkplace&amp;utm_content=${placement}" target="_blank" rel="noopener noreferrer sponsored" aria-label="생각하는 공간 홈페이지 — 수업 알아보기 (새 탭)">
+      <picture>
+        <source srcset="/thinkplace/thinkplace-banner.webp" type="image/webp">
+        <img src="/thinkplace/thinkplace-banner.png" width="2172" height="724" alt="생각하는 공간. 다음은 당신 차례. 교대역 · 고등 국어 · 공부법. 수업 알아보기. thinkplace.co.kr" loading="lazy" decoding="async">
+      </picture>
+    </a>
   </aside>`;
 }
 export function lobby(saved, selected = 1) {
@@ -66,7 +68,7 @@ export function lobby(saved, selected = 1) {
     <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
     <button class="primary start-btn" data-action="start">${selected}단계 감독 시작 ${icon('arrow')}</button>
-    ${adPreview()}
+    ${sponsorBanner('lobby')}
     </section></div>`;
 }
 export function hud(stage = 1) {
@@ -118,7 +120,7 @@ export function ending(result) {
     ${!win ? '<button class="secondary review-open" data-action="review">부정행위 다시 보기</button>' : ''}
     ${win && !finalStage ? `<button class="primary" data-action="advance">${result.stage + 1}단계 도전 ${icon('arrow')}</button><button class="text-btn" data-action="start">이 단계 다시 하기</button>` : finalStage ? '<button class="primary" data-action="home">다섯 시험 돌아보기</button><button class="text-btn" data-action="start">마지막 시험 다시 하기</button>' : `<button class="primary" data-action="start">${result.stage}단계 다시 도전 ${icon('arrow')}</button>`}
     <button class="secondary share-open" data-action="share">친구에게 공유하기</button>
-    <button class="text-btn" data-action="home">처음으로</button>${adPreview()}</div>
+    <button class="text-btn" data-action="home">처음으로</button>${sponsorBanner('result')}</div>
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
 

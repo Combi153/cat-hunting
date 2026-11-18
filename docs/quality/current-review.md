@@ -4,6 +4,18 @@
 
 [문서 홈](../README.md) · [검증 실행법](../engineering/development.md) · [미검증 항목](open-questions.md)
 
+## 생각하는 공간 광고 배너 (2026-11-18)
+
+코드 기준: `a1ee37a`에 배너 교체를 적용한 작업 트리. 로컬 Vite `127.0.0.1:5193`, 설치된 Chrome·Playwright에서 확인했다. 개발 모드로 운영 분석은 수집하지 않았다.
+
+- `npm test` 27개, `npm run build`, `test:browser` 통과. 기존 Three.js 청크 크기 경고는 유지된다. 규칙·에셋은 변경하지 않아 캠페인·에셋 전체 검사는 재실행하지 않았다.
+- 320×568·390×844·568×320·844×390·1167×813 로비·시간 실패 결과에서 이미지 로딩, 3:1 비율, 가로 넘침 없음, 스크롤로 배너와 시작/재도전 버튼 접근을 확인했다. 작은 세로·가로·노트북 캡처를 직접 검토했다.
+- 로비에서 Tab으로 링크 선택 → Enter로 새 탭 열기, 결과에서 클릭으로 새 탭 열기, UTM의 `lobby/result` 구분과 기존 게임 유지 확인. 로비 링크의 opener 분리도 검사했다. 목적지 요청은 대역 응답으로 가로채 광고주 분석에 테스트 클릭을 보내지 않았다. 별도 읽기 전용 웹 접근으로 홈페이지 응답을 확인했으며 UTM의 실제 분석 수집은 미검증이다.
+- 무작위 1단계에서 제어된 시계로 시작 → 10번 학생 관찰 → 교실 복귀 → 시간 실패 → 다시 보기/복귀 → 재도전 → 일시정지를 수행했다. 관찰·플레이·다시 보기·재도전·일시정지 화면의 배너 숨김을 확인했다. 신규 플레이어 성공률이나 실제 휴대폰 검증은 아니다.
+- 이미지 원본의 PNG와 WebP를 빌드에 포함했다. Chrome에서는 WebP가 선택된다. 실제 WebP 미지원 브라우저는 별도 확인하지 않았다.
+
+[작은 세로 로비](../playtest/thinkplace-banner/lobby-320.png) · [가로 로비](../playtest/thinkplace-banner/lobby-568.png) · [노트북 로비](../playtest/thinkplace-banner/lobby-1167.png) · [작은 세로 결과](../playtest/thinkplace-banner/result-320.png) · [가로 결과](../playtest/thinkplace-banner/result-568.png) · [노트북 결과](../playtest/thinkplace-banner/result-1167.png) · [관찰 중 숨김](../playtest/thinkplace-banner/inspection-320.png)
+
 ## 결과의 친구 공유 (2026-11-18)
 
 코드 기준: `43f15fc`에 공유 기능을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5187`, 설치된 Chrome·Playwright 터치 에뮬레이션. 개발 모드에서 운영 분석은 수집하지 않았다.
