@@ -6,7 +6,7 @@ import { activateSound, bell, reportSound, serviceSound, finale } from './sound.
 import { createAnalytics, createGameAnalytics } from './analytics.js';
 import { createEngagementAnalytics } from './engagement-analytics.js';
 import { createResultSharing } from './share.js';
-import { RECORDS_KEY, applyResult, normalizeRecords, seedRecords } from './records.js';
+import { RECORDS_KEY, applyResult, emptyRecords, normalizeRecords, seedRecords } from './records.js';
 
 const track = createAnalytics({
   buildVersion: __BUILD_VERSION__,
@@ -46,16 +46,26 @@ function save() {
   }
 }
 // Records live under their own key so the v2 progress save is never rewritten by this feature.
+// A save from a newer records version is left as it is rather than replaced with an empty one.
+let recordsWritable = true;
 function loadRecords() {
   try {
     const raw = localStorage.getItem(RECORDS_KEY);
-    return raw === null ? seedRecords(saved.history) : normalizeRecords(JSON.parse(raw));
+    if (raw === null) return seedRecords(saved.history);
+    const value = JSON.parse(raw);
+    if (Number(value?.version) > 1) recordsWritable = false;
+    return normalizeRecords(value);
   } catch {
-    return seedRecords(saved.history);
+    try {
+      return seedRecords(saved.history);
+    } catch {
+      return emptyRecords();
+    }
   }
 }
 let records = loadRecords();
 function saveRecords() {
+  if (!recordsWritable) return;
   try {
     localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
   } catch {
@@ -91,7 +101,10 @@ function home() {
   $('#play').hidden = true;
   $('#lobby').hidden = false;
   put('#lobby', ui.lobby(saved, selectedStage, records));
-  if (fromRecords) $('#lobby [data-action=records]').focus({ preventScroll: true });
+  if (fromRecords) {
+    $('#lobby').scrollTop = 0;
+    $('#lobby [data-action=records]').focus({ preventScroll: true });
+  }
 }
 function openRecords(tab) {
   if (screen !== 'home' && screen !== 'records') return;

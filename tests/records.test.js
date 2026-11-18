@@ -116,7 +116,7 @@ test('applyResult does not mutate the stored records', () => {
   assert.deepEqual(records, emptyRecords());
 });
 
-test('existing history seeds counts and badges silently; times and devices start empty', () => {
+test('existing history seeds counts and badges silently; totals, times and devices start empty', () => {
   const history = [
     round({ stage: 5, catches: undefined, requests: undefined, helpedOnTime: undefined }),
     round({ stage: 4, reason: 'missed', missed: [{ id: 3, kind: 'ear' }], catches: undefined }),
@@ -126,11 +126,20 @@ test('existing history seeds counts and badges silently; times and devices start
   assert.equal(records.exams, 3);
   assert.equal(records.wins, 2);
   assert.equal(records.streak, 1);
-  assert.equal(records.caught, 9);
+  assert.equal(records.caught, 0);
+  assert.equal(records.falseCalls, 0);
+  assert.deepEqual(records.stages[3], { played: 1, wins: 0, fastest: null });
   assert.equal(records.fastest, null);
   assert.equal(records.kinds.glasses, 0);
   assert.ok(records.unlocked.graduate && records.unlocked.flawless);
   assert.deepEqual(records.unseen, []);
+});
+
+test('malformed catch entries are skipped instead of throwing', () => {
+  const { records } = applyResult(emptyRecords(), round({ catches: [null, { kind: 'toString', time: 3 }, { kind: 'pen', time: 9 }] }));
+  assert.equal(records.kinds.pen, 1);
+  assert.equal(Object.keys(records.kinds).length, 6);
+  assert.doesNotThrow(() => seedRecords([null, round({ catches: [null] })]));
 });
 
 test('broken or foreign storage falls back to clean records', () => {

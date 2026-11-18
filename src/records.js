@@ -67,8 +67,13 @@ export function progress(records, id) {
 }
 
 // The time the last culprit left, only when every culprit was caught and the exam was passed.
+const catchList = (result) =>
+  Array.isArray(result.catches)
+    ? result.catches.filter((c) => c && typeof c === 'object' && Number.isFinite(c.time))
+    : [];
+
 function clearTime(result) {
-  const catches = Array.isArray(result.catches) ? result.catches : [];
+  const catches = catchList(result);
   if (result.reason !== 'win' || !catches.length || catches.length < result.caught) return null;
   return Math.max(...catches.map((c) => c.time));
 }
@@ -93,7 +98,8 @@ function earned(records, result) {
 }
 
 export function applyResult(previous, result, now = Date.now()) {
-  const records = structuredClone(previous),
+  // A JSON copy rather than structuredClone keeps Safari 14 (the Vite build target) working.
+  const records = JSON.parse(JSON.stringify(previous)),
     win = result.reason === 'win',
     stage = records.stages[stageNumber(result.stage) - 1],
     done = clearTime(result);
@@ -112,7 +118,7 @@ export function applyResult(previous, result, now = Date.now()) {
   records.caught += count(result.caught);
   records.falseCalls += count(result.falseCalls);
   records.complaints += count(result.complaints);
-  for (const { kind } of Array.isArray(result.catches) ? result.catches : []) if (kind in records.kinds) records.kinds[kind]++;
+  for (const { kind } of catchList(result)) if (KINDS.includes(kind)) records.kinds[kind]++;
   const flags = earned(records, result);
   const unlocked = ACHIEVEMENTS.filter((a) => flags[a.id] && !records.unlocked[a.id]).map((a) => a.id);
   for (const id of unlocked) records.unlocked[id] = now;
@@ -120,10 +126,13 @@ export function applyResult(previous, result, now = Date.now()) {
   return { records, unlocked };
 }
 
-// History is newest first. Older rounds have no catch times or devices, so those start empty.
+// History is newest first. Only exam, pass, streak and stage counts carry over; catch totals,
+// devices and times start empty so the totals and the device tiles agree.
 export function seedRecords(history, now = Date.now()) {
   let records = emptyRecords();
-  for (const result of [...history].reverse()) records = applyResult(records, result, now).records;
+  for (const result of [...history].reverse())
+    if (result && typeof result === 'object')
+      records = applyResult(records, { ...result, caught: 0, falseCalls: 0, complaints: 0, catches: [] }, now).records;
   records.unseen = [];
   return records;
 }

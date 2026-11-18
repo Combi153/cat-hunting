@@ -49,7 +49,7 @@ npm run preview
 
 저장 키는 `nyangijapgi.v2`다. 최근 10판, 열린 단계, 전체 완료, 음소거를 저장한다. 결과에는 `version: 2`, `ruleset: 4`, `duration: 45`와 단계·배치·승패·신고/민원 기록 등이 남는다. 이전 v1 저장을 지우지 않고 음소거 설정을 읽으며, 이전 기록만으로 새 단계를 자동 해제하지 않는다. 저장이 불가능한 환경에서도 플레이는 계속된다.
 
-기록실은 별도 키 `nyangijapgi.records.v1`을 쓴다. 키가 없으면 v2의 최근 10판으로 횟수를 채우고, 그 판에는 없는 적발 시각·도구는 0에서 시작한다. 결과의 `catches`(도구·적발 시각), `requests`, `helpedOnTime`이 기록과 업적의 입력이다. 결과 화면용 `achievements`는 v2 기록에 넣지 않는다.
+기록실은 별도 키 `nyangijapgi.records.v1`을 쓴다. 키가 없으면 v2의 최근 10판으로 시험·통과·연속·단계별 횟수만 채우고, 누적 적발·오인·민원과 적발 시각·도구는 0에서 시작한다. 버전이 더 높은 기록은 덮어쓰지 않는다. Vite 빌드 대상이 Safari 14이므로 `structuredClone` 같은 최신 API를 쓰지 않는다. 결과의 `catches`(도구·적발 시각), `requests`, `helpedOnTime`이 기록과 업적의 입력이다. 결과 화면용 `achievements`는 v2 기록에 넣지 않는다.
 
 ## 검증 명령
 
