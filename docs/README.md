@@ -31,6 +31,7 @@
 | [아트와 행동 표현](product/art-direction.md) | 어떤 느낌과 동작을 유지하며 새 소품은 왜 이렇게 만들었나? | 현재 방향·제작 검토 |
 | [대화와 결정 이력](decisions/conversation-log.md) | 사용자가 무엇을 원했고, 왜 바뀌었나? | 요청·결정 기록 |
 | [개발 안내](engineering/development.md) | 어디를 고치고 어떻게 실행·검증하나? | 개발 절차 |
+| [플레이 분석](engineering/analytics.md) | 방문자와 단계별 실패를 어떻게 측정하나? | GA4 설정·이벤트·해석 |
 | [공유와 배포](engineering/sharing-and-deployment.md) | 어떤 주소에 배포되고 링크 미리보기는 어떻게 관리하나? | 운영 절차 |
 | [현재 검증과 루브릭](quality/current-review.md) | 무엇을 어떤 조건으로 확인했나? | 날짜·커밋별 증거 |
 | [미검증 항목](quality/open-questions.md) | 무엇이 아직 불확실하며 다음에 무엇을 확인해야 하나? | 열린 질문 |

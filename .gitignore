@@ -4,3 +4,5 @@ dist/
 .vite/
 .playwright-cli/
 test-results/
+.env*
+!.env.example

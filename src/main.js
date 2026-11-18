@@ -3,6 +3,14 @@ import { Exam, clock, seatNo } from './session.js';
 import { stageNumber, unlockStage } from './stages.js';
 import * as ui from './ui.js';
 import { activateSound, bell, reportSound, serviceSound, finale } from './sound.js';
+import { createAnalytics, createGameAnalytics } from './analytics.js';
+
+const track = createAnalytics({
+  measurementId: import.meta.env.VITE_GA_MEASUREMENT_ID,
+  enabled: import.meta.env.PROD || import.meta.env.VITE_GA_DEBUG === 'true',
+  debug: import.meta.env.VITE_GA_DEBUG === 'true',
+});
+const gameAnalytics = createGameAnalytics(track);
 
 const $ = (selector) => document.querySelector(selector);
 const storageKey = 'nyangijapgi.v2';
@@ -49,6 +57,7 @@ function put(selector, content) {
   }
 }
 function home() {
+  if (screen === 'running') gameAnalytics.leave(exam);
   screen = 'home';
   paused = false;
   $('#overlay').hidden = true;
@@ -87,10 +96,11 @@ function resume() {
   previous = performance.now();
   if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
 }
-async function start(stage = selectedStage) {
+async function start(stage = selectedStage, source = 'lobby') {
   selectedStage = Math.min(saved.unlocked, stageNumber(stage));
   if (loading) return;
   loading = true;
+  track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
   const button = document.activeElement;
   if (button?.tagName === 'BUTTON') button.disabled = true;
   if (!saved.muted) activateSound();
@@ -124,7 +134,9 @@ async function start(stage = selectedStage) {
     previous = performance.now();
     render();
     if (!saved.muted) bell();
+    gameAnalytics.start(exam, source);
   } catch (error) {
+    track('level_load_error', { level_name: `exam_${selectedStage}` });
     console.error(error);
     home();
     modal(
@@ -137,7 +149,9 @@ async function start(stage = selectedStage) {
 }
 function select(id) {
   if (screen !== 'running' || paused || exam.seat(id)?.caught) return;
+  const previousSeat = room.focus;
   room.select(id);
+  if (room.focus === id && previousSeat !== id) gameAnalytics.inspect(exam);
   render();
 }
 function next() {
@@ -154,6 +168,7 @@ function finish() {
   if (screen !== 'running') return;
   screen = 'ended';
   const result = exam.result();
+  gameAnalytics.end(exam);
   saved.unlocked = unlockStage(saved.unlocked, result);
   if (result.reason === 'win' && result.stage === 5) saved.completed = true;
   saved.history.unshift(result);
@@ -212,9 +227,9 @@ function render() {
   );
 }
 function act(action) {
-  if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage);
+  if (action === 'start') return start(screen === 'ended' ? exam.stage : selectedStage, screen === 'ended' ? 'retry' : 'lobby');
   if (action === 'advance' && screen === 'ended' && exam.reason === 'win' && exam.stage < 5)
-    return start(exam.stage + 1);
+    return start(exam.stage + 1, 'advance');
   if (action === 'home') return home();
   if (action === 'sound') {
     saved.muted = !saved.muted;
@@ -242,6 +257,7 @@ function act(action) {
   if (action === 'report') {
     const outcome = exam.report(room.focus);
     if (!outcome) return;
+    gameAnalytics.event('student_report', exam, { report_result: outcome.correct ? 'correct' : 'incorrect' });
     if (!saved.muted) reportSound(outcome.correct);
     notice(outcome.text, !outcome.correct);
     if (!exam.over) room.returnHome();
@@ -313,6 +329,7 @@ canvas.addEventListener('pointercancel', () => {
   touchStart = null;
 });
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden && screen === 'running') gameAnalytics.event('level_background', exam);
   if (document.hidden && !paused) pause();
 });
 window.addEventListener('blur', () => {
@@ -328,11 +345,13 @@ function tick(now) {
     const health = exam.health;
     const completed = room.step(Math.min(dt, exam.duration - exam.time));
     if (completed) {
+      gameAnalytics.event('help_complete', exam, { help_type: completed.type });
       if (!saved.muted) serviceSound();
       notice('“고맙습니다, 선생님.”');
     }
     exam.step(dt);
     exam.observe(room.focus && !room.busy ? room.focus : null, dt);
+    gameAnalytics.progress(exam);
     if (health > exam.health) {
       notice(
         exam.complaints.at(-1)?.reason === 'observation'

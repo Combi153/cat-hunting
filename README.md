@@ -22,6 +22,7 @@ npm run dev
 | 사용자 요청, 변경 이유, 취소된 결정 | [대화와 결정 이력](docs/decisions/conversation-log.md) |
 | 코드 구조·로컬 실행·테스트 | [개발 안내](docs/engineering/development.md) |
 | 공개 주소·Vercel·카톡 미리보기 | [공유와 배포](docs/engineering/sharing-and-deployment.md) |
+| 방문자·단계별 실패·GA4 설정 | [플레이 분석](docs/engineering/analytics.md) |
 | 개발 루브릭·검증 증거 | [현재 검증](docs/quality/current-review.md) |
 | 다음에 확인할 경험·환경 | [미검증 항목](docs/quality/open-questions.md) |
 
