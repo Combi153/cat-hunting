@@ -184,3 +184,24 @@ test('observation captions never distinguish a cheating prop from its innocent c
     assert.equal(exam.observationText(seat.id), suspicious);
   }
 });
+
+test('results keep catch times, device kinds and on-time help for records', () => {
+  const exam = new Exam(7, 3),
+    culprits = exam.seats.filter((s) => s.guilty);
+  exam.time = 12.5;
+  exam.report(culprits[1].id);
+  exam.time = 30;
+  exam.report(culprits[0].id);
+  const [onTime, late] = exam.requests;
+  onTime.done = true;
+  late.late = true;
+  const result = exam.result();
+  assert.deepEqual(result.catches, [
+    { kind: culprits[1].kind, time: 12.5 },
+    { kind: culprits[0].kind, time: 30 },
+  ]);
+  assert.equal(result.requests, 2);
+  assert.equal(result.helpedOnTime, 1);
+  assert.equal(result.caught, 2);
+  assert.equal(result.served, 1);
+});
