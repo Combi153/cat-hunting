@@ -17,6 +17,8 @@
 
 [작은 세로 실패](../playtest/result-sharing/defeat-320.png) · [작은 가로 성공](../playtest/result-sharing/win-landscape.png) · [노트북 성공](../playtest/result-sharing/win-laptop.png) · [공유 선택창](../playtest/result-sharing/options.png) · [작은 가로 공유창](../playtest/result-sharing/options-landscape.png) · [복사 성공](../playtest/result-sharing/copied.png) · [직접 복사 안내](../playtest/result-sharing/manual-copy.png)
 
+배포 후 확인: 기능 커밋 `6882e14`의 프로덕션 READY·공개 별칭을 확인했다. 공개 HTTPS의 Chrome 390×844에서 무작위 배치·제어된 시계로 시간 실패 → 공유 → 실제 클립보드 읽기/쓰기 → 닫기 → 재도전을 통과했고 페이지 오류는 없었다. GA 요청은 차단했다. [배포 기록](../engineering/sharing-and-deployment.md#결과-공유-배포--2026-11-18)
+
 ## 첫 화면 목표·조작 문구 개선 (2026-11-18)
 
 코드 기준: `07c8af2`에 이번 로비 문구와 단어 단위 줄바꿈을 적용한 작업 트리. 로컬 Vite `127.0.0.1:5186`, 설치된 Chrome에서 확인했다. 개발 모드로 운영 분석은 수집하지 않았다.
