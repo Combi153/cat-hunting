@@ -39,7 +39,7 @@
 | 정보 | 설정 |
 | --- | --- |
 | 제목 | 냥이잡기 · 45초 시험 감독 |
-| 소개 | 평범한 손짓일까, 몰래 보는 정답일까? 45초 안에 숨은 부정행위를 찾아보세요. |
+| 소개 | 누가 몰래 정답을 보고 있을까요? 시험 감독이 되어 45초 안에 부정행위를 모두 찾아내세요. |
 | 대표 이미지 | https://cat-hunting.vercel.app/art/exam-keyart.jpg |
 | 이미지 형식·치수 | JPEG, 1672 × 941 |
 | 기본 OG | type=website, locale=ko_KR, site_name, title, description, url, image와 대체 설명 |
