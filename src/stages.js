@@ -1,20 +1,20 @@
 const kinds = ['glasses', 'ear', 'camera', 'note', 'watch', 'pen'];
 // Internal balance data. Stage-specific rules and evidence are never previewed in the UI.
-// Difficulty 1–5 was anchored on the previous first exam at stage 2. Continuous pressures
-// advance in equal steps; all stages now have slightly longer evidence and grace windows.
+// Stage 1 gives new players longer looks and no arrival concealment.
+// Stages 2–5 retain the previous pressure progression.
 export const STAGES = [
   {
     culprits: 2,
     kinds,
     cue: 0.95,
-    proof: 4.3,
+    proof: 6.3,
     cycle: 9.4,
     jitter: 2,
-    hide: 0.2,
+    hide: 0,
     sensitive: 0,
     patience: 8,
     requests: [22],
-    deadline: 18.5,
+    deadline: 21,
   },
   {
     culprits: 3,

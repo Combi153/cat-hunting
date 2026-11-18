@@ -67,6 +67,51 @@ test('later students briefly hide on arrival, then expose the same scheduled evi
   assert.equal(exam.watchWarning(normal.id), false);
 });
 
+test('first-stage arrivals keep both props visible through the longer window without revealing answers in captions', () => {
+  for (const kind of STAGES[0].kinds) {
+    const exam = new Exam(42, 1), seat = exam.seats[0];
+    exam.requests = [];
+    seat.kind = kind;
+    seat.first = 1;
+    seat.offset = seat.period - seat.first;
+    for (const elapsed of [0.01, 4.5, 6.2]) {
+      exam.time = seat.first + exam.rules.cue + elapsed;
+      exam.observe(null, 0);
+      exam.observe(seat.id, 0.01);
+      seat.guilty = true;
+      assert.equal(exam.behavior(seat).pose, 'proof-' + kind);
+      const caption = exam.observationText(seat.id);
+      seat.guilty = false;
+      assert.equal(exam.behavior(seat).pose, 'clear-' + kind);
+      assert.equal(exam.observationText(seat.id), caption);
+    }
+    exam.time = seat.first + exam.rules.cue + 6.31;
+    for (const guilty of [true, false]) {
+      seat.guilty = guilty;
+      assert.notEqual(exam.behavior(seat).pose, (guilty ? 'proof-' : 'clear-') + kind);
+    }
+    assert.equal(exam.result().ruleset, 5);
+  }
+});
+
+test('first-stage help now allows until second 43, while late help still costs only one heart', () => {
+  const exam = new Exam(42, 1);
+  exam.step(42.9);
+  assert.equal(exam.health, 3);
+  assert.equal(exam.requests[0].late, false);
+  exam.step(0.11);
+  assert.equal(exam.health, 2);
+  assert.equal(exam.requests[0].late, true);
+  exam.step(2);
+  assert.equal(exam.health, 2);
+  assert.equal(exam.reason, 'missed');
+  const helped = new Exam(42, 1);
+  helped.step(42.9);
+  assert.equal(helped.serve(helped.requests[0].id), true);
+  helped.step(3);
+  assert.equal(helped.health, 3);
+});
+
 test('sensitive students warn before a single complaint; leaving or helping prevents pressure', () => {
   const exam = new Exam(42, 4),
     seat = exam.seats.find((s) => s.sensitive);
