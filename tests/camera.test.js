@@ -21,7 +21,7 @@ function overview(aspect) {
   return room;
 }
 
-test('overview keeps whole students and the proctor inside portrait and laptop frames', () => {
+test('overview keeps the rear sign, whole students and proctor inside every frame', () => {
   const proctor = createProctor();
   proctor.position.set(PROCTOR_HOME.x, 0, PROCTOR_HOME.z);
   proctor.rotation.y = Math.PI;
@@ -34,6 +34,8 @@ test('overview keeps whole students and the proctor inside portrait and laptop f
   });
   actors.push(proctor);
   const bounds = actors.map((actor) => new Box3().setFromObject(actor));
+  // Include the entire rear sign frame, not just its text or center point.
+  bounds.push(new Box3(new Vector3(-0.81, 2.09, -5.615), new Vector3(0.81, 2.57, -5.55)));
   for (const aspect of [0.5, 0.85, 1, 1.001, 800 / 730, 800 / 617, 800 / 517, 2.5]) {
     const { camera } = overview(aspect);
     for (const [i, box] of bounds.entries()) {

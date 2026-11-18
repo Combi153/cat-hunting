@@ -280,11 +280,11 @@ export class Room {
       this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
       height = Math.max(0.85, 0.72 / this.aspect);
     } else {
-      // Center the playable area, from the back row's raised hands to the
-      // proctor's feet. Keep the same vertical framing across aspect ratios.
-      this.target.set(0, 0.2, -0.33);
-      this.position.set(0, 8.2, 10.72);
-      height = Math.max(3.8, 3.55 / this.aspect);
+      // Include the rear wall sign through the proctor's feet, even on short
+      // screens. Preserve the viewing angle and continuous aspect-ratio fit.
+      this.target.set(0, 0.2, -1.52);
+      this.position.set(0, 8.2, 9.53);
+      height = Math.max(4.5, 3.55 / this.aspect);
     }
     const blend = snap ? 1 : 1 - Math.exp(-dt * 10);
     this.camera.position.lerp(this.position, blend);

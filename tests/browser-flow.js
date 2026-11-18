@@ -255,6 +255,7 @@ try {
     [1167, 813],
     [1366, 768],
     [1440, 900],
+    [1920, 1080],
   ]) {
     const layout = await fresh();
     await page.setViewportSize({ width, height });
@@ -297,8 +298,24 @@ try {
           Math.min(first.y + first.height, second.y + second.height) - Math.max(first.y, second.y);
         assert.ok(overlapX <= 0 || overlapY <= 0, 'Seat touch targets overlap at ' + width + '×' + height);
       }
-    if (width === 1167 || width === 1366 || width === 1440 || width === 568)
-      await page.screenshot({ path: `test-results/overview-${width}x${height}.png`, animations: 'disabled' });
+    const sign = await page.evaluate(() => {
+      const camera = window.testRoom.camera;
+      return [-0.81, 0.81].flatMap(x => [2.09, 2.57].map(y => {
+        const point = window.testRoom.target.clone().set(x, y, -5.615).project(camera);
+        return { x: point.x, y: point.y };
+      }));
+    });
+    assert.ok(sign.every(p => Math.abs(p.x) < 0.98 && Math.abs(p.y) < 0.98),
+      'Rear sign must stay inside the canvas at ' + width + '×' + height);
+    if (width >= 900) {
+      const game = await page.locator('#game').boundingBox();
+      const canvas = await page.locator('#room').boundingBox();
+      const controls = await page.locator('#controls').boundingBox();
+      assert.ok(Math.abs(game.width / game.height - 9 / 16) < 0.001);
+      assert.ok(Math.abs(game.x + game.width / 2 - width / 2) < 1);
+      assert.ok(canvas.y + canvas.height <= controls.y + 1, 'Desktop controls belong below the classroom');
+    }
+    await page.screenshot({ path: `test-results/overview-${width}x${height}.png`, animations: 'disabled' });
   }
   assert.deepEqual(errors, []);
   console.log('Portrait, short landscape and desktop controls stay on screen; no page errors.');

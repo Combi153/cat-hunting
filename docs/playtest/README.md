@@ -2,10 +2,11 @@
 
 [문서 홈](../README.md) · [현재 검증](../quality/current-review.md) · [과거 모바일 기록](../archive/mobile-rubric.md)
 
-스크린샷은 당시 버전과 검증 조건의 증거다. 폴더를 옮기거나 과거 이미지를 새 버전 캡처로 덮어쓰지 않는다. 현재 교실 구도는 `laptop-framing/`, 소품 세부는 `45-second/`를 사용한다.
+스크린샷은 당시 버전과 검증 조건의 증거다. 폴더를 옮기거나 과거 이미지를 새 버전 캡처로 덮어쓰지 않는다. 현재 교실 구도는 `portrait-desktop/`, 소품 세부는 `45-second/`를 사용한다.
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [portrait-desktop/](portrait-desktop/) | 2026-11-18 중앙 9:16 데스크톱·하단 조작과 시험 표시 구도. `91fae2d`에 변경한 작업 트리, Chrome·제어된 시계. 데스크톱은 무작위 1단계, 작은 세로·가로는 고정 배치 회귀 | [검증 기록](../quality/current-review.md#데스크톱-세로-화면과-시험-표시-구도-2026-11-18) |
 | [promotion-label/](promotion-label/) | 2026-11-18 학원 배너 홍보 표기. `b55f6bc`에 문구 변경만 적용, Chrome 작은 세로·가로·노트북, 무작위 1단계·제어된 시계 | [검증 기록](../quality/current-review.md#학원-배너-홍보-표시-2026-11-18) |
 | [centered-sign/](centered-sign/) | 2026-11-18 뒤편 시험 중 표시 중앙 정렬. `14595d7`에 변경한 작업 트리, Chrome 390×844, 무작위 1단계·제어된 시계 | [검증 기록](../quality/current-review.md#시험-중-표시-중앙-정렬-2026-11-18) |
 | [creator-credit/](creator-credit/) | 2026-11-18 로비 하단 제작자·이메일. `3b0dbd6`에 변경한 작업 트리, Chrome 작은 세로·가로·노트북, 하단까지 스크롤한 화면 | [크레딧 검증](../quality/current-review.md#로비-제작자-연락처-2026-11-18) |
