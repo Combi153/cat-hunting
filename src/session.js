@@ -256,7 +256,7 @@ export class Exam {
     return {
       version: 2,
       duration: this.duration,
-      ruleset: 3,
+      ruleset: 4,
       stage: this.stage,
       seed: this.seed,
       date: Date.now(),
