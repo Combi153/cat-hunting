@@ -1,6 +1,6 @@
 # 공유와 배포
 
-상태: 운영 기록 · 마지막 기능 배포 확인: 2026-11-18, `2653d64`
+상태: 운영 기록 · 마지막 기능 배포 확인: 2026-11-18, `bdb2294`
 
 [문서 홈](../README.md) · [개발 안내](development.md) · [미검증 항목](../quality/open-questions.md)
 
@@ -99,3 +99,8 @@ curl -fsSI https://cat-hunting.vercel.app/art/exam-keyart.jpg
 ### 재도전 기능 공개 배포 확인
 
 2026-11-18: 기능 커밋 `2653d64916d11ee0d932a714f0e29f6a7f40b652`을 main에 푸시했다. 프로덕션 배포 `dpl_6aWa7PZz8ZsZ5mHPXvYp9KLjG6ri`의 READY와 공개 별칭 `cat-hunting.vercel.app` 연결을 확인했다. 공개 HTTPS Chrome 390×844에서 HTTP 200과 분석 큐의 `build_version=2653d64916d1`을 확인했다. GA 외부 요청을 차단한 채 무작위 배치·제어된 시계로 시간 실패 3회 → 0회 시작 차단 → 다시보기 → 실제 링크 복사 2회로 6회 충전 → 새로고침 후 6회 유지를 검사했다. 페이지 오류는 없었고 외부 앱 전송·실기기 검증은 아니다.
+
+
+## 결과 카드 공개 배포 확인 (2026-11-18)
+
+기능 커밋 `bdb22947ab598c01997022afde56a3e5474c81ad`을 main에 푸시했다. 배포 `dpl_6wBmNS7b8e7pSf59Nr1d89FvxmqF`의 프로덕션 READY와 공개 별칭 `cat-hunting.vercel.app` 연결을 확인했다. 공개 HTTPS Chrome 360×606에서 무작위 판·제어된 시계로 시간 실패 → 접힌 결과 → 카드 펼치기 → 다시보기/결과 복귀 → 실제 링크 복사·3회 보상 → 카드 접기를 수행했다. HTTP 200·배포 버전·페이지 오류 없음 확인. 운영 GA 요청은 차단했으며 실제 휴대폰 인앱 전송·스크롤 검증은 아니다.
