@@ -79,10 +79,12 @@ test('successful finish reports the stage and has no further progress', () => {
   const exam = new Exam(42);
   tracker.start(exam, 'advance');
   for (const seat of exam.seats.filter((seat) => seat.guilty)) exam.report(seat.id);
-  exam.step(45);
+  exam.step(exam.duration);
   tracker.end(exam);
   tracker.progress(exam);
   assert.equal(events.at(-1).name, 'level_end');
   assert.equal(events.at(-1).success, true);
   assert.equal(events.at(-1).missed_count, 0);
+  assert.equal(events.at(-1).ruleset, 6);
+  assert.equal(events.at(-1).elapsed_seconds, 60);
 });

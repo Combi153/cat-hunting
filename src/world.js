@@ -10,6 +10,10 @@ import {
 import { approachPath, stationPath, PROCTOR_HOME } from './walkways.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
 
+const PROCTOR_TOP_SPEED = 5.4;
+const PROCTOR_ACCELERATION = 14;
+const PROCTOR_BRAKING = 20;
+
 export class Room {
   constructor(canvas) {
     this.canvas = canvas;
@@ -173,8 +177,10 @@ export class Room {
       const turn = Math.abs(
         Math.atan2(Math.sin(heading - this.proctor.rotation.y), Math.cos(heading - this.proctor.rotation.y)),
       );
-      const desired = Math.min(4.2, Math.sqrt(total * 14)) * Math.max(0.25, Math.cos(turn));
-      this.speed = (this.speed || 0) + Math.max(-slice * 10, Math.min(slice * 10, desired - (this.speed || 0)));
+      const desired = Math.min(PROCTOR_TOP_SPEED, Math.sqrt(total * PROCTOR_BRAKING)) * Math.max(0.25, Math.cos(turn));
+      const speed = this.speed || 0;
+      const limit = slice * PROCTOR_ACCELERATION;
+      this.speed = speed + Math.max(-limit, Math.min(limit, desired - speed));
       const travel = Math.min(distance, this.speed * slice);
       const fraction = distance > 0.0001 ? travel / distance : 1;
       p.x += (next.x - p.x) * fraction;

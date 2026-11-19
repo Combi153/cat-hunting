@@ -40,7 +40,7 @@ try {
   const start = async()=>{await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.locator('#ending').waitFor({state:'hidden'});await page.clock.runFor(100)};
   const finish = async reason=>{
     if(reason!=='missed')await page.evaluate(reason=>{for(const seat of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(seat.id)},reason);
-    await page.clock.fastForward(46000);await revealResult(page);
+    await page.clock.fastForward((await page.evaluate(() => window.testExam.duration) + 1) * 1000);await revealResult(page);
   };
   await balance(3);await start();await finish('win');await balance(3);
   for(const [reason,n]of [['missed',2],['health',1],['missed',0]]){await start();await finish(reason);await balance(n)}

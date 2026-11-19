@@ -76,7 +76,7 @@ try {
       new RegExp(String(id).padStart(2, '0')),
     );
   };
-  const fresh = async () => {
+  const fresh = async (stage = 3) => {
     if (await page.locator('#ending').isVisible()) await tap('#ending [data-action=home]');
     else if (await page.locator('#play').isVisible()) {
       await tap('[data-action=pause]');
@@ -89,8 +89,9 @@ try {
       await page.locator('[data-share=send]').tap();
       await page.clock.runFor(5200);
     }
+    await tap(`[data-level="${stage}"]`);
     await start();
-    return new Exam(await page.evaluate(() => window.testExam.seed), 3);
+    return new Exam(await page.evaluate(() => window.testExam.seed), stage);
   };
   const health = () => page.locator('#health [role=img]').getAttribute('aria-label');
 
@@ -256,7 +257,7 @@ try {
   assert.equal(await page.evaluate(() => window.testExam.requests.filter(r => r.done).length), 2);
   assert.equal(await page.evaluate(() => window.testExam.curtain), true);
 
-  for (const [width, height] of [
+  for (const [width, height, stage = 3] of [
     [320, 568],
     [390, 844],
     [568, 320],
@@ -266,8 +267,14 @@ try {
     [1366, 768],
     [1440, 900],
     [1920, 1080],
+    [320, 568, 1],
+    [568, 320, 1],
+    [1167, 813, 1],
+    [320, 568, 2],
+    [568, 320, 2],
+    [1167, 813, 2],
   ]) {
-    const layout = await fresh();
+    const layout = await fresh(stage);
     await page.setViewportSize({ width, height });
     await advance(1000);
     await inspect(layout.seats.find((seat) => !seat.guilty).id);
@@ -289,6 +296,7 @@ try {
         return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
       }),
     );
+    assert.equal(buttons.length, layout.seats.length);
     for (const button of buttons) {
       assert.ok(button.width >= 43.99 && button.height >= 43.99, JSON.stringify({ width, height, button }));
       assert.ok(
@@ -325,7 +333,7 @@ try {
       assert.ok(Math.abs(game.x + game.width / 2 - width / 2) < 1);
       assert.ok(canvas.y + canvas.height <= controls.y + 1, 'Desktop controls belong below the classroom');
     }
-    await page.screenshot({ path: `test-results/overview-${width}x${height}.png`, animations: 'disabled' });
+    await page.screenshot({ path: `test-results/overview-stage-${stage}-${width}x${height}.png`, animations: 'disabled' });
   }
   assert.deepEqual(errors, []);
   console.log('Portrait, short landscape and desktop controls stay on screen; no page errors.');

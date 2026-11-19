@@ -3,8 +3,8 @@ export const PUBLIC_GAME_URL = 'https://cat-hunting.vercel.app/';
 // Only a stage and outcome leave the device. No history, seed or culprit data.
 export function shareContent(result) {
   if (!result) return {
-    title: '냥이잡기 · 45초 시험 감독',
-    text: '45초 안에 부정행위를 찾아라! 너는 몇 단계까지 가능해?',
+    title: '냥이잡기 · 시험 감독',
+    text: '종이 울리기 전에 부정행위를 찾아라! 너는 몇 단계까지 가능해?',
     url: PUBLIC_GAME_URL,
     image: 'art/exam-keyart.jpg',
   };

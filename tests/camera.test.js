@@ -6,10 +6,10 @@ import { Exam } from '../src/session.js';
 import { createProctor, createStudent, updateStudent } from '../src/art/characters.js';
 import { PROCTOR_HOME } from '../src/walkways.js';
 
-function overview(aspect) {
+function overview(aspect, session = new Exam(42)) {
   const room = Object.create(Room.prototype);
   Object.assign(room, {
-    session: new Exam(42),
+    session,
     aspect,
     camera: new OrthographicCamera(-6, 6, 7, -7, 0.05, 70),
     look: new Vector3(),
@@ -21,11 +21,12 @@ function overview(aspect) {
   return room;
 }
 
-test('overview keeps the rear sign, whole students and proctor inside every frame', () => {
+for (const stage of [1, 3]) test(`stage ${stage} overview keeps the rear sign, whole students and proctor inside every frame`, () => {
+  const exam = new Exam(42, stage);
   const proctor = createProctor();
   proctor.position.set(PROCTOR_HOME.x, 0, PROCTOR_HOME.z);
   proctor.rotation.y = Math.PI;
-  const actors = new Exam(42).seats.map((seat, i) => {
+  const actors = exam.seats.map((seat, i) => {
     const student = createStudent(i);
     // Raised hands must fit too; seat-center touch targets alone miss cropping.
     updateStudent(student, { time: 1, pose: 'hand' });
@@ -37,7 +38,7 @@ test('overview keeps the rear sign, whole students and proctor inside every fram
   // Include the entire rear sign frame, not just its text or center point.
   bounds.push(new Box3(new Vector3(-0.81, 2.09, -5.615), new Vector3(0.81, 2.57, -5.55)));
   for (const aspect of [0.5, 0.85, 1, 1.001, 800 / 730, 800 / 617, 800 / 517, 2.5]) {
-    const { camera } = overview(aspect);
+    const { camera } = overview(aspect, exam);
     for (const [i, box] of bounds.entries()) {
       for (const x of [box.min.x, box.max.x])
         for (const y of [box.min.y, box.max.y])

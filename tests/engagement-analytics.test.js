@@ -19,14 +19,14 @@ test('prop totals reconcile to the completed round, including normal denominator
   const { events, tracker, engagement, exam } = fixture();
   exam.report(exam.seats.find(s => s.guilty).id);
   exam.report(exam.seats.find(s => !s.guilty).id);
-  exam.step(45);
+  exam.step(exam.duration);
   engagement.finish(exam, tracker.end(exam));
   engagement.finish(exam, tracker.end(exam));
   const props = events.filter(e => e.name === 'prop_result');
   const sum = key => props.reduce((n, e) => n + e[key], 0);
   assert.equal(props.length, new Set(exam.seats.map(s => s.kind)).size);
   assert.equal(sum('culprit_count'), 2);
-  assert.equal(sum('normal_count'), 10);
+  assert.equal(sum('normal_count'), 7);
   assert.equal(sum('caught_count'), 1);
   assert.equal(sum('missed_count'), 1);
   assert.equal(sum('false_report_count'), 1);
@@ -35,7 +35,7 @@ test('prop totals reconcile to the completed round, including normal denominator
 
 test('review duration excludes hidden time, preserves attempt and annotates the next same-stage attempt', () => {
   const { events, tracker, engagement, exam, tick } = fixture();
-  exam.step(45);
+  exam.step(exam.duration);
   engagement.finish(exam, tracker.end(exam));
   const seat = exam.seats.find(s => s.guilty);
   engagement.action('review');
@@ -62,7 +62,7 @@ test('review duration excludes hidden time, preserves attempt and annotates the 
 
 test('banner clicks distinguish placement without attaching a stale result to the lobby', () => {
   const { events, tracker, engagement, exam } = fixture();
-  exam.step(45);
+  exam.step(exam.duration);
   engagement.finish(exam, tracker.end(exam));
   engagement.banner('result');
   assert.equal(events.at(-1).attempt_id, 'round-1');

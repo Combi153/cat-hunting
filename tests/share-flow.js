@@ -37,7 +37,7 @@ try{
   if(await page.locator('#lobby').isHidden())await tap('home');
   await page.locator(`[data-level="${result.stage}"]`).tap();await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.clock.runFor(100);
   if(result.reason!=='missed')await page.evaluate(reason=>{for(const s of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(s.id)},result.reason);
-  await page.clock.fastForward(46000);await revealResult(page);
+  await page.clock.fastForward((await page.evaluate(() => window.testExam.duration) + 1) * 1000);await revealResult(page);
   const before=await balance(), calls=await page.evaluate(()=>window.shared.length);
   await offer();assert.doesNotMatch(await page.locator('#share-dialog').innerText(),/5\s*초|카운트다운/);assert.equal(await balance(),before);assert.equal(await page.evaluate(()=>window.shared.length),calls,'offer does not invoke OS sharing');
   await send();assert.equal(await balance(),before,'native response does not grant immediately');

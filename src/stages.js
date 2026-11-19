@@ -1,9 +1,10 @@
 const kinds = ['glasses', 'ear', 'camera', 'note', 'watch', 'pen'];
-// Internal balance data. Stage-specific rules and evidence are never previewed in the UI.
+// The lobby shows the time limit. Culprit counts and clue settings stay hidden.
 // Stage 1 gives new players longer looks and no arrival concealment.
-// Stages 2–5 retain the previous pressure progression.
 export const STAGES = [
   {
+    rows: 3,
+    duration: 60,
     culprits: 2,
     kinds,
     cue: 0.95,
@@ -17,6 +18,8 @@ export const STAGES = [
     deadline: 21,
   },
   {
+    rows: 3,
+    duration: 60,
     culprits: 3,
     kinds,
     cue: 0.9,
@@ -30,6 +33,8 @@ export const STAGES = [
     deadline: 16.5,
   },
   {
+    rows: 4,
+    duration: 45,
     culprits: 3,
     kinds,
     cue: 0.85,
@@ -43,6 +48,8 @@ export const STAGES = [
     deadline: 14.5,
   },
   {
+    rows: 4,
+    duration: 45,
     culprits: 4,
     kinds,
     cue: 0.8,
@@ -56,6 +63,8 @@ export const STAGES = [
     deadline: 12.5,
   },
   {
+    rows: 4,
+    duration: 45,
     culprits: 4,
     kinds,
     cue: 0.75,

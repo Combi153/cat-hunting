@@ -43,7 +43,6 @@ export const TYPES = {
     clear: '수험번호와 사진이 있는 수험표를 책상에 다시 놓았다.',
   },
 };
-export const EXAM_DURATION = 45;
 export const MAX_HEALTH = 3;
 export const seatNo = (id) => String(id).padStart(2, '0');
 export const clock = (seconds) => {
@@ -83,7 +82,7 @@ export class Exam {
     this.watchTime = 0;
     this.seed = seed;
     const random = examRandom(seed);
-    this.duration = EXAM_DURATION;
+    this.duration = this.rules.duration;
     this.time = 0;
     this.health = MAX_HEALTH;
     this.over = false;
@@ -94,7 +93,7 @@ export class Exam {
     this.events = [];
     const xs = [-2.25, 0, 2.25];
     const zs = [2.4, 0.1, -2.2, -4.5];
-    this.seats = zs.flatMap((z, row) =>
+    this.seats = zs.slice(0, this.rules.rows).flatMap((z, row) =>
       xs.map((x, col) => ({
         id: row * xs.length + col + 1,
         x,
@@ -256,7 +255,7 @@ export class Exam {
     return {
       version: 2,
       duration: this.duration,
-      ruleset: 5,
+      ruleset: 6,
       stage: this.stage,
       seed: this.seed,
       date: Date.now(),

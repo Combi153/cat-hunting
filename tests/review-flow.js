@@ -35,7 +35,7 @@ try {
     await page.locator('#play:not([hidden])').waitFor();
     await page.clock.runFor(100);
     // Timeout through the real game loop, then inspect the ended round.
-    await page.clock.fastForward(46000);
+    await page.clock.fastForward((fixture.duration + 1) * 1000);
     await revealResult(page);
     await page.locator('[data-action=review]').waitFor();
     const saved = await page.evaluate(() => localStorage.getItem('nyangijapgi.v2'));

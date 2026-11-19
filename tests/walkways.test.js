@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { Exam } from '../src/session.js';
 import { approachPath, stationPath, blocked, PROCTOR_HOME } from '../src/walkways.js';
 
-test('all twelve desks and the curtain are reachable without crossing furniture', () => {
-  const { seats } = new Exam(42);
+for (const stage of [1, 3]) test(`all desks and the curtain in stage ${stage} are reachable without crossing furniture`, () => {
+  const { seats } = new Exam(42, stage);
   const starts = [
     PROCTOR_HOME,
     ...seats.map((s) => approachPath(seats, PROCTOR_HOME, s).at(-1)),
@@ -108,7 +108,7 @@ test('repeated retargeting uses the current location and stays clear of furnitur
   const { Room } = await import('../src/world.js');
   const { Vector3 } = await import('three');
   const room = Object.create(Room.prototype);
-  room.session = new Exam(42);
+  room.session = new Exam(42, 3);
   room.proctor = { position: new Vector3(0, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
   room.path = [];
   for (const id of [12, 1, 10, 3, 8, 4, 11, 2, 9, 5, 7, 6]) {
@@ -127,7 +127,7 @@ test('repeated retargeting uses the current location and stays clear of furnitur
 });
 
 test('students in the same aisle use the straight shortest path to the nearer side', () => {
-  const { seats } = new Exam(42);
+  const { seats } = new Exam(42, 3);
   // At the right side of the front-left desk, the rear-middle desk is reached
   // directly along the shared aisle, without crossing desks or going home.
   const start = { x: -1.125, z: seats[0].z + 0.22 };

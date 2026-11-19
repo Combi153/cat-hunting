@@ -53,14 +53,14 @@ try {
   await tap('start');
   await page.locator('#play:not([hidden])').waitFor();
   await page.clock.runFor(100);
-  await page.clock.fastForward(46000);
+  await page.clock.fastForward(61000);
   await revealResult(page);
   await page.locator('[data-action=review]').waitFor();
   assert.equal((await events('level_end')).length, 1);
   const props = await events('prop_result');
   assert.equal(props.reduce((n, e) => n + e.culprit_count, 0), 2);
   assert.equal(props.reduce((n, e) => n + e.missed_count, 0), 2);
-  assert.equal(props.reduce((n, e) => n + e.normal_count, 0), 10);
+  assert.equal(props.reduce((n, e) => n + e.normal_count, 0), 7);
   await tap('review');
   await page.clock.runFor(2000);
   await tap('review-next');

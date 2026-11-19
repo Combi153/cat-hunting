@@ -1,5 +1,5 @@
 import { STAGES } from './stages.js';
-import { TYPES, seatNo, MAX_HEALTH } from './session.js';
+import { TYPES, clock, seatNo, MAX_HEALTH } from './session.js';
 const lines = {
   book: '<path d="M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm4 0v16m3-11h6m-6 4h5"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
@@ -61,12 +61,12 @@ export function retryStatus(remaining) {
 }
 export function lobby(saved, selected = 1, remaining = 3) {
   return `<div class="lobby-wrap">
-    <header class="topline"><span class="brand"><img src="/cat.svg" alt="">45초 시험 감독</span>
+    <header class="topline"><span class="brand"><img src="/cat.svg" alt="">시험 감독</span>
     <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
     <div class="cover-art" role="img" aria-label="점토 교실에서 안경을 고쳐 쓰는 학생"></div>
     <section class="cover-copy"><h1>냥이잡기</h1>
     <p class="lead">종이 울리기 전에 부정행위를 모두 찾아내세요.</p>
-    <div class="rules"><span>${icon('clock')} 45초</span><span>${hearts(3)} 생명 3개</span></div>
+    <div class="rules"><span>${icon('clock')} ${STAGES[selected - 1].duration}초</span><span>${hearts(3)} 생명 3개</span></div>
     <p class="how">학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.</p>
     <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
@@ -80,10 +80,10 @@ export function lobby(saved, selected = 1, remaining = 3) {
       <a href="mailto:hodooo153@gmail.com">hodooo153@gmail.com</a>
     </footer></div>`;
 }
-export function hud(stage = 1) {
-  return `<header class="hud-top"><div id="health">${hearts(3)}</div><strong id="time">00:45</strong>
+export function hud(exam) {
+  return `<header class="hud-top"><div id="health">${hearts(3)}</div><strong id="time">${clock(exam.duration)}</strong>
     <button class="icon-btn" data-action="pause" aria-label="일시정지">${icon('pause')}</button></header>
-    <div class="round-status"><span>${stage} / 5 단계</span></div>`;
+    <div class="round-status"><span>${exam.stage} / ${STAGES.length} 단계</span></div>`;
 }
 export function inspection(exam, id, busy = '') {
   if (busy === 'returning')

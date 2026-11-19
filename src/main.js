@@ -192,7 +192,7 @@ async function start(stage = selectedStage, source = 'lobby') {
     $('#overlay').hidden = true;
     $('#ending').hidden = true;
     $('#play').className = '';
-    put('#play-header', ui.hud(exam.stage));
+    put('#play-header', ui.hud(exam));
     if (!room) room = new Room($('#room'));
     room.resize();
     room.reset(exam);

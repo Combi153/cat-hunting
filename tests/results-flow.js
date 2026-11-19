@@ -32,7 +32,7 @@ try {
       if (reason === 'win' || reason === 'sad') for (const s of exam.seats.filter(s => s.guilty)) exam.report(s.id);
       if (reason !== 'win') for (const s of exam.seats.filter(s => !s.guilty).slice(0,3)) exam.report(s.id);
     }, reason);
-    await page.clock.fastForward(46000);
+    await page.clock.fastForward((await page.evaluate(() => window.testExam.duration) + 1) * 1000);
     await page.locator('#ending:not([hidden])').waitFor();
     assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), false);
     await page.clock.runFor(1500);

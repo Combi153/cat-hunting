@@ -4,20 +4,25 @@ import { Room } from '../../src/world.js';
 import { Vector3 } from 'three';
 import { PROCTOR_HOME } from '../../src/walkways.js';
 
-const reference = new Exam(42), travel = new Map();
-for (const seat of reference.seats) {
-  const room = Object.create(Room.prototype);
-  room.session = reference;
-  room.proctor = { position: new Vector3(0, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
-  room.path = [];
-  room.select(seat.id);
-  let outward = 0;
-  while (room.busy && outward < 10) { room.step(1 / 60); outward += 1 / 60; }
-  room.step(0.5);
-  room.returnHome();
-  let back = 0;
-  while (room.busy && back < 10) { room.step(1 / 60); back += 1 / 60; }
-  travel.set(seat.id, { out: outward, back });
+const travelByLayout = new Map();
+for (const stage of [1, 3]) {
+  const exam = new Exam(42, stage);
+  const travel = new Map();
+  for (const seat of exam.seats) {
+    const room = Object.create(Room.prototype);
+    room.session = exam;
+    room.proctor = { position: new Vector3(0, 0, PROCTOR_HOME.z), rotation: { y: Math.PI } };
+    room.path = [];
+    room.select(seat.id);
+    let outward = 0;
+    while (room.busy && outward < 10) { room.step(1 / 60); outward += 1 / 60; }
+    room.step(0.5);
+    room.returnHome();
+    let back = 0;
+    while (room.busy && back < 10) { room.step(1 / 60); back += 1 / 60; }
+    travel.set(seat.id, { out: outward, back });
+  }
+  travelByLayout.set(exam.seats.length, travel);
 }
 function orders(items) {
   return items.length
@@ -25,6 +30,7 @@ function orders(items) {
     : [[]];
 }
 export function bestPlan(exam) {
+  const travel = travelByLayout.get(exam.seats.length);
   let best = null;
   for (const order of orders(exam.seats.filter(s => s.guilty))) {
     let time = 0;

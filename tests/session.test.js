@@ -1,21 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Exam, EXAM_DURATION } from '../src/session.js';
+import { Exam } from '../src/session.js';
 import { STAGES, stageNumber, unlockStage } from '../src/stages.js';
 
 test('five reproducible stages introduce more cases, mimics, hiding and pressure', () => {
-  assert.equal(EXAM_DURATION, 45);
   for (let stage = 1; stage <= 5; stage++)
     for (let seed = 0; seed < 100; seed++) {
       const exam = new Exam(seed, stage),
         rules = STAGES[stage - 1];
       assert.equal(exam.stage, stage);
-      assert.equal(exam.seats.length, 12);
+      assert.equal(exam.seats.length, stage <= 2 ? 9 : 12);
+      assert.equal(exam.duration, stage <= 2 ? 60 : 45);
+      assert.deepEqual(exam.seats.map((seat) => seat.id), exam.seats.map((_, i) => i + 1));
       assert.equal(exam.seats.filter((s) => s.guilty).length, rules.culprits);
       assert.equal(new Set(exam.seats.filter((s) => s.guilty).map((s) => s.kind)).size, rules.culprits);
       assert.equal(exam.seats.filter((s) => s.sensitive).length, rules.sensitive);
       assert.equal(exam.requests.length, rules.requests.length);
-      assert.ok(exam.requests.every((r) => !exam.seat(r.id).guilty && r.deadline < 45));
+      assert.ok(exam.requests.every((r) => !exam.seat(r.id).guilty && r.deadline < exam.duration));
       assert.deepEqual(exam.seats, new Exam(seed, stage).seats);
     }
 });
@@ -30,7 +31,7 @@ test('innocent lookalikes share gestures but never show cheating evidence; every
           clear = 0,
           windows = 0,
           wasProof = false;
-        for (let time = 0; time < 45; time += 0.25) {
+        for (let time = 0; time < exam.duration; time += 0.25) {
           exam.time = time;
           const { pose } = exam.behavior(seat);
           const proof = pose.startsWith('proof-');
@@ -90,7 +91,6 @@ test('first-stage arrivals keep both props visible through the longer window wit
       seat.guilty = guilty;
       assert.notEqual(exam.behavior(seat).pose, (guilty ? 'proof-' : 'clear-') + kind);
     }
-    assert.equal(exam.result().ruleset, 5);
   }
 });
 
@@ -104,7 +104,7 @@ test('first-stage help now allows until second 43, while late help still costs o
   assert.equal(exam.requests[0].late, true);
   exam.step(2);
   assert.equal(exam.health, 2);
-  assert.equal(exam.reason, 'missed');
+  assert.equal(exam.over, false);
   const helped = new Exam(42, 1);
   helped.step(42.9);
   assert.equal(helped.serve(helped.requests[0].id), true);
@@ -166,7 +166,7 @@ test('request deadlines charge once, active help is protected, and all five stag
       assert.equal(exam.serve(request.id), false);
     }
     assert.equal(exam.over, false);
-    exam.step(45);
+    exam.step(exam.duration - exam.time);
     assert.equal(exam.reason, 'win');
     assert.equal(exam.result().stage, stage);
     assert.equal(exam.result().served, exam.requests.length);
@@ -175,11 +175,18 @@ test('request deadlines charge once, active help is protected, and all five stag
 });
 
 test('timeout reveals missed cases, and progression only advances on a win and stops at five', () => {
-  const exam = new Exam(42, 1);
-  exam.step(45);
-  assert.equal(exam.reason, 'missed');
-  assert.equal(exam.result().missed.length, 2);
-  assert.equal(unlockStage(1, exam.result()), 1);
+  for (let stage = 1; stage <= 5; stage++) {
+    const exam = new Exam(42, stage);
+    exam.step(exam.duration - 0.25);
+    assert.equal(exam.over, false);
+    exam.step(0.25);
+    const result = exam.result();
+    assert.equal(result.reason, 'missed');
+    assert.equal(result.duration, exam.duration);
+    assert.equal(result.ruleset, 6);
+    assert.equal(result.missed.length, exam.rules.culprits);
+    assert.equal(unlockStage(stage, result), stage);
+  }
   for (let stage = 1; stage <= 5; stage++)
     assert.equal(unlockStage(stage, { reason: 'win', stage }), Math.min(5, stage + 1));
   assert.equal(unlockStage(4, { reason: 'win', stage: 1 }), 4);
@@ -194,7 +201,7 @@ test('the first exam already mixes all six cases and shared fidgets; later windo
     exam.requests = [];
     for (const seat of exam.seats) {
       if (seat.guilty) { kinds.add(seat.kind); assert.ok(seat.first < 9); }
-      for (let time = 0; time < 45; time += 0.5) {
+      for (let time = 0; time < exam.duration; time += 0.5) {
         exam.time = time;
         (seat.guilty ? guiltyPoses : normalPoses).add(exam.behavior(seat).pose);
       }
