@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [student-focus/](student-focus/) | 2026-11-20 `6840fcc` 위의 학생 중심 카메라. Chrome 고정 배치·제어된 시계로 320px 전후와 12석 가로·노트북 구도를 비교하고, 무작위 1단계 실시간 관찰도 캡처 | [검증 기록](../quality/current-review.md#학생-중심-카메라-구도-2026-11-20) |
 | [review-before-retry/](review-before-retry/) | 2026-11-20 `70bfc61` 위의 1·2단계 재도전 동선. Chrome 고정 배치·제어된 시계, 320×568과 568×320 다시 보기 | [검증 기록](../quality/current-review.md#12단계-재도전-전-부정행위-다시-보기-2026-11-20) |
 | [early-stages/](early-stages/) | 2026-11-19 `1416acd` 위 규칙 6. Chrome 320×568 전체 교실과 관찰은 무작위 1단계 실시간 조작, 568×320·1167×813은 고정 2단계·제어된 시계로 복귀 중 캡처 | [검증 기록](../quality/current-review.md#12단계-완화와-감독관-이동--규칙-버전-6-2026-11-19) |
 | [first-stage-easing/](first-stage-easing/) | 2026-11-18 `1f1aa5c` 위의 1단계 완화·규칙 5. Chrome 390px 정상/부정행위 펜과 320px 시계, 고정 배치·제어된 시계·실제 관찰 조작 | [검증 기록](../quality/current-review.md#ga-피드백에-따른-1단계-완화--규칙-버전-5-2026-11-18) |

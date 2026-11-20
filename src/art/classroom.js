@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { STUDENT_DESK_TOP } from './dimensions.js';
+import { REAR_SIGN_Y, STUDENT_DESK_TOP } from './dimensions.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // One material batch per surface, shared geometry, and no lights or characters.
 // Coordinates use the seated student's chair center; every student faces +Z.
 const C = {
-  wall: '#e9e6df',
+  wall: '#edebe5',
   ivory: '#e8e4da',
   rim: '#f3eee4',
   steel: '#cbcfc9',
@@ -15,7 +15,8 @@ const C = {
   sage: '#8b9d8b',
   dark: '#526359',
   charcoal: '#72756e',
-  locker: '#c7ccc8',
+  locker: '#d8dad3',
+  lockerTrim: '#e0e1d9',
   paper: '#fffdf4',
   rubber: '#9b9f98',
 };
@@ -250,22 +251,21 @@ export function createClassroom(seats = []) {
   }
   for (const z of [-5.5, -2.725, 0.025, 2.775, 5.525]) box(0.18, 2, 0.29, 'wall', -5.19, 2.1, z, 0.025);
 
-  // Front chalkboard: recessed sage surface, warm white frame, a chalk ledge.
-  // A cutaway front lets the mobile camera see every student's hands.
-  box(7.6, 1.63, 0.52, 'steel', -0.65, 0.825, -5.3, 0.055);
+  // Muted lockers and the exam sign mark the rear wall.
+  box(7.6, 1.63, 0.52, 'lockerTrim', -0.65, 0.825, -5.3, 0.055);
   for (let col = 0; col < 10; col++) {
     const x = -4.06 + col * 0.758;
     for (let row = 0; row < 2; row++) {
       const y = 0.43 + row * 0.79;
       box(0.71, 0.735, 0.048, 'locker', x, y, -5.012, 0.025);
-      box(0.025, 0.125, 0.025, 'rim', x - 0.235, y + 0.025, -4.976, 0.009);
+      box(0.025, 0.125, 0.025, 'lockerTrim', x - 0.235, y + 0.025, -4.976, 0.009);
       for (let line = 0; line < 3; line++)
-        box(0.19, 0.014, 0.014, 'ivory', x, y + 0.23 - line * 0.038, -4.979, 0.005);
+        box(0.19, 0.014, 0.014, 'lockerTrim', x, y + 0.23 - line * 0.038, -4.979, 0.005);
     }
   }
   const rearSign = lettering('시험 중', 1.4, 0.32, { size: 0.5, weight: 600 });
-  plane(1.4, 0.32, rearSign, 0, 2.33, -5.55);
-  box(1.62, 0.48, 0.05, 'ivory', 0, 2.33, -5.59, 0.035);
+  plane(1.4, 0.32, rearSign, 0, REAR_SIGN_Y, -5.55);
+  box(1.62, 0.48, 0.05, 'ivory', 0, REAR_SIGN_Y, -5.59, 0.035);
 
   // Corridor exit at the back right, with a glazed upper panel and a sage plaque.
   box(0.1, 2.46, 1.58, 'rim', 5.1, 1.23, -4.3, 0.025);

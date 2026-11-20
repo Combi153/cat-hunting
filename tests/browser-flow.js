@@ -2,6 +2,7 @@ import { revealResult } from './helpers/result-ui.js';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { Exam } from '../src/session.js';
+import { REAR_SIGN_Y } from '../src/art/dimensions.js';
 
 const origin = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173';
 const browser = await chromium.launch({
@@ -316,13 +317,13 @@ try {
           Math.min(first.y + first.height, second.y + second.height) - Math.max(first.y, second.y);
         assert.ok(overlapX <= 0 || overlapY <= 0, 'Seat touch targets overlap at ' + width + '×' + height);
       }
-    const sign = await page.evaluate(() => {
+    const sign = await page.evaluate((signY) => {
       const camera = window.testRoom.camera;
-      return [-0.81, 0.81].flatMap(x => [2.09, 2.57].map(y => {
+      return [-0.81, 0.81].flatMap(x => [signY - 0.24, signY + 0.24].map(y => {
         const point = window.testRoom.target.clone().set(x, y, -5.615).project(camera);
         return { x: point.x, y: point.y };
       }));
-    });
+    }, REAR_SIGN_Y);
     assert.ok(sign.every(p => Math.abs(p.x) < 0.98 && Math.abs(p.y) < 0.98),
       'Rear sign must stay inside the canvas at ' + width + '×' + height);
     if (width >= 900) {

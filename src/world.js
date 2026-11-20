@@ -41,6 +41,7 @@ export class Room {
     const sun = new THREE.DirectionalLight(0xfff8ed, 1.93);
     sun.position.set(-5, 8, 3);
     sun.castShadow = true;
+    sun.shadow.intensity = 0.65;
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.1, far: 24 });
     sun.shadow.camera.updateProjectionMatrix();
     sun.shadow.mapSize.set(1024, 1024);
@@ -267,10 +268,11 @@ export class Room {
   updateCamera(dt, snap = false) {
     const seat = this.session.seat(this.ending?.id ?? this.focus);
     let height;
-    if (this.ending?.reviewIndex != null && seat) {
-      this.target.set(seat.x, 1.0, seat.z + 0.24);
-      this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
-      height = Math.max(0.85, 0.72 / this.aspect);
+    const reviewing = this.ending?.reviewIndex != null;
+    if (seat && (reviewing || (!this.ending && !this.busy))) {
+      this.target.set(seat.x, 1.06, seat.z + 0.24);
+      this.position.set(seat.x + 0.55, 1.91, seat.z + 1.8);
+      height = Math.max(0.78, 0.66 / this.aspect);
     } else if (this.ending) {
       const actor = seat ?? { x: 0, z: 2.8 };
       const y = seat ? 1.18 : 1.47;
@@ -282,16 +284,11 @@ export class Room {
       this.target.set(-4.5, 1.8, 1.4);
       this.position.set(-0.5, 3.0, 3.1);
       height = Math.max(1.65, 1.6 / this.aspect);
-    } else if (seat && !this.busy) {
-      this.target.set(seat.x, 1.0, seat.z + 0.24);
-      this.position.set(seat.x + 0.55, 1.85, seat.z + 1.8);
-      height = Math.max(0.85, 0.72 / this.aspect);
     } else {
-      // Include the rear wall sign through the proctor's feet, even on short
-      // screens. Preserve the viewing angle and continuous aspect-ratio fit.
-      this.target.set(0, 0.2, -1.52);
-      this.position.set(0, 8.2, 9.53);
-      height = Math.max(4.5, 3.55 / this.aspect);
+      // Keep the sign and proctor in frame while spending more of it on desks.
+      this.target.set(0, 0.3, -1.58);
+      this.position.set(0, 6.5, 9.42);
+      height = Math.max(3.95, 3.12 / this.aspect);
     }
     const blend = snap ? 1 : 1 - Math.exp(-dt * 10);
     this.camera.position.lerp(this.position, blend);
