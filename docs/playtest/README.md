@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [banner-hidden/](banner-hidden/) | 2026-11-20 `a4fb15f` 위의 배너 숨김. Chrome 1167×813 로비와 320×568 결과 모달 | [검증 기록](../quality/current-review.md#홍보-배너-임시-숨김-2026-11-20) |
 | [tutorial-intro/](tutorial-intro/) | 2026-11-20 `7bd59b4` 위의 튜토리얼 개선. 실제 시간에 조작한 Chrome 320×568의 도입·책상 아래 표시·쪽지와 568×320의 요청 화면 | [검증 기록](../quality/current-review.md#튜토리얼-도입부와-화면-정리-2026-11-20) |
 | [tutorial/](tutorial/) | 2026-11-20 `f5b989b` 위의 1단계 튜토리얼. Chrome 320×568 쪽지, 1167×813 수험표, 568×320 학생 요청을 실제 시간에 조작해 캡처 | [검증 기록](../quality/current-review.md#1단계-튜토리얼-2026-11-20) |
 | [student-focus/](student-focus/) | 2026-11-20 `6840fcc` 위의 학생 중심 카메라. Chrome 고정 배치·제어된 시계로 320px 전후와 12석 가로·노트북 구도를 비교하고, 무작위 1단계 실시간 관찰도 캡처 | [검증 기록](../quality/current-review.md#학생-중심-카메라-구도-2026-11-20) |

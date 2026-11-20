@@ -39,6 +39,7 @@ try {
     assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), false, 'reaction is visible for at least 1.5 seconds');
     await page.clock.runFor(400);
     assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open), true, 'result opens automatically by 1.9 seconds');
+    assert.equal(await page.locator('#result-dialog .sponsor-banner, #result-dialog a[href*="thinkplace.co.kr"]').count(), 0);
     const saved = await page.evaluate(() => [localStorage.getItem('nyangijapgi.v2'),localStorage.getItem('nyangijapgi.retries.v1')]);
     for (const [width,height] of layouts) {
       await tap('result-close');

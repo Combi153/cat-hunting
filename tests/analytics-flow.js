@@ -6,9 +6,13 @@ const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL 
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const errors = [];
+  const sponsorRequests = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route(/google-analytics\.com|googletagmanager\.com/, route => route.abort());
-  await page.context().route('https://thinkplace.co.kr/**', route => route.fulfill({ body: 'Test destination' }));
+  await page.context().route(/thinkplace\.co\.kr|\/thinkplace\/thinkplace-banner\./, route => {
+    sponsorRequests.push(route.request().url());
+    return route.abort();
+  });
   await page.route(/\/src\/analytics\.js(?:\?t=\d+)?$/, route => route.fulfill({
     contentType: 'application/javascript',
     body: "export {createGameAnalytics} from '/src/analytics.js?fixture'; export function createAnalytics(){window.events=[];return (name,data)=>window.events.push({name,...data});}",
@@ -42,13 +46,8 @@ try {
     }
   };
   const events = name => page.evaluate(name => window.events.filter(e => e.name === name), name);
-  async function banner(placement) {
-    const popup = page.waitForEvent('popup');
-    await page.locator(`#${placement === 'lobby' ? 'lobby' : 'ending'} .sponsor-banner-link`).tap();
-    await (await popup).close();
-    await page.bringToFront();
-  }
-  await banner('lobby');
+  const sponsor = page.locator('.sponsor-banner, a[href*="thinkplace.co.kr"]');
+  assert.equal(await sponsor.count(), 0);
   await page.locator('[data-level="2"]').tap();
   await tap('start');
   await page.locator('#play:not([hidden])').waitFor();
@@ -79,11 +78,7 @@ try {
   await tap('share');
   assert((await events('share_result')).some(e => e.interaction_status === 'manual_required'));
   await page.locator('[data-share=close]').tap();
-  await banner('result');
-  const clicks = await events('banner_click');
-  assert.deepEqual(clicks.map(e => e.banner_placement), ['lobby', 'result']);
-  assert.equal(clicks[0].attempt_id, undefined);
-  assert.equal(clicks[1].attempt_id, props[0].attempt_id);
+  assert.equal(await sponsor.count(), 0);
   await page.evaluate(() => { window.shareMode = 'pending'; });
   await tap('share');
   const before = (await events('share_result')).length;
@@ -102,6 +97,9 @@ try {
   await tap('leave');
   await tap('home');
   assert.equal((await events('level_exit')).length, 1);
+  assert.deepEqual(await events('banner_click'), []);
+  assert.deepEqual(sponsorRequests, []);
+  assert.equal(page.context().pages().length, 1);
   assert.deepEqual(errors, []);
-  console.log('Analytics UI flow passed: review, props, native/copy outcomes, stale callbacks, banners, retry and quit. All analytics and banner destinations intercepted.');
+  console.log('Analytics UI flow passed: review, props, sharing, stale callbacks, retry and quit. No sponsor markup, events, requests or tabs.');
 } finally { await browser.close(); }
