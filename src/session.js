@@ -104,7 +104,7 @@ export class Exam {
         cleared: false,
         exitAt: null,
         first: 7 + random() * 12,
-        period: (this.rules.cycle ?? 0) + random() * (this.rules.jitter ?? 0),
+        period: this.rules.cycle + random() * this.rules.jitter,
         ordinary: Math.floor(random() * ordinary.length),
         offset: random() * 8,
       })),
@@ -113,6 +113,14 @@ export class Exam {
       const [culprit, innocent, requester] = TUTORIAL_TASKS.map(({ id }) => this.seat(id));
       culprit.guilty = true;
       culprit.kind = innocent.kind = 'note';
+      culprit.first = 2.7;
+      innocent.offset = innocent.period - 1.6;
+      // Stagger ordinary movements in the nearest two rows so they are visible before the cue.
+      for (const [id, action, start] of [[4, 'sleeve-adjust', 0.45], [3, 'wrist-rest', 1.05], [5, 'neck-stretch', 2]]) {
+        const seat = this.seat(id);
+        seat.ordinary = ordinary.findIndex(({ pose }) => pose === action);
+        seat.offset = (9 - start) / 1.7;
+      }
       this.lesson = 0;
       this.requests = [this.newRequest(requester, 'paper', 0)];
       return;
@@ -178,6 +186,7 @@ export class Exam {
     return this.seats.filter((seat) => seat.caught).length;
   }
   get tutorialTask() {
+    if (!this.rules.tutorial || this.time < this.rules.intro) return null;
     return TUTORIAL_TASKS[this.lesson];
   }
   liveRequests() {
@@ -191,7 +200,7 @@ export class Exam {
     if (seat.caught) return { pose: 'exit', text: '부정행위를 확인해 퇴실했다.' };
     if (this.requestFor(seat.id)) return { pose: 'hand', text: '손을 들고 감독관의 도움을 기다리고 있다.' };
     const task = this.tutorialTask;
-    if (task?.id === seat.id && task.action !== 'serve') {
+    if (task?.id === seat.id && this.watching === seat.id && task.action !== 'serve') {
       return seat.guilty
         ? { pose: 'proof-note', text: TYPES.note.proof }
         : { pose: 'clear-note', text: TYPES.note.clear };
@@ -204,7 +213,8 @@ export class Exam {
       if (phase < this.rules.cue + this.rules.proof) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
     }
     if (seat.cleared) return { pose: 'write', text: '눈가를 붉힌 채, 말없이 답안지를 채우고 있다.' };
-    if (!this.rules.tutorial && !seat.guilty) {
+    const showsNormalProp = !this.rules.tutorial || seat.id === TUTORIAL_TASKS[1].id;
+    if (!seat.guilty && showsNormalProp) {
       const phase = (this.time + seat.offset) % seat.period;
       if (phase < this.rules.cue) return { pose: seat.kind, text: TYPES[seat.kind].cue };
       if (phase < this.rules.cue + this.rules.proof) return { pose: 'clear-' + seat.kind, text: TYPES[seat.kind].clear };
@@ -221,7 +231,7 @@ export class Exam {
     const seat = this.seat(id);
     if (this.over || !seat || seat.caught || seat.cleared) return null;
     const task = this.tutorialTask;
-    if (task && (task.id !== id || task.action === 'serve')) return null;
+    if (this.rules.tutorial && (task?.id !== id || task.action === 'serve')) return null;
     if (task) this.lesson++;
     // Players make the judgment. No evidence menu or animation-frame timing requirement.
     if (seat.guilty) {

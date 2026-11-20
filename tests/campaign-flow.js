@@ -54,13 +54,37 @@ try {
   await page.screenshot({ path: 'test-results/campaign-lobby.png' });
   const playTutorial = async (verify = false) => {
     await tap('[data-action=start]');
-    await page.locator('.tutorial-target').waitFor();
+    await page.locator('#play:not([hidden])').waitFor();
     assert.equal(await page.locator('#time').count(), 0);
+    assert.equal(await page.locator('.desk-cue').count(), 0);
+    assert.equal(await page.locator('#seat-targets button:enabled').count(), 0);
+    await advance(2400);
+    await tap('[data-action=pause]');
+    await advance(4000);
+    assert.equal(await page.locator('.desk-cue').count(), 0);
+    await tap('[data-action=resume]');
+    await advance(2000);
+    assert.equal(await page.locator('.desk-cue').count(), 0);
+    await advance(1000);
     assert.equal(await page.locator('#seat-targets button:enabled').count(), 1);
+    assert.ok(await page.locator('.desk-cue').isVisible());
     const target = new Exam(42, 1).seats;
     if (verify) {
       await page.clock.fastForward(120000);
       assert.ok(await page.locator('#ending').isHidden());
+      await page.setViewportSize({ width: 320, height: 568 });
+      await advance(400);
+      const student = await page.locator('.tutorial-target').boundingBox();
+      const cue = await page.locator('.desk-cue').boundingBox();
+      assert.ok(cue.y >= student.y + 44, 'the cue stays below the student touch area');
+      await tap('.desk-cue');
+      await advance(3000);
+      assert.equal(await page.locator('.desk-cue').count(), 0);
+      const back = await page.locator('[data-action=overview]').boundingBox();
+      const report = await page.locator('[data-action=report]').boundingBox();
+      assert.ok(back.y === report.y && back.height === report.height && back.x + back.width < report.x);
+      await tap('[data-action=overview]');
+      await page.setViewportSize({ width: 390, height: 844 });
       await inspect(target[0].id);
       await tap('[data-action=overview]');
     }

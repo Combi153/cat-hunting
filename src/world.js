@@ -9,6 +9,7 @@ import {
 } from './art/characters.js';
 import { approachPath, stationPath, PROCTOR_HOME } from './walkways.js';
 import { createClassroom, setCurtain } from './art/classroom.js';
+import { STUDENT_DESK_TOP } from './art/dimensions.js';
 
 const PROCTOR_TOP_SPEED = 5.4;
 const PROCTOR_ACCELERATION = 14;
@@ -298,9 +299,12 @@ export class Room {
     this.updateProjection();
     this.camera.updateMatrixWorld();
   }
-  anchor(seat, height = 1.0) {
-    this.projected.set(seat.x, height, seat.z).project(this.camera);
+  anchor(seat, height = 1.0, depth = 0) {
+    this.projected.set(seat.x, height, seat.z + depth).project(this.camera);
     return { x: (1 + this.projected.x) * 50, y: (1 - this.projected.y) * 50 };
+  }
+  deskCue(seat) {
+    return this.anchor(seat, STUDENT_DESK_TOP - 0.42, 0.9);
   }
   draw(dt, elapsed) {
     const exam = this.session;

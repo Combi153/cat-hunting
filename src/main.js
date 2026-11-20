@@ -197,6 +197,8 @@ async function start(stage = selectedStage, source = 'lobby') {
     $('#overlay').hidden = true;
     $('#ending').hidden = true;
     $('#play').className = tutorial ? 'tutorial' : '';
+    if (tutorial) $('#controls').setAttribute('aria-live', 'polite');
+    else $('#controls').removeAttribute('aria-live');
     put('#play-header', ui.hud(exam));
     if (!room) room = new Room($('#room'));
     room.resize();
@@ -227,7 +229,7 @@ async function start(stage = selectedStage, source = 'lobby') {
 }
 function select(id) {
   if (screen !== 'running' || paused || exam.seat(id)?.caught) return;
-  if (inTutorial() && (exam.tutorialTask.id !== id || room.focus === id)) return;
+  if (inTutorial() && (exam.tutorialTask?.id !== id || room.focus === id)) return;
   const previousSeat = room.focus;
   room.select(id);
   if (room.focus === id && previousSeat !== id) {
@@ -285,10 +287,10 @@ function render() {
   }
   $('#play').classList.toggle('inspecting', Boolean(room.focus && !room.busy));
   $('#seat-targets').inert = Boolean(room.action);
+  const tutorial = inTutorial();
   const task = exam.tutorialTask;
-  const guide = task ? ui.tutorialGuide(exam, room.focus && !room.busy) : '';
-  put('#controls', guide + ui.inspection(exam, room.focus, room.busy));
-  if (room.focus) {
+  put('#controls', tutorial ? ui.tutorialGuide(exam, room.focus, room.busy) : ui.inspection(exam, room.focus, room.busy));
+  if (room.focus && !tutorial) {
     const request = exam.requestFor(room.focus);
     const speech = room.busy
       ? room.action
@@ -308,18 +310,12 @@ function render() {
   }
   put(
     '#seat-targets',
-    exam.seats
-      .map(
-        (seat) =>
-          '<button data-seat="' +
-          seat.id +
-          '" aria-label="' +
-          seatNo(seat.id) +
-          '번 학생 관찰" ' + (seat.id === task?.id ? 'class="tutorial-target" ' : '') +
-          (seat.caught || (task && task.id !== seat.id) ? 'disabled' : '') +
-          '></button>',
-      )
-      .join(''),
+    exam.seats.map((seat) => {
+      const marked = seat.id === task?.id && !room.focus;
+      const disabled = seat.caught || (tutorial && seat.id !== task?.id);
+      return `<button data-seat="${seat.id}" aria-label="${seatNo(seat.id)}번 학생 관찰"
+        ${marked ? 'class="tutorial-target"' : ''} ${disabled ? 'disabled' : ''}>${marked ? '<span class="desk-cue" aria-hidden="true"></span>' : ''}</button>`;
+    }).join(''),
   );
 }
 function act(action) {
@@ -380,7 +376,7 @@ function act(action) {
     if (!outcome) return;
     gameAnalytics.event('student_report', exam, { report_result: outcome.correct ? 'correct' : 'incorrect' });
     if (!saved.muted) reportSound(outcome.correct);
-    notice(outcome.text, !outcome.correct);
+    notice(inTutorial() && !outcome.correct ? '“선생님, 제 수험표였어요…”' : outcome.text, !outcome.correct);
     if (!exam.over) room.returnHome();
   }
   if (action === 'serve') room.help();
@@ -508,10 +504,17 @@ function tick(now) {
     if (stillEnding) room.ending.elapsed = 0;
     room.draw(stillEnding ? 0 : Math.min(dt, 0.1), exam.time);
     if ((!room.focus || room.busy) && screen === 'running') {
+      const cue = $('.tutorial-target');
+      const roomHeight = cue ? canvas.clientHeight : 0;
       for (const button of $('#seat-targets').children) {
-        const anchor = room.anchor(exam.seat(Number(button.dataset.seat)));
+        const seat = exam.seat(Number(button.dataset.seat));
+        const anchor = room.anchor(seat);
         button.style.left = anchor.x + '%';
         button.style.top = anchor.y + '%';
+        if (button === cue) {
+          const desk = room.deskCue(seat);
+          button.style.setProperty('--desk-cue-offset', (desk.y - anchor.y) * roomHeight / 100 + 'px');
+        }
       }
     }
   }

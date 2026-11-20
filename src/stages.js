@@ -7,6 +7,11 @@ export const STAGES = [
     culprits: 1,
     tutorial: true,
     kinds,
+    intro: 5,
+    cue: 0.85,
+    proof: 2.9,
+    cycle: 7.6,
+    jitter: 0,
     deadline: Infinity,
   },
   {
