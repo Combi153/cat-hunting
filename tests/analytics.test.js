@@ -76,7 +76,7 @@ test('failed attempts, retries and quitting remain distinct, with no duplicate e
 test('successful finish reports the stage and has no further progress', () => {
   const events = [];
   const tracker = createGameAnalytics((name, data) => events.push({ name, ...data }), () => 'win');
-  const exam = new Exam(42);
+  const exam = new Exam(42, 2);
   tracker.start(exam, 'advance');
   for (const seat of exam.seats.filter((seat) => seat.guilty)) exam.report(seat.id);
   exam.step(exam.duration);

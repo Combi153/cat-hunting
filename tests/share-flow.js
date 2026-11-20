@@ -33,7 +33,7 @@ try{
   await page.clock.runFor(200);assert.equal(await balance(),before+3);
   assert.equal(await page.locator('#share-dialog').evaluate(el=>el.open),false);
  };
- for(const result of [{stage:1,reason:'missed'},{stage:2,reason:'health'},{stage:3,reason:'missed'},{stage:3,reason:'win'},{stage:5,reason:'win'}]){
+ for(const result of [{stage:2,reason:'missed'},{stage:2,reason:'health'},{stage:3,reason:'missed'},{stage:3,reason:'win'},{stage:5,reason:'win'}]){
   if(await page.locator('#lobby').isHidden())await tap('home');
   await page.locator(`[data-level="${result.stage}"]`).tap();await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.clock.runFor(100);
   if(result.reason!=='missed')await page.evaluate(reason=>{for(const s of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(s.id)},result.reason);

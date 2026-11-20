@@ -322,6 +322,10 @@ h2 {
   outline: 2px solid var(--green);
   background: #fff5;
 }
+#seat-targets .tutorial-target {
+  border: 2px solid #fff0b7;
+  box-shadow: 0 0 0 3px #9b5526, 0 3px 12px #3d281c66;
+}
 #seat-targets button:disabled {
   visibility: hidden;
 }
@@ -356,6 +360,48 @@ h2 {
   padding: 12px 16px calc(15px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   min-width: 0;
+}
+.tutorial-label {
+  background: #edf1e4;
+  color: var(--green);
+  padding: 6px 14px;
+  border-radius: 24px;
+  font-size: 14px;
+}
+.tutorial #play-header {
+  border-bottom: 1px solid var(--line);
+}
+.tutorial-guide {
+  border-left: 3px solid #b87943;
+  background: #f4eadb;
+  border-radius: 4px 12px 12px 4px;
+  padding: 9px 11px;
+}
+.tutorial-guide h2 {
+  font-size: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.tutorial-guide h2 span {
+  color: #795031;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tutorial-guide p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+.tutorial .clue {
+  min-height: 0;
+  margin-block: 0 8px;
+  font-size: 13px;
+}
+.tutorial .decision {
+  grid-template-columns: 1fr;
 }
 .overview-copy {
   text-align: center;
@@ -715,6 +761,9 @@ h2 {
   .decision-hint {
     font-size: 10px;
     margin-top: 6px;
+  }
+  .tutorial #controls {
+    align-content: start;
   }
   .overview-copy h2 {
     line-height: 1.4;

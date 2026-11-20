@@ -16,6 +16,7 @@ const track = createAnalytics({
 });
 const gameAnalytics = createGameAnalytics(track);
 const engagement = createEngagementAnalytics(track);
+const inTutorial = () => exam?.rules.tutorial === true;
 
 const $ = (selector) => document.querySelector(selector);
 const retries = createRetryAllowance({
@@ -23,7 +24,7 @@ const retries = createRetryAllowance({
   setItem: (key, value) => localStorage.setItem(key, value),
 });
 const sharing = createResultSharing($('#share-dialog'), $('#share-toast'), track,
-  () => screen === 'ended' ? engagement.shareContext() : { share_placement: 'lobby' },
+  () => screen === 'ended' && !inTutorial() ? engagement.shareContext() : { share_placement: 'lobby' },
   (method, context) => {
     const allowance = retries.reward();
     track('retry_reward', { ...context, interaction_action: method, retry_remaining: allowance.remaining });
@@ -79,7 +80,7 @@ function openResult() {
 }
 function shareResult(exhausted = false) {
   closeResult();
-  sharing.share(screen === 'ended' ? exam.result() : null, exhausted);
+  sharing.share(screen === 'ended' && !inTutorial() ? exam.result() : null, exhausted);
   if (screen === 'ended' && room.ending?.reviewIndex != null) engagement.visibility(false);
 }
 $('#share-dialog').addEventListener('close', () => {
@@ -143,12 +144,12 @@ function modal(content) {
 function pause() {
   if (screen !== 'running') return;
   modal(
-    '<h2>잠시 쉬어가요</h2><p>남은 시간 ' +
-      clock(exam.duration - exam.time) +
-      '</p><div class="pause-rules"><p>잘못 신고하거나 민원이 생기면 생명이 줄어요.</p>' +
+    '<h2>잠시 쉬어가요</h2>' +
+      (inTutorial() ? '' : '<p>남은 시간 ' + clock(exam.duration - exam.time) + '</p>') +
+      '<div class="pause-rules"><p>잘못 신고하거나 민원이 생기면 생명이 줄어요.</p>' +
       '<p>도움 요청을 오래 기다리게 하거나 한 학생을 너무 오래 관찰하면 민원이 생길 수 있어요.</p></div>' +
       '<button class="primary" data-action="resume">계속 감독하기</button>' +
-      '<button class="secondary" data-action="leave">시험 그만두기</button>',
+      `<button class="secondary" data-action="leave">${inTutorial() ? '연습' : '시험'} 그만두기</button>`,
   );
 }
 function resume() {
@@ -158,9 +159,10 @@ function resume() {
   if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
 }
 async function start(stage = selectedStage, source = 'lobby') {
-  selectedStage = Math.min(saved.unlocked, stageNumber(stage));
   if (loading) return;
-  if (retries.current().remaining === 0) {
+  selectedStage = Math.min(saved.unlocked, stageNumber(stage));
+  const tutorial = selectedStage === 1;
+  if (!tutorial && retries.current().remaining === 0) {
     refreshRetries();
     shareResult(true);
     return;
@@ -168,35 +170,33 @@ async function start(stage = selectedStage, source = 'lobby') {
   sharing.reset();
   closeResult();
   loading = true;
-  track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
+  if (!tutorial) track('level_load', { level_name: `exam_${selectedStage}`, start_source: source });
   const button = document.activeElement;
   if (button?.tagName === 'BUTTON') button.disabled = true;
   if (!saved.muted) activateSound();
   try {
     const { Room } = await import('./world.js');
     // A different tab may have spent the final chance while the room loaded.
-    if (retries.current().remaining === 0) {
+    if (!tutorial && retries.current().remaining === 0) {
       if (screen === 'ended') openResult();
       shareResult(true);
       return;
     }
-    const lastSeed = exam?.seed ?? saved.history[0]?.seed;
-    const last = Number.isInteger(lastSeed)
-      ? new Exam(lastSeed, exam?.stage ?? saved.history[0]?.stage ?? 1)
+    const previousExam = exam && !inTutorial() ? exam : saved.history.find((result) => result.stage >= 2);
+    const last = !tutorial && previousExam?.stage >= 2 && Number.isInteger(previousExam.seed)
+      ? new Exam(previousExam.seed, previousExam.stage)
       : null;
-    const signature = (round) =>
-      round.seats
-        .filter((seat) => seat.guilty)
-        .map((seat) => seat.id)
-        .join(',');
     exam = new Exam(undefined, selectedStage);
-    // A fresh round visibly changes culprit seats, including after a reload.
-    while (last && signature(last) === signature(exam)) exam = new Exam((exam.seed + 1) >>> 0, selectedStage);
+    if (last) {
+      const signature = (round) => round.seats.filter((seat) => seat.guilty).map((seat) => seat.id).join(',');
+      // A fresh round visibly changes culprit seats, including after a reload.
+      while (signature(last) === signature(exam)) exam = new Exam((exam.seed + 1) >>> 0, selectedStage);
+    }
     $('#lobby').hidden = true;
     $('#play').hidden = false;
     $('#overlay').hidden = true;
     $('#ending').hidden = true;
-    $('#play').className = '';
+    $('#play').className = tutorial ? 'tutorial' : '';
     put('#play-header', ui.hud(exam));
     if (!room) room = new Room($('#room'));
     room.resize();
@@ -204,13 +204,16 @@ async function start(stage = selectedStage, source = 'lobby') {
     paused = false;
     screen = 'running';
     $('#notice').textContent = '';
+    $('#health').classList.remove('damaged');
     toastUntil = 0;
     previous = performance.now();
     render();
     if (!saved.muted) bell();
-    gameAnalytics.start(exam, source, engagement.nextAttempt(exam.stage));
+    const attempt = engagement.nextAttempt(exam.stage);
+    if (tutorial) track('tutorial_start');
+    else gameAnalytics.start(exam, source, attempt);
   } catch (error) {
-    track('level_load_error', { level_name: `exam_${selectedStage}` });
+    if (!tutorial) track('level_load_error', { level_name: `exam_${selectedStage}` });
     console.error(error);
     home();
     modal(
@@ -224,12 +227,17 @@ async function start(stage = selectedStage, source = 'lobby') {
 }
 function select(id) {
   if (screen !== 'running' || paused || exam.seat(id)?.caught) return;
+  if (inTutorial() && (exam.tutorialTask.id !== id || room.focus === id)) return;
   const previousSeat = room.focus;
   room.select(id);
-  if (room.focus === id && previousSeat !== id) gameAnalytics.inspect(exam);
+  if (room.focus === id && previousSeat !== id) {
+    if (inTutorial()) $('#notice').textContent = '';
+    gameAnalytics.inspect(exam);
+  }
   render();
 }
 function next() {
+  if (inTutorial()) return;
   const index = exam.seats.findIndex((seat) => seat.id === room.focus);
   for (let offset = 1; offset <= exam.seats.length; offset++) {
     const seat = exam.seats[(index + offset) % exam.seats.length];
@@ -243,19 +251,24 @@ function finish() {
   if (screen !== 'running') return;
   screen = 'ended';
   const result = exam.result();
-  if (result.reason !== 'win') retries.fail();
-  engagement.finish(exam, gameAnalytics.end(exam));
   saved.unlocked = unlockStage(saved.unlocked, result);
-  if (result.reason === 'win' && result.stage === 5) saved.completed = true;
-  saved.history.unshift(result);
-  saved.history.length = Math.min(saved.history.length, 10);
+  if (inTutorial()) {
+    selectedStage = 2;
+    track('tutorial_complete');
+  } else {
+    if (result.reason !== 'win') retries.fail();
+    engagement.finish(exam, gameAnalytics.end(exam));
+    if (result.reason === 'win' && result.stage === 5) saved.completed = true;
+    saved.history.unshift(result);
+    saved.history.length = Math.min(saved.history.length, 10);
+  }
   save();
   room.finish(result);
   paused = false;
   $('#overlay').hidden = true;
   $('#play').className = 'ended ' + (result.reason === 'win' ? 'win' : 'defeat');
   showResult();
-  if (retries.current().remaining === 0)
+  if (!inTutorial() && retries.current().remaining === 0)
     track('retry_exhausted', { ...engagement.shareContext(), retry_remaining: 0 });
   $('#ending [data-action=result-open]')?.focus({ preventScroll: true });
   room.resize();
@@ -265,11 +278,16 @@ function finish() {
 function render() {
   if (screen !== 'running') return;
   put('#health', ui.hearts(exam.health));
-  $('#time').textContent = clock(exam.duration - exam.time);
-  $('#time').classList.toggle('urgent', exam.duration - exam.time <= 15);
+  const time = $('#time');
+  if (time) {
+    time.textContent = clock(exam.duration - exam.time);
+    time.classList.toggle('urgent', exam.duration - exam.time <= 15);
+  }
   $('#play').classList.toggle('inspecting', Boolean(room.focus && !room.busy));
   $('#seat-targets').inert = Boolean(room.action);
-  put('#controls', ui.inspection(exam, room.focus, room.busy));
+  const task = exam.tutorialTask;
+  const guide = task ? ui.tutorialGuide(exam, room.focus && !room.busy) : '';
+  put('#controls', guide + ui.inspection(exam, room.focus, room.busy));
   if (room.focus) {
     const request = exam.requestFor(room.focus);
     const speech = room.busy
@@ -297,8 +315,8 @@ function render() {
           seat.id +
           '" aria-label="' +
           seatNo(seat.id) +
-          '번 학생 관찰" ' +
-          (seat.caught ? 'disabled' : '') +
+          '번 학생 관찰" ' + (seat.id === task?.id ? 'class="tutorial-target" ' : '') +
+          (seat.caught || (task && task.id !== seat.id) ? 'disabled' : '') +
           '></button>',
       )
       .join(''),
@@ -346,7 +364,7 @@ function act(action) {
   if (action === 'resume') return resume();
   if (action === 'leave')
     return modal(
-      '<h2>이번 시험을 그만둘까요?</h2><button class="primary" data-action="resume">계속 감독하기</button><button class="secondary" data-action="home">그만두기</button>',
+      `<h2>${inTutorial() ? '연습을 그만둘까요?' : '이번 시험을 그만둘까요?'}</h2><button class="primary" data-action="resume">계속 감독하기</button><button class="secondary" data-action="home">그만두기</button>`,
     );
   if (paused) return;
   if (action === 'pause') return pause();
@@ -479,11 +497,11 @@ function tick(now) {
       );
       if (!saved.muted) reportSound(false);
     }
-    if (now - renderedAt > 120) {
+    if (exam.over) finish();
+    else if (now - renderedAt > 120) {
       render();
       renderedAt = now;
     }
-    if (exam.over) finish();
   }
   if (room && (screen === 'running' || screen === 'ended') && !paused) {
     const stillEnding = motion.matches && room.ending && room.ending.reviewIndex == null;

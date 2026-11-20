@@ -21,7 +21,7 @@ try {
   await page.clock.pauseAt(new Date('2026-11-18T09:01:00Z'));
   const tap = action => page.locator(`[data-action=${action}]`).filter({ visible: true }).first().tap();
   const layouts = [[390,844],[320,568],[360,606],[568,320],[844,390],[1167,813]];
-  for (const [reason, stage] of [['missed',4], ['missed',2], ['health',1], ['sad',1], ['win',1], ['win',5]]) {
+  for (const [reason, stage] of [['missed',4], ['missed',2], ['health',2], ['sad',2], ['win',2], ['win',5]]) {
     await page.goto(origin);
     await page.locator(`[data-level="${stage}"]`).tap();
     await tap('start');

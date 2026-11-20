@@ -15,7 +15,7 @@ try {
   await page.route(/\/src\/analytics\.js(?:\?t=\d+)?$/, route => route.fulfill({ contentType: 'application/javascript',
     body: "export {createGameAnalytics} from '/src/analytics.js?fixture'; export function createAnalytics(){window.events=[];return (name,data)=>window.events.push({name,...data});}" }));
   await page.addInitScript(() => {
-    if (!localStorage.getItem('nyangijapgi.v2')) localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true }));
+    if (!localStorage.getItem('nyangijapgi.v2')) localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true, unlocked: 2 }));
     window.shareMode = 'success';
     window.shareCalls = 0;
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
@@ -75,7 +75,7 @@ try {
   await page.clock.setSystemTime(new Date('2026-11-19T15:00:01Z'));await page.clock.runFor(1100);await balance(3);
   await start();await page.clock.setSystemTime(new Date('2026-11-20T15:00:01Z'));await finish('health');await balance(2);
   assert.equal(JSON.parse(await raw()).day,'2026-11-21');await page.reload();await balance(2);
-  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nyangijapgi.v2')).unlocked),2);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nyangijapgi.v2')).unlocked),3);
   assert.deepEqual(errors,[]);
   console.log('Retries passed: win preserved, three failures, zero-chance invitation, review without quota, delayed reward then retry, reload, repeated reward, quit and Korean midnight.');
 }finally{await browser.close();}

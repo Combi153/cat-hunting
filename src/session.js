@@ -1,4 +1,4 @@
-import { STAGES, stageNumber } from './stages.js';
+import { STAGES, TUTORIAL_TASKS, stageNumber } from './stages.js';
 export const TYPES = {
   glasses: {
     name: 'AI 안경',
@@ -104,11 +104,19 @@ export class Exam {
         cleared: false,
         exitAt: null,
         first: 7 + random() * 12,
-        period: this.rules.cycle + random() * this.rules.jitter,
+        period: (this.rules.cycle ?? 0) + random() * (this.rules.jitter ?? 0),
         ordinary: Math.floor(random() * ordinary.length),
         offset: random() * 8,
       })),
     );
+    if (this.rules.tutorial) {
+      const [culprit, innocent, requester] = TUTORIAL_TASKS.map(({ id }) => this.seat(id));
+      culprit.guilty = true;
+      culprit.kind = innocent.kind = 'note';
+      this.lesson = 0;
+      this.requests = [this.newRequest(requester, 'paper', 0)];
+      return;
+    }
     const devices = shuffled(this.rules.kinds, random);
     for (const [wave, culprit] of shuffled(this.seats, random).slice(0, this.rules.culprits).entries()) {
       culprit.guilty = true;
@@ -169,7 +177,11 @@ export class Exam {
   get caught() {
     return this.seats.filter((seat) => seat.caught).length;
   }
+  get tutorialTask() {
+    return TUTORIAL_TASKS[this.lesson];
+  }
   liveRequests() {
+    if (this.rules.tutorial && this.tutorialTask?.action !== 'serve') return [];
     return this.requests.filter((request) => this.time >= request.start && !request.done);
   }
   requestFor(id) {
@@ -178,6 +190,12 @@ export class Exam {
   behavior(seat) {
     if (seat.caught) return { pose: 'exit', text: '부정행위를 확인해 퇴실했다.' };
     if (this.requestFor(seat.id)) return { pose: 'hand', text: '손을 들고 감독관의 도움을 기다리고 있다.' };
+    const task = this.tutorialTask;
+    if (task?.id === seat.id && task.action !== 'serve') {
+      return seat.guilty
+        ? { pose: 'proof-note', text: TYPES.note.proof }
+        : { pose: 'clear-note', text: TYPES.note.clear };
+    }
     if (this.rules.hide && this.watching === seat.id && this.watchTime < this.rules.hide)
       return { pose: 'write', text: '감독관을 보더니 손을 멈추고 시험지로 시선을 돌렸다.' };
     if (seat.guilty && this.time >= seat.first) {
@@ -186,7 +204,7 @@ export class Exam {
       if (phase < this.rules.cue + this.rules.proof) return { pose: 'proof-' + seat.kind, text: TYPES[seat.kind].proof };
     }
     if (seat.cleared) return { pose: 'write', text: '눈가를 붉힌 채, 말없이 답안지를 채우고 있다.' };
-    if (!seat.guilty) {
+    if (!this.rules.tutorial && !seat.guilty) {
       const phase = (this.time + seat.offset) % seat.period;
       if (phase < this.rules.cue) return { pose: seat.kind, text: TYPES[seat.kind].cue };
       if (phase < this.rules.cue + this.rules.proof) return { pose: 'clear-' + seat.kind, text: TYPES[seat.kind].clear };
@@ -202,6 +220,9 @@ export class Exam {
   report(id) {
     const seat = this.seat(id);
     if (this.over || !seat || seat.caught || seat.cleared) return null;
+    const task = this.tutorialTask;
+    if (task && (task.id !== id || task.action === 'serve')) return null;
+    if (task) this.lesson++;
     // Players make the judgment. No evidence menu or animation-frame timing requirement.
     if (seat.guilty) {
       seat.caught = true;
@@ -234,11 +255,16 @@ export class Exam {
       time: this.time,
       text: request.type === 'paper' ? '새 답안지 전달' : '커튼 조정',
     });
+    if (this.rules.tutorial) {
+      this.over = true;
+      this.reason = 'win';
+    }
     return true;
   }
   step(dt) {
     if (this.over) return;
     this.time = Math.min(this.duration, this.time + Math.max(0, dt));
+    if (this.rules.tutorial) return;
     for (const request of this.liveRequests()) {
       if (!request.helping && !request.late && this.time >= request.deadline && !this.over) {
         request.late = true;

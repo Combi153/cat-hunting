@@ -1,21 +1,13 @@
 const kinds = ['glasses', 'ear', 'camera', 'note', 'watch', 'pen'];
 // The lobby shows the time limit. Culprit counts and clue settings stay hidden.
-// Stage 1 gives new players longer looks and no arrival concealment.
 export const STAGES = [
   {
     rows: 3,
-    duration: 60,
-    culprits: 2,
+    duration: Infinity,
+    culprits: 1,
+    tutorial: true,
     kinds,
-    cue: 0.95,
-    proof: 6.3,
-    cycle: 9.4,
-    jitter: 2,
-    hide: 0,
-    sensitive: 0,
-    patience: 8,
-    requests: [22],
-    deadline: 21,
+    deadline: Infinity,
   },
   {
     rows: 3,
@@ -77,6 +69,11 @@ export const STAGES = [
     requests: [10, 24],
     deadline: 10.5,
   },
+];
+export const TUTORIAL_TASKS = [
+  { id: 1, action: 'catch' },
+  { id: 2, action: 'mistake' },
+  { id: 3, action: 'serve' },
 ];
 export function stageNumber(value) {
   return Number.isInteger(Number(value)) ? Math.max(1, Math.min(STAGES.length, Number(value))) : 1;

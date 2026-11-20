@@ -19,7 +19,7 @@ try {
     body: "export * from '/src/world.js?fixture'; import {Room as Base} from '/src/world.js?fixture'; export class Room extends Base {constructor(...args){super(...args);window.testRoom=this}}",
   }));
   await page.addInitScript(() => {
-    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true }));
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ muted: true, unlocked: 2 }));
     // Each asset fixture starts a new browser-day allowance; quota is tested separately.
     localStorage.removeItem('nyangijapgi.retries.v1');
   });
@@ -28,7 +28,7 @@ try {
   const tap = async action => { await revealResult(page); return page.locator(`[data-action=${action}]`).filter({ visible: true }).tap(); };
   const covered = new Set();
   for (let seed = 1; covered.size < Object.keys(TYPES).length; seed++) {
-    const fixture = new Exam(seed);
+    const fixture = new Exam(seed, 2);
     if (fixture.seats.filter(s => s.guilty).every(s => covered.has(s.kind))) continue;
     await page.goto(`${origin}/?seed=${seed}`);
     await tap('start');

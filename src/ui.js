@@ -1,4 +1,4 @@
-import { STAGES } from './stages.js';
+import { STAGES, TUTORIAL_TASKS } from './stages.js';
 import { TYPES, clock, seatNo, MAX_HEALTH } from './session.js';
 const lines = {
   book: '<path d="M4 4h14a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4Zm4 0v16m3-11h6m-6 4h5"/>',
@@ -60,18 +60,19 @@ export function retryStatus(remaining) {
   return `<strong>남은 재도전 <b>${remaining}</b>회</strong>`;
 }
 export function lobby(saved, selected = 1, remaining = 3) {
+  const tutorial = STAGES[selected - 1].tutorial;
   return `<div class="lobby-wrap">
     <header class="topline"><span class="brand"><img src="/cat.svg" alt="">시험 감독</span>
     <button class="icon-btn" data-action="sound" aria-label="${saved.muted ? '소리 켜기' : '소리 끄기'}">${icon(saved.muted ? 'mute' : 'sound')}</button></header>
     <div class="cover-art" role="img" aria-label="점토 교실에서 안경을 고쳐 쓰는 학생"></div>
     <section class="cover-copy"><h1>냥이잡기</h1>
     <p class="lead">종이 울리기 전에 부정행위를 모두 찾아내세요.</p>
-    <div class="rules"><span>${icon('clock')} ${STAGES[selected - 1].duration}초</span><span>${hearts(3)} 생명 3개</span></div>
-    <p class="how">학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.</p>
-    <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
+    <div class="rules"><span>${icon('clock')} ${tutorial ? '시간제한 없음' : STAGES[selected - 1].duration + '초'}</span>${tutorial ? '' : `<span>${hearts(3)} 생명 3개</span>`}</div>
+    <p class="how">${tutorial ? '첫 교실에서 학생을 관찰하고,<br>신고와 도움 주기를 연습해요.' : '학생을 눌러 가까이에서 살펴보세요.<br>부정행위를 발견하면 신고하고,<br>손을 든 학생의 요청도 들어주세요.'}</p>
+    <nav class="stage-picker" aria-label="시험 단계">${STAGES.map((item, i) => `<button data-level="${i + 1}" aria-label="${i + 1}단계${item.tutorial ? ' 튜토리얼' : ''}${i + 1 > saved.unlocked ? ', 이전 단계 통과 후 열림' : ''}" aria-pressed="${selected === i + 1}" ${i + 1 > saved.unlocked ? 'disabled' : ''}><b>${String(i + 1).padStart(2, '0')}</b>${item.tutorial ? '<span aria-hidden="true">연습</span>' : i + 1 > saved.unlocked ? '<span aria-hidden="true">잠김</span>' : ''}</button>`).join('')}</nav>
     ${saved.completed ? '<p class="campaign-clear">모든 단계 통과!</p>' : ''}
     <div class="retry-status" role="status">${retryStatus(remaining)}</div>
-    <button class="primary start-btn" data-action="start" >${selected}단계 감독 시작 ${icon('arrow')}</button>
+    <button class="primary start-btn" data-action="start">${tutorial ? '1단계 튜토리얼 시작' : selected + '단계 감독 시작'} ${icon('arrow')}</button>
     <button class="secondary share-open" data-action="share">공유하고 3회 더 받기</button>
     ${sponsorBanner('lobby')}
     </section>
@@ -81,11 +82,37 @@ export function lobby(saved, selected = 1, remaining = 3) {
     </footer></div>`;
 }
 export function hud(exam) {
-  return `<header class="hud-top"><div id="health">${hearts(3)}</div><strong id="time">${clock(exam.duration)}</strong>
+  return `<header class="hud-top"><div id="health">${hearts(3)}</div>${exam.rules.tutorial ? '<strong class="tutorial-label">튜토리얼</strong>' : `<strong id="time">${clock(exam.duration)}</strong>`}
     <button class="icon-btn" data-action="pause" aria-label="일시정지">${icon('pause')}</button></header>
-    <div class="round-status"><span>${exam.stage} / ${STAGES.length} 단계</span></div>`;
+    ${exam.rules.tutorial ? '' : `<div class="round-status"><span>${exam.stage} / ${STAGES.length} 단계</span></div>`}`;
+}
+const tutorialCopy = {
+  catch: {
+    title: '부정행위 적발하기',
+    approach: '표시된 학생을 눌러 손에 든 종이를 살펴보세요.',
+    observe: '종이에 문항 번호와 답이 적혀 있어요. 확인했으면 신고해 보세요.',
+  },
+  mistake: {
+    title: '오인 신고 체험하기',
+    approach: '쪽지 속 답안을 찾아냈어요. 이번에도 종이를 펼친 학생을 살펴보세요.',
+    observe: '사진과 수험번호가 보이나요? 연습으로 신고하고 어떤 일이 생기는지 확인해 보세요.',
+  },
+  serve: {
+    title: '학생 요청 들어주기',
+    approach: '수험표를 잘못 신고해 생명이 하나 줄었어요. 이제 손을 든 학생에게 가 보세요.',
+    observe: '아래 버튼을 눌러 새 답안지를 건네주세요.',
+  },
+};
+export function tutorialGuide(exam, arrived) {
+  const { title, approach, observe } = tutorialCopy[exam.tutorialTask.action];
+  return `<div class="tutorial-guide" aria-live="polite">
+    <h2><span>${exam.lesson + 1} / ${TUTORIAL_TASKS.length}</span> ${title}</h2>
+    <p>${arrived ? observe : approach}</p>
+  </div>`;
 }
 export function inspection(exam, id, busy = '') {
+  const tutorial = exam.rules.tutorial;
+  if (tutorial && !id) return '';
   if (busy === 'returning')
     return '<div class="overview-copy"><h2>교탁으로 돌아가고 있어요</h2><p>다른 학생을 눌러 바로 이동</p></div>';
   const seat = exam.seat(id);
@@ -98,21 +125,35 @@ export function inspection(exam, id, busy = '') {
   return `<div class="inspection-heading"><button class="back" data-action="overview" aria-label="교실로 돌아가기">‹ 교실</button><h2>${seatNo(id)}번 학생</h2></div>
     <p class="clue" aria-live="polite"></p>
     <div class="decision">
-    <button class="secondary" data-action="next">다음 학생 ›</button>
+    ${tutorial ? '' : '<button class="secondary" data-action="next">다음 학생 ›</button>'}
     ${
       request
         ? `<button class="primary" data-action="serve">${request.type === 'paper' ? '새 답안지 건네기' : '커튼 닫아주기'}</button>`
         : `<button class="${seat.cleared ? 'secondary' : 'report'}" data-action="report" ${seat.caught || seat.cleared ? 'disabled' : ''}>${seat.caught ? '퇴실 조치 완료' : seat.cleared ? '확인 완료' : '신고하기'}</button>`
     }
-    </div>${request ? '' : '<p class="decision-hint">화면을 누르면 교실로 돌아가요.</p>'}`;
+    </div>${request || tutorial ? '' : '<p class="decision-hint">화면을 누르면 교실로 돌아가요.</p>'}`;
 }
 export function ending(result, remaining = 3) {
+  if (result.stage === 1) {
+    return `<div class="ending-title"><p class="eyebrow">1단계 튜토리얼</p><h1>연습 완료!</h1></div>
+      <div class="ending-reaction"><p class="ending-line">“고맙습니다, 선생님.”</p><button class="text-btn" data-action="result-open">다음으로 ${icon('arrow', 15)}</button></div>
+      <dialog id="result-dialog" class="result-dialog" aria-labelledby="result-title">
+        <header class="result-header">
+          <h2 id="result-title">이제 실전이에요!</h2>
+          <p class="result-explanation">2단계에서는 ${STAGES[1].duration}초 안에 부정행위를 모두 찾아야 해요. 손을 든 학생의 요청도 놓치지 마세요.</p>
+        </header>
+        <div id="result-actions">
+          <button class="primary result-retry" data-action="advance"><span><strong>2단계 시험 시작</strong></span>${icon('arrow', 18)}</button>
+          <button class="text-btn result-home" data-action="home">처음으로</button>
+        </div>
+      </dialog>`;
+  }
   const win = result.reason === 'win';
   const villain = result.missed[0];
   const finalStage = win && result.stage === 5;
   const reviewFirst = !win && result.stage <= 2;
   const title = finalStage
-    ? '다섯 번의 시험, 모두 통과!'
+    ? '모든 단계 통과!'
     : win
       ? result.stage + '단계 통과!'
       : result.reason === 'health'
@@ -132,7 +173,7 @@ export function ending(result, remaining = 3) {
         <p class="eyebrow">${result.stage}단계 · ${win ? '통과' : '시험 결과'}</p>
         <button class="icon-btn result-close" data-action="result-close" aria-label="결과 닫고 캐릭터 보기">${icon('x')}</button>
         <h2 id="result-title">${finalStage ? '모두 찾아냈어요!' : win ? result.stage + '단계 통과!' : '다시 살펴볼까요?'}</h2>
-        <p class="result-explanation">${explanation || (finalStage ? '다섯 번의 시험을 모두 지켜냈어요.' : '다음 시험에도 도전해 보세요.')}</p>
+        <p class="result-explanation">${explanation || (finalStage ? '마지막 시험까지 모두 지켜냈어요.' : '다음 시험에도 도전해 보세요.')}</p>
       </header>
       <dl class="end-stats"><div><dt>적발</dt><dd>${result.caught}<small> / ${result.caught + result.missed.length}</small></dd></div><div><dt>오인</dt><dd>${result.falseCalls}</dd></div><div><dt>민원</dt><dd>${result.complaints}</dd></div></dl>
       <div id="result-actions">

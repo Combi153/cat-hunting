@@ -19,6 +19,12 @@ try {
       body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(seed=42,stage=1){super(seed,stage)}}",
     }),
   );
+  await page.route(/\/src\/analytics\.js(?:\?t=\d+)?$/, (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: "export {createGameAnalytics} from '/src/analytics.js?fixture'; export function createAnalytics(){window.events=[];return (name,data)=>window.events.push({name,...data})}",
+    }),
+  );
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   await page.goto(process.env.TEST_BASE_URL || 'http://127.0.0.1:5173');
   await page.clock.pauseAt(new Date('2026-11-18T00:01:00Z'));
@@ -46,17 +52,49 @@ try {
   };
   assert.equal(await page.locator('.stage-picker button:disabled').count(), 4);
   await page.screenshot({ path: 'test-results/campaign-lobby.png' });
+  const playTutorial = async (verify = false) => {
+    await tap('[data-action=start]');
+    await page.locator('.tutorial-target').waitFor();
+    assert.equal(await page.locator('#time').count(), 0);
+    assert.equal(await page.locator('#seat-targets button:enabled').count(), 1);
+    const target = new Exam(42, 1).seats;
+    if (verify) {
+      await page.clock.fastForward(120000);
+      assert.ok(await page.locator('#ending').isHidden());
+      await inspect(target[0].id);
+      await tap('[data-action=overview]');
+    }
+    await inspect(target[0].id);
+    await tap('[data-action=report]');
+    assert.match(await page.locator('#notice').innerText(), /적발/);
+    await inspect(target[1].id);
+    await tap('[data-action=report]');
+    assert.equal(await page.locator('#health .hearts').getAttribute('aria-label'), '생명 2개');
+    await inspect(target[2].id);
+    await tap('[data-action=serve]');
+    assert.ok(await page.locator('#ending').isHidden());
+    await advance(2000);
+    await revealResult(page);
+    assert.match(await page.locator('#result-dialog').innerText(), /2단계 시험 시작/);
+  };
+  await playTutorial(true);
+  const tutorialSave = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
+  assert.equal(tutorialSave.unlocked, 2);
+  assert.deepEqual(tutorialSave.history, []);
+  assert.deepEqual(await page.evaluate(() => window.events.map(event => event.name)), ['tutorial_start', 'tutorial_complete']);
+  console.log('Tutorial passed: no timer, observation return, correct and mistaken reports, real help and saved unlock.');
+
   let last = null;
   const signature = (e) =>
     e.seats
       .filter((s) => s.guilty)
       .map((s) => s.id)
       .join(',');
-  for (let stage = 1; stage <= 5; stage++) {
+  for (let stage = 2; stage <= 5; stage++) {
     let seed = 42;
     while (last && signature(new Exam(seed, stage)) === signature(last)) seed++;
     const fixture = new Exam(seed, stage);
-    await tap(stage === 1 ? '[data-action=start]' : '[data-action=advance]');
+    await tap('[data-action=advance]');
     await page.locator('#play:not([hidden])').waitFor();
     await page.locator('#ending').waitFor({ state: 'hidden' });
     assert.equal(await page.locator('#time').textContent(), clock(fixture.duration));
@@ -100,7 +138,7 @@ try {
     last = fixture;
   }
   assert.equal(await page.locator('[data-action=advance]').count(), 0);
-  assert.match(await page.locator('.ending-title').innerText(), /다섯 번/);
+  assert.match(await page.locator('.ending-title').innerText(), /모든 단계 통과/);
   await page.screenshot({
     path: 'test-results/campaign-complete.png',
     animations: 'disabled',
@@ -125,6 +163,24 @@ try {
   await advance(200);
   assert.match(await page.locator('.round-status').innerText(), /3 \/ 5/);
   assert.equal(await page.locator('#blink, #caught, #tasks').count(), 0);
+  // A browser with older progress can replay the tutorial even after spending all retries.
+  const legacy = { version: 2, ruleset: 6, stage: 1, reason: 'win', seed: 42 };
+  await page.evaluate(legacy => {
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ unlocked: 4, history: [legacy], muted: true }));
+    localStorage.setItem('nyangijapgi.retries.v1', JSON.stringify({ day: '2026-11-18', remaining: 0 }));
+  }, legacy);
+  await page.reload();
+  await tap('[data-level="1"]');
+  await playTutorial();
+  const replaySave = await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.v2')));
+  assert.equal(replaySave.unlocked, 4);
+  assert.deepEqual(replaySave.history, [legacy]);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('nyangijapgi.retries.v1')).remaining), 0);
+  await tap('[data-action=advance]');
+  assert.match(await page.locator('#share-title').innerText(), /기회가 없어요/);
+  await page.locator('[data-share=close]').tap();
+  await page.clock.runFor(100);
+  await page.locator('#result-dialog').waitFor();
   assert.deepEqual(errors, []);
   console.log('Completion persists; failed stages retry in place; no count spoilers or page errors.');
 } finally {

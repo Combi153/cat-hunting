@@ -10,7 +10,7 @@ function fixture() {
   const send = (name, data) => events.push({ name, ...data });
   const tracker = createGameAnalytics(send, () => 'round-1');
   const engagement = createEngagementAnalytics(send, () => time);
-  const exam = new Exam(42);
+  const exam = new Exam(42, 2);
   tracker.start(exam, 'lobby');
   return { events, tracker, engagement, exam, tick: ms => time += ms };
 }
@@ -25,10 +25,10 @@ test('prop totals reconcile to the completed round, including normal denominator
   const props = events.filter(e => e.name === 'prop_result');
   const sum = key => props.reduce((n, e) => n + e[key], 0);
   assert.equal(props.length, new Set(exam.seats.map(s => s.kind)).size);
-  assert.equal(sum('culprit_count'), 2);
-  assert.equal(sum('normal_count'), 7);
+  assert.equal(sum('culprit_count'), 3);
+  assert.equal(sum('normal_count'), 6);
   assert.equal(sum('caught_count'), 1);
-  assert.equal(sum('missed_count'), 1);
+  assert.equal(sum('missed_count'), 2);
   assert.equal(sum('false_report_count'), 1);
   assert(props.every(e => e.attempt_id === 'round-1' && !('seed' in e) && !('id' in e)));
 });
@@ -53,11 +53,11 @@ test('review duration excludes hidden time, preserves attempt and annotates the 
   engagement.action('retry');
   assert.equal(events.at(-1).previous_review, 'yes');
   engagement.home();
-  const next = new Exam(43);
-  tracker.start(next, 'lobby', engagement.nextAttempt(1));
+  const next = new Exam(43, 2);
+  tracker.start(next, 'lobby', engagement.nextAttempt(2));
   assert.equal(events.at(-1).previous_review, 'yes');
   assert.deepEqual(engagement.shareContext(), {});
-  assert.deepEqual(engagement.nextAttempt(1), { previous_review: 'not_applicable' });
+  assert.deepEqual(engagement.nextAttempt(3), { previous_review: 'not_applicable' });
 });
 
 test('banner clicks distinguish placement without attaching a stale result to the lobby', () => {
@@ -69,5 +69,5 @@ test('banner clicks distinguish placement without attaching a stale result to th
   engagement.banner('lobby');
   assert.equal(events.at(-1).banner_placement, 'lobby');
   assert.equal(events.at(-1).attempt_id, undefined);
-  assert.deepEqual(engagement.nextAttempt(2), { previous_review: 'not_applicable' });
+  assert.deepEqual(engagement.nextAttempt(3), { previous_review: 'not_applicable' });
 });

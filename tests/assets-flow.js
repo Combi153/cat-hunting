@@ -14,14 +14,17 @@ try {
   page.on('pageerror', e => errors.push(e.message));
   await page.route(/\/src\/session\.js(?:\?t=\d+)?$/, route => route.fulfill({
     contentType: 'application/javascript',
-    body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(){super(Number(new URLSearchParams(location.search).get('seed')),1);window.reviewExam=this}}",
+    body: "export * from '/src/session.js?fixture'; import {Exam as Base} from '/src/session.js?fixture'; export class Exam extends Base {constructor(){super(Number(new URLSearchParams(location.search).get('seed')),2);window.reviewExam=this}}",
   }));
+  await page.addInitScript(() => {
+    localStorage.setItem('nyangijapgi.v2', JSON.stringify({ unlocked: 2 }));
+  });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   const advance = async ms => { while (ms > 0) { await page.clock.fastForward(Math.min(ms, 100)); ms -= 100; } };
   for (const pose of ['proof-watch', 'clear-watch', 'proof-pen', 'clear-pen', 'sleeve-adjust', 'wrist-rest', 'neck-stretch', 'reread']) {
     let chosen;
     for (let seed = 0; seed < 200 && !chosen; seed++) {
-      const exam = new Exam(seed);
+      const exam = new Exam(seed, 2);
       for (const seat of exam.seats.filter(s => s.id <= 3 && !s.sensitive && !exam.requests.some(r => r.id === s.id))) {
         for (let t = 4; t < 17; t += 0.25) {
           exam.time = t;

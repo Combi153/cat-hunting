@@ -49,7 +49,7 @@ try {
     await page.bringToFront();
   }
   await banner('lobby');
-  await page.locator('[data-level="1"]').tap();
+  await page.locator('[data-level="2"]').tap();
   await tap('start');
   await page.locator('#play:not([hidden])').waitFor();
   await page.clock.runFor(100);
@@ -58,9 +58,9 @@ try {
   await page.locator('[data-action=review]').waitFor();
   assert.equal((await events('level_end')).length, 1);
   const props = await events('prop_result');
-  assert.equal(props.reduce((n, e) => n + e.culprit_count, 0), 2);
-  assert.equal(props.reduce((n, e) => n + e.missed_count, 0), 2);
-  assert.equal(props.reduce((n, e) => n + e.normal_count, 0), 7);
+  assert.equal(props.reduce((n, e) => n + e.culprit_count, 0), 3);
+  assert.equal(props.reduce((n, e) => n + e.missed_count, 0), 3);
+  assert.equal(props.reduce((n, e) => n + e.normal_count, 0), 6);
   await tap('review');
   await page.clock.runFor(2000);
   await tap('review-next');
