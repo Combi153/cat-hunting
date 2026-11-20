@@ -37,7 +37,11 @@ try {
     await revealResult(page); assert.match(await page.locator('.retry-status').filter({visible:true}).innerText(),new RegExp(`재도전 ${n}회`)); };
   const raw = () => page.evaluate(()=>localStorage.getItem('nyangijapgi.retries.v1'));
   const events = name => page.evaluate(name=>window.events.filter(e=>e.name===name),name);
-  const start = async()=>{await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.locator('#ending').waitFor({state:'hidden'});await page.clock.runFor(100)};
+  const start = async()=>{
+    await revealResult(page);
+    if (await page.locator('#result-dialog[open] .review-open .retry-status').count()) await tap('review');
+    await tap('start');await page.locator('#play:not([hidden])').waitFor();await page.locator('#ending').waitFor({state:'hidden'});await page.clock.runFor(100);
+  };
   const finish = async reason=>{
     if(reason!=='missed')await page.evaluate(reason=>{for(const seat of window.testExam.seats.filter(s=>reason==='win'?s.guilty:!s.guilty).slice(0,reason==='win'?12:3))window.testExam.report(seat.id)},reason);
     await page.clock.fastForward((await page.evaluate(() => window.testExam.duration) + 1) * 1000);await revealResult(page);
@@ -46,10 +50,14 @@ try {
   for(const [reason,n]of [['missed',2],['health',1],['missed',0]]){await start();await finish(reason);await balance(n)}
   assert.equal((await events('retry_exhausted')).length,1);
   const attempt=await page.evaluate(()=>window.testExam.seed);
-  assert.equal(await page.locator('#ending [data-action=start]').isEnabled(),true);
+  await tap('review');await balance(0);
+  assert.equal(await page.locator('.review-panel [data-action=start]').isEnabled(),true);
   await tap('start');assert.match(await page.locator('#share-title').innerText(),/기회가 없어요/);
   assert.equal(await page.evaluate(()=>window.testExam.seed),attempt);assert.equal(await page.evaluate(()=>window.shareCalls),0);
-  await page.locator('[data-share=close]').tap();await tap('review');await page.clock.runFor(1000);await tap('review-next');await tap('review-close');await balance(0);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#share-dialog').evaluate(el => el.open),false);
+  assert.equal(await page.locator('.review-panel').isVisible(), true);
+  await page.clock.runFor(1000);await tap('review-next');await balance(0);
   for(const [width,height]of [[320,568],[568,320],[1167,813]]){
     await page.setViewportSize({width,height});await tap('start');await page.screenshot({path:`test-results/retry-gate-${width}.png`});
     await page.locator('[data-share=close]').tap();

@@ -21,7 +21,7 @@ try {
   await page.clock.pauseAt(new Date('2026-11-18T09:01:00Z'));
   const tap = action => page.locator(`[data-action=${action}]`).filter({ visible: true }).first().tap();
   const layouts = [[390,844],[320,568],[360,606],[568,320],[844,390],[1167,813]];
-  for (const [reason, stage] of [['missed',4], ['health',1], ['sad',1], ['win',1], ['win',5]]) {
+  for (const [reason, stage] of [['missed',4], ['missed',2], ['health',1], ['sad',1], ['win',1], ['win',5]]) {
     await page.goto(origin);
     await page.locator(`[data-level="${stage}"]`).tap();
     await tap('start');
@@ -99,7 +99,13 @@ try {
       assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open),true);
     }
     if(reason!=='win'){
-      await tap('review'); await page.clock.runFor(1000); await tap('review-close');
+      const early = stage <= 2;
+      assert.equal(await page.locator('#result-dialog [data-action=start]').count(), early ? 0 : 1);
+      assert.match(await page.locator('#result-dialog [data-action=review]').innerText(), early ? /다시 도전/ : /부정행위 다시 보기/);
+      await tap('review');
+      assert.equal(await page.locator('.review-panel [data-action=start]').count(), early ? 1 : 0);
+      assert.equal(await page.evaluate(() => document.activeElement.tagName), 'H2');
+      await page.clock.runFor(1000); await tap('review-close');
       assert.equal(await page.locator('#result-dialog').evaluate(el=>el.open),true);
       assert.equal(await page.evaluate(()=>document.activeElement.dataset.action),'review');
     }

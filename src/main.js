@@ -80,9 +80,14 @@ function openResult() {
 function shareResult(exhausted = false) {
   closeResult();
   sharing.share(screen === 'ended' ? exam.result() : null, exhausted);
+  if (screen === 'ended' && room.ending?.reviewIndex != null) engagement.visibility(false);
 }
 $('#share-dialog').addEventListener('close', () => {
-  if (screen === 'ended') openResult();
+  if (screen !== 'ended') return;
+  if (room.ending?.reviewIndex != null) {
+    engagement.visibility(!document.hidden);
+    $('#ending .review-retry')?.focus({ preventScroll: true });
+  } else openResult();
 });
 function showResult(immediate = false) {
   clearTimeout(resultTimer);
@@ -323,8 +328,8 @@ function act(action) {
       if (!selection) return;
       engagement.review(selection, action === 'review' ? 'open' : 'navigate');
       $('#play').classList.add('reviewing');
-      $('#ending').innerHTML = ui.review(selection);
-      $(`#ending [data-action=${action === 'review' ? 'review-close' : action}]`)?.focus({ preventScroll: true });
+      $('#ending').innerHTML = ui.review(selection, exam.stage, retries.current().remaining);
+      $(action === 'review' ? '.review-panel h2' : `#ending [data-action=${action}]`)?.focus({ preventScroll: true });
     }
     room.resize();
     return;
@@ -379,7 +384,7 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
-  if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null) {
+  if (event.code === 'Escape' && screen === 'ended' && room.ending?.reviewIndex != null && !$('#share-dialog').open) {
     event.preventDefault();
     act('review-close');
     return;
@@ -435,7 +440,7 @@ canvas.addEventListener('pointercancel', () => {
 });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) refreshRetries();
-  engagement.visibility(!document.hidden);
+  engagement.visibility(!document.hidden && !$('#share-dialog').open);
   if (document.hidden && screen === 'running') gameAnalytics.event('level_background', exam);
   if (document.hidden && !paused) pause();
 });

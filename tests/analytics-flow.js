@@ -88,6 +88,8 @@ try {
   await tap('share');
   const before = (await events('share_result')).length;
   await page.locator('[data-share=close]').tap();
+  await tap('review');
+  assert.equal((await events('level_start')).length, 1, 'opening review does not start the retry');
   await tap('start');
   await page.evaluate(() => window.resolveShare());
   await page.clock.runFor(100);

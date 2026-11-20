@@ -110,6 +110,7 @@ export function ending(result, remaining = 3) {
   const win = result.reason === 'win';
   const villain = result.missed[0];
   const finalStage = win && result.stage === 5;
+  const reviewFirst = !win && result.stage <= 2;
   const title = finalStage
     ? '다섯 번의 시험, 모두 통과!'
     : win
@@ -135,8 +136,8 @@ export function ending(result, remaining = 3) {
       </header>
       <dl class="end-stats"><div><dt>적발</dt><dd>${result.caught}<small> / ${result.caught + result.missed.length}</small></dd></div><div><dt>오인</dt><dd>${result.falseCalls}</dd></div><div><dt>민원</dt><dd>${result.complaints}</dd></div></dl>
       <div id="result-actions">
-        ${!win ? `<button class="primary review-open" data-action="review">${icon('eye', 24)}<span><strong>부정행위 다시 보기</strong><small>놓친 행동을 가까이서 살펴봐요</small></span>${icon('arrow', 18)}</button>` : ''}
-        <button class="${win ? 'primary' : 'secondary'} result-retry" aria-label="${nextLabel}" data-action="${win && !finalStage ? 'advance' : finalStage ? 'home' : 'start'}"><span><strong>${nextLabel}</strong>${!finalStage ? `<span class="retry-status" role="status">${retryStatus(remaining)}</span>` : ''}</span>${icon('arrow', 18)}</button>
+        ${!win ? `<button class="primary review-open" data-action="review">${icon('eye', 24)}<span><strong>${reviewFirst ? nextLabel : '부정행위 다시 보기'}</strong>${reviewFirst ? `<small>부정행위를 먼저 살펴봐요</small><span class="retry-status" role="status">${retryStatus(remaining)}</span>` : '<small>놓친 행동을 가까이서 살펴봐요</small>'}</span>${icon('arrow', 18)}</button>` : ''}
+        ${!reviewFirst ? `<button class="${win ? 'primary' : 'secondary'} result-retry" aria-label="${nextLabel}" data-action="${win && !finalStage ? 'advance' : finalStage ? 'home' : 'start'}"><span><strong>${nextLabel}</strong>${!finalStage ? `<span class="retry-status" role="status">${retryStatus(remaining)}</span>` : ''}</span>${icon('arrow', 18)}</button>` : ''}
         <div class="result-links">
           <button class="share-open text-btn" data-action="share">공유하고 3회 더 받기</button>
           ${!finalStage ? '<button class="text-btn result-home" data-action="home">처음으로</button>' : ''}
@@ -148,14 +149,15 @@ export function ending(result, remaining = 3) {
     ${win ? '<div class="confetti" aria-hidden="true">' + Array.from({ length: 24 }, (_, i) => '<i style="--i:' + i + '"></i>').join('') + '</div>' : ''}`;
 }
 
-export function review({ seat, index, total }) {
+export function review({ seat, index, total }, stage, remaining) {
   return `<section class="review-panel" aria-label="부정행위 다시 보기">
     <p class="eyebrow">부정행위 다시 보기 · ${index + 1} / ${total}</p>
-    <h2 aria-live="polite">${seatNo(seat.id)}번 · ${TYPES[seat.kind].name}</h2>
+    <h2 tabindex="-1" aria-live="polite">${seatNo(seat.id)}번 · ${TYPES[seat.kind].name}</h2>
     <nav class="review-nav" aria-label="다시 볼 학생">
       <button class="secondary" data-action="review-prev" ${total < 2 ? 'disabled' : ''}>‹ 이전</button>
       <button class="secondary" data-action="review-next" ${total < 2 ? 'disabled' : ''}>다음 ›</button>
     </nav>
+    ${stage <= 2 ? `<button class="primary review-retry result-retry" data-action="start"><span><strong>${stage}단계 다시 도전</strong><span class="retry-status" role="status">${retryStatus(remaining)}</span></span>${icon('arrow', 18)}</button>` : ''}
     <button class="text-btn" data-action="review-close">결과로 돌아가기</button>
   </section>`;
 }

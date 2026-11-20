@@ -72,8 +72,8 @@ try {
       const panel = await page.locator('#ending').boundingBox();
       assert.ok(canvas.height > 240 && canvas.width > 240);
       assert.ok(canvas.y + canvas.height <= panel.y + 1 || canvas.x + canvas.width <= panel.x + 1, 'review UI must not cover the action');
-      for (const action of ['review-prev', 'review-next', 'review-close']) {
-        const b = await page.locator(`[data-action=${action}]`).boundingBox();
+      for (const action of ['review-prev', 'review-next', 'start', 'review-close']) {
+        const b = await page.locator(`.review-panel [data-action=${action}]`).boundingBox();
         assert.ok(b.height >= 44 && b.x >= 0 && b.y >= 0 && b.x + b.width <= width && b.y + b.height <= height);
       }
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
@@ -81,6 +81,8 @@ try {
     }
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.review-panel').count(), 0);
+    assert.equal(await page.locator('#result-dialog [data-action=start]').count(), 0);
+    await tap('review');
     await tap('start');
     await page.locator('#ending').waitFor({ state: 'hidden' });
     assert.equal(await page.locator('#play').evaluate(el => el.classList.contains('reviewing')), false);
