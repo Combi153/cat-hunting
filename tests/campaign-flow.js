@@ -58,6 +58,7 @@ try {
     assert.equal(await page.locator('#time').count(), 0);
     assert.equal(await page.locator('.desk-cue').count(), 0);
     assert.equal(await page.locator('#seat-targets button:enabled').count(), 0);
+    const opening = await page.locator('#room').boundingBox();
     await advance(2400);
     await tap('[data-action=pause]');
     await advance(4000);
@@ -68,6 +69,7 @@ try {
     await advance(1000);
     assert.equal(await page.locator('#seat-targets button:enabled').count(), 1);
     assert.ok(await page.locator('.desk-cue').isVisible());
+    assert.deepEqual(await page.locator('#room').boundingBox(), opening);
     const target = new Exam(42, 1).seats;
     if (verify) {
       await page.clock.fastForward(120000);
