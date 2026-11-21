@@ -6,6 +6,7 @@
 
 | 위치 | 버전·의미 | 연결 기록 |
 | --- | --- | --- |
+| [hand-poses/](hand-poses/) | 2026-11-21 `c5047a0` 전후 같은 5·6번 학생과 관찰 카메라로 렌더링한 [비교](hand-poses/comparison.jpg). 실제 시간의 튜토리얼 [쪽지](hand-poses/note-320.png)와 고정 시험·제어 시계의 [카메라](hand-poses/camera-320.png)는 Chrome 320×568 전체 화면 | [검증 기록](../quality/current-review.md#학생의-손과-소품-2026-11-21) |
 | [banner-hidden/](banner-hidden/) | 2026-11-20 `a4fb15f` 위의 배너 숨김. Chrome 1167×813 로비와 320×568 결과 모달 | [검증 기록](../quality/current-review.md#홍보-배너-임시-숨김-2026-11-20) |
 | [tutorial-intro/](tutorial-intro/) | 2026-11-20 `7bd59b4` 위의 튜토리얼 개선. 실제 시간에 조작한 Chrome 320×568의 도입·책상 아래 표시·쪽지와 568×320의 요청 화면 | [검증 기록](../quality/current-review.md#튜토리얼-도입부와-화면-정리-2026-11-20) |
 | [tutorial/](tutorial/) | 2026-11-20 `f5b989b` 위의 1단계 튜토리얼. Chrome 320×568 쪽지, 1167×813 수험표, 568×320 학생 요청을 실제 시간에 조작해 캡처 | [검증 기록](../quality/current-review.md#1단계-튜토리얼-2026-11-20) |

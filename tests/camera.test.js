@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Box3, OrthographicCamera, Vector3 } from 'three';
+import { Box3, OrthographicCamera, Raycaster, Vector3 } from 'three';
 import { Room } from '../src/world.js';
 import { Exam, TYPES } from '../src/session.js';
 import { createProctor, createStudent, updateStudent } from '../src/art/characters.js';
@@ -75,6 +75,51 @@ test('the tighter observation frame keeps faces, raised hands and normal and che
       for (const part of parts.filter(part => part.visible)) {
         const box = new Box3().setFromObject(part);
         for (const camera of cameras) assertFits(box, camera, `seat ${seat.id}, pose ${pose}`);
+      }
+    }
+  }
+});
+
+test('the inspection camera can see the markings past the animated hands and sleeves', () => {
+  const session = new Exam(42, 3);
+  const student = createStudent(5);
+  const seat = session.seat(6);
+  student.position.set(seat.x, 0, seat.z);
+  const { camera } = frame(0.8, session, seat.id);
+  const { props } = student.userData.clay;
+  const ray = new Raycaster();
+  // Points on printed columns, photo, screen corners, lens, dial or pen tip.
+  const samples = [
+    ['proof-note', props.note, [[-0.063, 0.051, 0.008], [-0.063, -0.051, 0.008], [0.05, -0.051, 0.008]]],
+    ['clear-note', props.id, [[-0.052, 0.011, 0.014], [0.058, 0.018, 0.008]]],
+    ['proof-camera', props.camera, [[-0.04, 0.02, 0.032], [0.019, -0.017, 0.032]]],
+    ['clear-camera', props.eraser, [[-0.035, 0.016, 0.017], [0, 0.018, 0.017]]],
+    ['proof-glasses', props.glasses, [[-0.092, 0, 0.012], [0.092, 0, 0.012]]],
+    ['clear-glasses', props.clearGlasses, [[-0.11, 0.01, 0.016], [0.074, 0.01, 0.016]]],
+    ['proof-ear', props.ear, [[-0.017, 0.027, 0.012]]],
+    ['proof-watch', props.watchAnswers, [[-0.021, 0.025, 0.055], [0.021, -0.014, 0.055]]],
+    ['clear-watch', props.watchTime, [[0, 0.004, 0.055]]],
+    ['proof-pen', props.penCamera, [[0, -0.031, 0.02], [0, -0.07, 0.02]]],
+    ['clear-pen', props.clearPen, [[0, -0.106, 0]]],
+  ];
+  let time = 0;
+  for (const [pose, prop, points] of samples) {
+    for (const phase of ['write', pose.split('-')[1], pose]) {
+      for (let tick = 1; tick <= 60; tick++) {
+        updateStudent(student, { time: time += 1 / 60, pose: phase });
+        if (phase !== pose || ![15, 30, 60].includes(tick)) continue;
+        student.updateMatrixWorld(true);
+        const meshes = [];
+        student.traverseVisible(mesh => {
+          if (mesh.isInstancedMesh) mesh.computeBoundingSphere();
+          if (mesh.isMesh) meshes.push(mesh);
+        });
+        for (const point of points) {
+          const screen = prop.localToWorld(new Vector3(...point)).project(camera);
+          ray.setFromCamera(screen, camera);
+          const [hit] = ray.intersectObjects(meshes, false);
+          assert.ok(hit && prop.getObjectById(hit.object.id), `${pose}, frame ${tick}, point ${point}`);
+        }
       }
     }
   }

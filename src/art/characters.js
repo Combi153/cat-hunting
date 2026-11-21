@@ -7,7 +7,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 const ball = new THREE.SphereGeometry(1, 14, 10);
 const softBox = new RoundedBoxGeometry(1, 1, 1, 2, 0.15);
 const ring = new THREE.TorusGeometry(1, 0.085, 5, 18);
-const wristBand = new THREE.TorusGeometry(1, 0.14, 6, 20);
+const wristBand = new THREE.CylinderGeometry(1, 1, 1, 24);
 const materialCache = new Map();
 function clay(color, options = {}) {
   const key = color + JSON.stringify(options);
@@ -128,8 +128,13 @@ function makeGlasses(proof = false) {
     }
   }
   box(g, M.ink, [0, 0.005, 0.01], [0.043, 0.012, 0.018]);
-  box(g, M.ink, [-0.174, 0.012, -0.057], [0.012, 0.012, 0.145], [0, -0.16, 0]);
-  box(g, M.ink, [0.174, 0.012, -0.057], [0.012, 0.012, 0.145], [0, 0.16, 0]);
+  for (const side of [-1, 1]) {
+    const temple = new THREE.CatmullRomCurve3([
+      v(side * 0.166, 0.013, 0.01), v(side * 0.184, 0.014, 0.005),
+      v(side * 0.205, 0.02, -0.125), v(side * 0.209, -0.004, -0.18),
+    ]);
+    mesh(g, new THREE.TubeGeometry(temple, 9, 0.0055, 5, false), M.ink);
+  }
   return bake(g);
 }
 function makeHead(index, proctor = false) {
@@ -145,7 +150,7 @@ function makeHead(index, proctor = false) {
   const eyes = [];
   for (const x of [-0.071, 0.071]) {
     eyes.push(lump(face, M.ink, [x, -0.018, 0.184], [0.011, 0.016, 0.008]));
-    lump(shape, M.blush, [x * 1.58, -0.069, 0.166], [0.027, 0.011, 0.004]);
+    lump(shape, M.blush, [x * 1.58, -0.069, 0.152], [0.027, 0.011, 0.007], [0.24, Math.sign(x) * 0.53, 0]);
   }
   const brows = [
     box(face, M.hair, [-0.072, 0.032, 0.18], [0.039, 0.009, 0.006], [0, 0, 0.06]),
@@ -173,42 +178,32 @@ function makeHead(index, proctor = false) {
   frown.visible = false;
   head.add(face, grin, tears, frown);
   head.userData.face = { eyes, brows, mouth, grin, tears, frown };
-  // Flattened overlapping locks, with an asymmetric part, keep the silhouette
-  // handmade without the round beads reading as animal ears.
-  lump(shape, hair, [0, 0.105, -0.035], [0.222, 0.17, 0.187]);
-  for (let i = 0; i < 9; i++) {
-    const a = (i / 8) * Math.PI;
-    const x = Math.cos(a) * 0.171;
-    const y = 0.105 + Math.sin(a) * 0.095;
-    lump(shape, hair, [x, y, 0.113], [0.06, 0.105, 0.057], [0, 0, -0.45 + i * 0.09]);
-  }
+  // Broad, swept locks meet the crown. Keep the hairline above the eyes and
+  // tuck the bob behind the temples so the glasses and ear gesture have room.
   const style = index % 4;
-  if (style === 0 || proctor) {
-    for (let i = 0; i < 7; i++)
-      lump(
-        shape,
-        hair,
-        [-0.155 + i * 0.049, 0.213 + Math.sin(i * 1.7) * 0.012, -0.015],
-        [0.069, 0.055, 0.103],
-        [0.1, 0.15, -0.2],
-      );
-  } else if (style === 1) {
-    lump(shape, hair, [-0.184, -0.067, -0.032], [0.067, 0.185, 0.143], [0, 0, -0.1]);
-    lump(shape, hair, [0.184, -0.067, -0.032], [0.067, 0.185, 0.143], [0, 0, 0.1]);
-    lump(shape, hair, [0, -0.13, -0.153], [0.185, 0.16, 0.065]);
+  const part = style % 2 === 0 ? 1 : -1;
+  lump(shape, hair, [0, 0.105, -0.025], [0.221, 0.174, 0.19]);
+  lump(shape, hair, [0, 0.048, -0.088], [0.205, 0.167, 0.12]);
+  for (const [x, y, z, width, height, tilt] of [
+    [-0.136, 0.118, 0.093, 0.06, 0.108, -0.47],
+    [-0.084, 0.151, 0.133, 0.055, 0.108, -0.73],
+    [-0.013, 0.163, 0.147, 0.053, 0.091, -0.92],
+    [0.079, 0.147, 0.13, 0.05, 0.087, 0.69],
+    [0.151, 0.112, 0.091, 0.047, 0.098, 0.44],
+  ]) {
+    lump(shape, hair, [part * x, y, z], [width, height, 0.052], [0.18, part * x * 2, part * tilt]);
+  }
+  if (style === 0 || style === 3) {
+    lump(shape, hair, [-part * 0.076, 0.205, 0.028], [0.131, 0.057, 0.117], [0.12, part * 0.21, part * 0.35]);
+  }
+  if (style === 1) {
+    for (const side of [-1, 1])
+      lump(shape, hair, [side * 0.17, -0.065, -0.07], [0.06, 0.173, 0.099], [-0.16, 0, side * 0.13]);
+    lump(shape, hair, [0, -0.09, -0.132], [0.188, 0.157, 0.086]);
   } else if (style === 2) {
-    lump(shape, hair, [0, 0.234, -0.135], [0.115, 0.093, 0.1]);
-    lump(shape, hair, [-0.194, -0.045, -0.04], [0.041, 0.125, 0.11]);
-    lump(shape, hair, [0.194, -0.045, -0.04], [0.041, 0.125, 0.11]);
-  } else {
-    for (let i = 0; i < 6; i++)
-      lump(
-        shape,
-        hair,
-        [-0.15 + i * 0.059, 0.11 + Math.sin(i) * 0.023, 0.15],
-        [0.064, 0.095, 0.051],
-        [0, 0, -0.32],
-      );
+    lump(shape, hair, [0, 0.242, -0.108], [0.106, 0.083, 0.095]);
+  } else if (style === 3) {
+    lump(shape, hair, [-0.059, 0.117, 0.154], [0.088, 0.045, 0.045], [0.14, -0.28, -0.43]);
   }
   head.add(bake(shape));
   const glasses = makeGlasses();
@@ -254,34 +249,64 @@ function makeArm(parent, knit, rib, skin, side) {
   const lower = lump(parent, knit);
   const cuff = lump(parent, rib);
   const hand = new THREE.Group();
-  lump(hand, skin, [0, 0.008, 0], [0.048, 0.069, 0.034]);
-  lump(hand, skin, [side * -0.042, -0.006, 0.012], [0.022, 0.038, 0.025], [0, 0, side * -0.36]);
-  // Slightly separated fingertips are visible when requesting a sheet.
-  for (let i = 0; i < 4; i++)
-    lump(hand, skin, [-0.03 + i * 0.019, 0.061 + (i === 1 ? 0.008 : 0), 0], [0.011, 0.029, 0.018]);
-  parent.add(bake(hand));
+  const open = new THREE.Group();
+  lump(open, skin, [0, 0.008, 0], [0.044, 0.062, 0.032]);
+  lump(open, skin, [side * -0.034, 0.007, 0.009], [0.018, 0.034, 0.019], [0, 0, side * -0.39]);
+  for (const [i, length] of [0.026, 0.03, 0.027, 0.021].entries())
+    lump(open, skin, [side * (-0.026 + i * 0.017), 0.035 + length, 0.002], [0.011, length, 0.014]);
+  // Curled fingers support the back. Only the thumb pad comes over the rim.
+  const grip = new THREE.Group();
+  lump(grip, skin, [0.004 * side, 0.004, 0], [0.037, 0.04, 0.033]);
+  for (let i = 0; i < 3; i++) {
+    lump(grip, skin, [-side * (0.023 - i * 0.004), 0.022 - i * 0.017, 0.005],
+      [0.03 - i * 0.003, 0.012, 0.014], [0, side * 0.2, side * -0.16]);
+  }
+  lump(grip, skin, [-side * 0.025, 0.017, 0.032], [0.027, 0.014, 0.014], [0, side * 0.36, side * -0.32]);
+  hand.add(bake(open), bake(grip));
+  const indexFinger = lump(hand, skin, [-side * 0.02, 0.047, 0.005], [0.012, 0.043, 0.013]);
+  parent.add(hand);
   return {
     upper,
     lower,
     cuff,
     hand,
+    open,
+    grip,
+    indexFinger,
+    pinch: v(-side * 0.043, 0.022, 0.024),
     elbow: v(side * 0.29, 0.19, 0.25),
     wrist: v(side * 0.15, 0.3, 0.53),
-    shoulder: v(side * 0.222, 0.428, 0),
+    shoulder: v(side * 0.20, 0.417, 0),
   };
 }
-function setArm(arm, elbow, wrist, alpha, raised = false, onDesk = false) {
+function setArm(arm, elbow, wrist, alpha, posture = 'relaxed') {
   arm.elbow.lerp(elbow, alpha);
   arm.wrist.lerp(wrist, alpha);
-  segment(arm.upper, arm.shoulder, arm.elbow, 0.085, 0.083);
-  segment(arm.lower, arm.elbow, arm.wrist, 0.077, 0.073);
+  segment(arm.upper, arm.shoulder, arm.elbow, 0.08, 0.077);
   temp.subVectors(arm.wrist, arm.elbow).normalize();
-  arm.cuff.position.copy(arm.wrist).addScaledVector(temp, -0.036);
-  arm.cuff.scale.set(0.078, 0.044, 0.073);
+  arm.cuff.position.copy(arm.wrist).addScaledVector(temp, -0.045);
+  arm.cuff.scale.set(0.059, 0.055, 0.057);
   arm.cuff.quaternion.setFromUnitVectors(axisY, temp);
-  arm.hand.position.copy(arm.wrist).addScaledVector(temp, 0.025);
-  if (onDesk) arm.hand.position.y -= 0.018;
-  arm.hand.rotation.set(raised ? 0 : onDesk ? 1.94 : 0.9, 0, raised ? 0 : -0.2);
+  arm.hand.position.copy(arm.wrist);
+  arm.indexFinger.visible = posture === 'point';
+  arm.grip.visible = posture === 'pinch' || arm.indexFinger.visible;
+  arm.open.visible = !arm.grip.visible;
+  if (arm.grip.visible) {
+    arm.hand.rotation.set(arm.indexFinger.visible ? 2.32 : 0, 0, 0);
+  } else {
+    arm.hand.position.addScaledVector(temp, 0.025);
+    const onDesk = posture === 'desk';
+    if (onDesk) arm.hand.position.y -= 0.018;
+    arm.hand.rotation.set(posture === 'raised' ? 0 : onDesk ? 1.94 : 0.9, 0, posture === 'raised' ? 0 : -0.2);
+  }
+  segment(arm.lower, arm.elbow, arm.cuff.position, 0.067, 0.064);
+}
+
+// The prop's local contact point follows the animated thumb and index finger,
+// including while the wrist is still travelling from the previous gesture.
+function holdAt(prop, arm, x, y, z) {
+  temp.set(x, y, z).applyQuaternion(prop.quaternion);
+  prop.position.copy(arm.hand.position).add(arm.pinch).sub(temp);
 }
 function makePencil() {
   const p = new THREE.Group();
@@ -294,8 +319,8 @@ function makePencil() {
 // close look at what is on the screen, and how it is used, distinguishes them.
 function makeWatch(display = 'sleep') {
   const watch = new THREE.Group();
-  for (const y of [-0.015, 0.015])
-    mesh(watch, wristBand, M.device, [0, y, -0.014], [0.06, 0.045, 0.06], [Math.PI / 2, 0, 0]);
+  // Local X runs along the forearm. The face sits on the outside of the band.
+  mesh(watch, wristBand, M.device, [0, 0, -0.022], [0.065, 0.049, 0.065], [0, 0, Math.PI / 2]);
   box(watch, M.trim, [0, 0.004, 0.036], [0.097, 0.115, 0.021]);
   box(watch, M.paper, [0, 0.004, 0.049], [0.078, 0.093, 0.005]);
   lump(watch, M.device, [0.051, 0.012, 0.034], [0.006, 0.013, 0.007]);
@@ -342,11 +367,18 @@ function makeExamPen(recording = false, capped = false) {
   }
   return bake(pen);
 }
+// Both paper faces share the same lower-corner grip and silhouette.
+const paperRotation = new THREE.Euler(-0.57, 0.17, -0.045);
+const paperAcross = v(1, 0, 0).applyEuler(paperRotation);
+const paperGripX = 0.109;
+const watchAxis = new THREE.Vector3();
+const dialUp = new THREE.Vector3();
+const dialNormal = new THREE.Vector3();
+const watchBasis = new THREE.Matrix4();
 function makeProps() {
   const props = new THREE.Group();
   const glasses = makeGlasses(true);
-  glasses.position.set(0.08, 0.48, 0.46);
-  glasses.rotation.set(-0.23, -0.15, 0.08);
+  glasses.rotation.set(-0.31, 0.14, 0.055);
   props.add(glasses);
   const clearGlasses = makeGlasses();
   const reflections = new THREE.Group();
@@ -356,7 +388,6 @@ function makeProps() {
     box(reflections, M.white, [x + 0.016, 0.01, 0.016], [0.01, 0.056, 0.004], [0, 0, -0.3]);
   }
   clearGlasses.add(bake(reflections));
-  clearGlasses.position.copy(glasses.position);
   clearGlasses.rotation.copy(glasses.rotation);
   props.add(clearGlasses);
   const ear = new THREE.Group();
@@ -364,38 +395,48 @@ function makeProps() {
   box(earCase, M.case, [0, 0.024, 0], [0.14, 0.048, 0.09]);
   box(earCase, M.case, [0, 0.073, -0.027], [0.14, 0.063, 0.018], [-0.3, 0, 0]);
   lump(earCase, M.device, [-0.028, 0.05, 0.005], [0.023, 0.009, 0.023]);
-  earCase.position.set(0.255, STUDENT_DESK_TOP + 0.012, 0.53);
-  lump(ear, M.case, [0.248, 0.566, 0.18], [0.018, 0.026, 0.013]);
-  box(ear, M.case, [0.248, 0.542, 0.18], [0.014, 0.035, 0.013]);
+  earCase.position.set(0.27, STUDENT_DESK_TOP + 0.012, 0.64);
+  earCase.rotation.y = 0.23;
+  lump(ear, M.case, [-0.009, 0.024, 0], [0.021, 0.022, 0.016]);
+  lump(ear, M.device, [-0.017, 0.027, 0.012], [0.009, 0.009, 0.005]);
+  box(ear, M.case, [0, -0.001, 0], [0.015, 0.045, 0.016]);
+  ear.rotation.z = -0.36;
   props.add(bake(ear));
   const camera = new THREE.Group();
-  box(camera, M.device, [0.16, 0.327, 0.57], [0.15, 0.105, 0.057], [-0.22, 0, 0]);
-  box(camera, M.blue, [0.16, 0.329, 0.604], [0.116, 0.075, 0.008], [-0.22, 0, 0]);
-  box(camera, M.paper, [0.16, 0.332, 0.61], [0.067, 0.055, 0.004], [-0.22, 0, 0]);
-  for (let j = 0; j < 3; j++) box(camera, M.rose, [0.16, 0.316 + j * 0.014, 0.615], [0.043, 0.004, 0.004]);
-  lump(camera, M.ink, [0.216, 0.371, 0.575], [0.012, 0.008, 0.01]);
+  box(camera, M.device, [0, 0, 0], [0.157, 0.107, 0.046]);
+  box(camera, M.blue, [-0.01, 0, 0.024], [0.116, 0.08, 0.007]);
+  box(camera, M.paper, [-0.011, 0.001, 0.029], [0.074, 0.061, 0.003], [0, 0, -0.08]);
+  for (let j = 0; j < 3; j++)
+    box(camera, M.screenInk, [-0.012, 0.017 - j * 0.015, 0.032], [j === 2 ? 0.03 : 0.047, 0.005, 0.002], [0, 0, -0.08]);
+  lump(camera, M.trim, [0.047, 0.055, -0.003], [0.016, 0.006, 0.009]);
+  camera.rotation.set(-0.51, 0.17, -0.07);
   props.add(bake(camera));
+
   const note = new THREE.Group();
-  box(note, M.paper, [0, 0, 0], [0.205, 0.15, 0.009]);
+  box(note, M.paper, [0, 0, 0], [0.235, 0.155, 0.009]);
   for (let j = 0; j < 4; j++) {
-    tinyDigit(note, j + 1, -0.068, 0.047 - j * 0.028, 0.008, 0.009, M.rose);
-    box(note, M.screenInk, [-0.016, 0.048 - j * 0.028, 0.008], [0.045, 0.006, 0.004], [0, 0, -0.06]);
-    tinyDigit(note, [3, 1, 2, 4][j], 0.052, 0.048 - j * 0.028, 0.008, 0.009);
+    const y = 0.051 - j * 0.034;
+    tinyDigit(note, j + 1, -0.063, y, 0.007, 0.012, M.graphite);
+    box(note, M.trim, [-0.007, y, 0.007], [0.042, 0.004, 0.003]);
+    tinyDigit(note, [3, 1, 2, 4][j], 0.05, y, 0.007, 0.012);
   }
+  note.rotation.copy(paperRotation);
   props.add(bake(note));
-  note.position.set(0.06, 0.31, 0.53);
-  note.rotation.set(-0.36, -0.12, -0.09);
   const id = new THREE.Group();
-  box(id, M.paper, [0, 0, 0], [0.205, 0.13, 0.009]);
-  box(id, M.trim, [-0.056, 0.009, 0.008], [0.056, 0.075, 0.004]);
-  lump(id, M.skin, [-0.056, 0.02, 0.012], [0.017, 0.02, 0.004]);
-  for (let j = 0; j < 3; j++) box(id, M.trim, [0.034, 0.029 - j * 0.025, 0.008], [0.061, 0.006, 0.004]);
+  box(id, M.paper, [0, 0, 0], [0.235, 0.155, 0.009]);
+  box(id, M.trim, [-0.052, 0.003, 0.007], [0.069, 0.087, 0.004]);
+  lump(id, M.screenInk, [-0.052, -0.021, 0.011], [0.025, 0.016, 0.003]);
+  lump(id, M.skin, [-0.052, 0.011, 0.012], [0.016, 0.019, 0.003]);
+  lump(id, M.hair2, [-0.053, 0.023, 0.015], [0.016, 0.009, 0.002]);
+  for (const [i, digit] of [2, 0, 6].entries())
+    tinyDigit(id, digit, 0.01 + i * 0.024, 0.018, 0.007, 0.01, M.graphite);
+  for (let j = 0; j < 2; j++)
+    box(id, M.trim, [0.036, -0.013 - j * 0.014, 0.007], [0.068, 0.005, 0.003]);
   props.add(bake(id));
-  id.position.copy(note.position);
-  id.rotation.copy(note.rotation);
   const eraser = new THREE.Group();
-  box(eraser, M.white, [0.15, 0.3, 0.57], [0.075, 0.025, 0.04]);
-  box(eraser, M.trim, [0.15, 0.3, 0.57], [0.035, 0.027, 0.042]);
+  box(eraser, M.white, [0, 0, 0], [0.093, 0.039, 0.048]);
+  box(eraser, M.trim, [0.011, 0, 0], [0.048, 0.041, 0.05]);
+  eraser.rotation.set(-0.19, 0.17, 0.53);
   props.add(bake(eraser));
   const watch = makeWatch();
   const watchAnswers = makeWatch('answers');
@@ -576,123 +617,155 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
     rw = v(0.13 + Math.sin(f * 6) * 0.009, 0.298, 0.56 + Math.cos(f * 4) * 0.012);
   for (const prop of r.props.group.children) prop.visible = false;
   r.props.earCase.visible = pose === 'proof-ear' && !stand;
+  const paper = pose === 'note' || pose.endsWith('-note');
+  const penPose = pose === 'pen' || pose.endsWith('-pen');
+  const watchPose = pose === 'watch' || pose.endsWith('-watch');
   const resting = ['rest', 'read', 'reread', 'sleeve-adjust', 'wrist-rest', 'neck-stretch'].includes(pose);
   const writing = pose === 'write' || pose === 'proof-watch' || pose === 'clear-watch';
   r.pencil.visible = !stand && (writing || resting);
   r.head.userData.glasses.visible = r.normalGlasses || pose === 'glasses';
+  let leftPosture = 'desk';
+  let rightPosture = 'desk';
+  let held = null;
+  let contact = null;
   if (pose === 'glasses') {
+    rightPosture = 'pinch';
     re.set(0.33, 0.39, 0.18);
-    rw.set(0.173, 0.69, 0.214);
+    rw.set(0.206, 0.68, 0.191);
   } else if (pose === 'proof-glasses' || pose === 'clear-glasses') {
-    re.set(0.32, 0.3, 0.29);
-    rw.set(0.24, 0.48, 0.43);
+    re.set(0.31, 0.30, 0.23);
+    rw.set(0.24, 0.47, 0.405);
     r.head.userData.glasses.visible = false;
-    r.props.glasses.visible = pose === 'proof-glasses';
-    r.props.clearGlasses.visible = pose === 'clear-glasses';
+    held = pose === 'proof-glasses' ? r.props.glasses : r.props.clearGlasses;
+    contact = [0.17, 0.01, -0.024];
   } else if (pose === 'ear' || pose === 'proof-ear' || pose === 'clear-ear') {
-    re.set(0.34, 0.34, 0.1);
-    rw.set(0.25, 0.61, 0.075);
-    if (pose === 'proof-ear') {
-      rw.set(0.25, 0.43, 0.47);
-      r.props.ear.position.set(0, -0.13, 0.29);
+    rightPosture = pose === 'clear-ear' ? 'relaxed' : 'pinch';
+    re.set(0.32, 0.34, 0.095);
+    rw.set(0.26, 0.63, 0.04);
+    if (pose !== 'ear') {
+      re.set(0.31, 0.32, 0.16);
+      const sweep = Math.sin(f) * 0.024;
+      rw.set(0.235, 0.52 + sweep, 0.32 - sweep);
     }
-    r.props.ear.visible = pose === 'proof-ear';
+    if (pose === 'proof-ear') {
+      held = r.props.ear;
+      contact = [0, -0.014, 0];
+    }
   } else if (pose === 'camera' || pose === 'proof-camera' || pose === 'clear-camera') {
-    re.set(0.29, 0.15, 0.3);
-    rw.set(0.19, 0.31, 0.54);
-    r.props.camera.visible = pose === 'proof-camera';
-    r.props.eraser.visible = pose === 'clear-camera';
-  } else if (pose === 'note' || pose === 'proof-note' || pose === 'clear-note') {
-    re.set(0.29, 0.13, 0.23);
-    rw.set(0.15, 0.31, 0.51);
-    le.set(-0.27, 0.15, 0.24);
-    lw.set(-0.055, 0.3, 0.5);
-    r.props.note.visible = pose === 'proof-note';
-    r.props.id.visible = pose === 'note' || pose === 'clear-note';
-    r.props.id.rotation.y = pose === 'note' ? Math.PI - 0.12 : -0.12;
-  } else if (pose === 'watch' || pose.endsWith('-watch')) {
-    le.set(-0.27, 0.27, 0.26);
-    lw.set(-0.085, 0.46, 0.42);
+    re.set(0.265, 0.19, 0.26);
+    rightPosture = 'pinch';
+    // Both objects pass close to the sheet. The bare end of the eraser touches it.
+    rw.set(0.218 + Math.sin(time * 5) * 0.022, aboveDesk(r.upper, 0.51, 0.058), 0.51);
+    if (pose === 'proof-camera') {
+      held = r.props.camera;
+      contact = [0.072, -0.013, 0.014];
+    } else if (pose === 'clear-camera') {
+      held = r.props.eraser;
+      contact = [0.034, 0.012, 0.011];
+    }
+  } else if (paper) {
+    leftPosture = 'pinch';
+    re.set(0.272, 0.20, 0.246);
+    rw.set(0.18, 0.342 + Math.sin(f) * 0.003, 0.50);
+    le.set(-0.262, 0.20, 0.24);
+    lw.copy(rw).add(r.right.pinch).sub(r.left.pinch).addScaledVector(paperAcross, -2 * paperGripX);
+    held = pose === 'proof-note' ? r.props.note : r.props.id;
+    held.rotation.copy(paperRotation);
+    const turn = pose === 'note' ? 1.92 : 0;
+    r.paperTurn = THREE.MathUtils.lerp(r.paperTurn ?? turn, turn, a);
+    held.rotateX(r.paperTurn);
+    contact = [paperGripX, -0.043, 0];
+  } else if (watchPose) {
+    leftPosture = 'relaxed';
+    rightPosture = 'pinch';
+    le.set(-0.285, 0.342, 0.37);
+    lw.set(-0.035, 0.425, 0.453);
     if (pose === 'watch') {
       re.set(0.24, 0.26, 0.27);
-      rw.set(-0.025, 0.43, 0.43);
+      rw.set(-0.08, 0.442, 0.433);
     }
     r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.22, a);
     r.head.rotation.y = -0.06 + Math.sin(time * 1.1) * 0.025;
-  } else if (pose === 'pen' || pose.endsWith('-pen')) {
-    re.set(0.29, 0.23, 0.28);
-    rw.set(0.13, pose === 'proof-pen' ? 0.35 : 0.43, 0.53);
-    if (pose === 'clear-pen') {
-      le.set(-0.25, 0.23, 0.3);
-      lw.set(-0.045, 0.405, 0.49);
-      rw.x = 0.06 + Math.sin(time * 1.6) * 0.006;
-    }
+  } else if (penPose) {
+    leftPosture = 'pinch';
+    re.set(0.27, 0.22, 0.25);
+    rw.set(0.127, 0.376, 0.50);
+    le.set(-0.25, 0.22, 0.26);
+    lw.set(-0.079, 0.36, 0.48);
+    held = pose === 'proof-pen' ? r.props.penCamera : pose === 'clear-pen' ? r.props.clearPen : r.props.pen;
+    held.rotation.set(-0.58, 0.16 + Math.sin(time * 1.6) * 0.09, -0.30);
+    contact = [0.012, 0.023, 0.002];
     r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.2, a);
   } else if (pose === 'sleeve-adjust') {
-    le.set(-0.27, 0.23, 0.27);
-    lw.set(-0.08, 0.39, 0.42);
-    re.set(0.24, 0.27, 0.28);
-    rw.set(-0.105, 0.395 + Math.sin(time * 2.4) * 0.008, 0.4);
+    leftPosture = 'relaxed';
+    rightPosture = 'pinch';
+    le.set(-0.29, 0.26, 0.27);
+    lw.set(-0.09, 0.38, 0.47);
+    re.set(0.24, 0.30, 0.31);
+    // The thumb tugs the cuff, leaving the other hand free beyond the sleeve.
+    rw.copy(lw).addScaledVector(temp.subVectors(lw, le).normalize(), -0.075)
+      .add(v(0.035, 0.041 + Math.sin(time * 2.4) * 0.009, 0.019)).sub(r.right.pinch);
     r.head.rotation.y = -0.06;
   } else if (pose === 'wrist-rest') {
-    le.set(-0.25, 0.23, 0.31);
-    lw.set(-0.02, 0.385, 0.45);
-    re.set(0.25, 0.24, 0.29);
-    rw.set(0.035, 0.425, 0.445);
+    leftPosture = rightPosture = 'relaxed';
+    le.set(-0.265, 0.22, 0.29);
+    lw.set(-0.069, 0.378, 0.46);
+    re.set(0.255, 0.245, 0.345);
+    rw.set(0.011, 0.454, 0.50);
   } else if (pose === 'neck-stretch') {
-    re.set(0.32, 0.39, 0.07);
-    rw.set(0.155, 0.64, -0.025);
-    r.head.rotation.z = Math.sin(time * 0.9) * 0.09 + 0.045;
+    rightPosture = 'relaxed';
+    re.set(0.335, 0.344, 0.096);
+    rw.set(0.216, 0.508, 0.036);
+    r.head.rotation.z = 0.09 + Math.sin(time * 0.9) * 0.055;
+    r.head.rotation.y = -0.09;
     r.head.rotation.x = 0.06;
   } else if (pose === 'reread') {
-    lw.set(-0.13, 0.3, 0.58 + Math.sin(time * 0.8) * 0.025);
-    rw.set(0.2, 0.3, 0.43);
-    r.head.rotation.y = Math.sin(time * 0.7) * 0.055;
+    leftPosture = 'point';
+    lw.set(-0.076 + Math.sin(time * 1.5) * 0.058, 0.3, 0.53);
+    rw.set(0.20, 0.3, 0.43);
+    r.head.rotation.y = Math.sin(time * 1.5) * 0.055;
     r.head.rotation.x = THREE.MathUtils.lerp(r.head.rotation.x, 0.24, a);
   } else if (pose === 'hand') {
+    rightPosture = 'raised';
     re.set(0.32, 0.63, 0.02);
     rw.set(0.3, 1.02, 0.04);
   } else if (pose === 'rest' || pose === 'read') {
     rw.set(0.2, 0.3, 0.41);
     lw.set(-0.2, 0.3, 0.43);
-    r.pencil.position.set(0.06, aboveDesk(r.upper, 0.65, 0.019), 0.65);
-    r.pencil.rotation.set(0, 0, Math.PI / 2);
   }
+  if (held || writing) rightPosture = 'pinch';
   if (stand) {
+    leftPosture = rightPosture = 'relaxed';
     const swing = walking ? Math.sin(time * 7.2) * 0.1 : 0;
     le.set(-0.25, 0.2, -swing);
     lw.set(-0.25, -0.045, -swing * 1.6);
     re.set(0.25, 0.2, swing);
     rw.set(0.25, -0.045, swing * 1.6);
   }
-  const leftRaised =
-    pose.endsWith('note') ||
-    pose === 'watch' ||
-    pose.endsWith('-watch') ||
-    ['clear-pen', 'sleeve-adjust', 'wrist-rest'].includes(pose);
-  const leftOnDesk = !stand && !leftRaised;
-  const rightOnDesk = !stand && (writing || ['rest', 'read', 'reread'].includes(pose));
+  if (!paper) r.paperTurn = null;
   if (!stand) {
     if (le.z > 0.13) le.y = Math.max(le.y, aboveDesk(r.upper, le.z, 0.092));
     if (re.z > 0.13) re.y = Math.max(re.y, aboveDesk(r.upper, re.z, 0.092));
-    if (leftOnDesk) lw.y = aboveDesk(r.upper, lw.z, 0.081);
-    if (rightOnDesk) rw.y = aboveDesk(r.upper, rw.z, 0.081);
+    if (leftPosture === 'desk' || leftPosture === 'point') lw.y = aboveDesk(r.upper, lw.z, 0.081);
+    if (rightPosture === 'desk') rw.y = aboveDesk(r.upper, rw.z, 0.081);
+    if (writing) {
+      r.pencil.rotation.set(-0.9, 0, -0.24);
+      const tip = temp.set(0, -0.104, 0).applyQuaternion(r.pencil.quaternion).add(r.right.pinch);
+      rw.y = aboveDesk(r.upper, rw.z + tip.z, 0.012) - tip.y;
+    }
   }
-  setArm(r.left, le, lw, a, false, leftOnDesk);
-  setArm(r.right, re, rw, a, pose === 'hand', rightOnDesk);
-  if (writing) {
-    r.pencil.position.copy(r.right.hand.position);
-    r.pencil.position.x -= 0.027;
-    r.pencil.position.z += 0.032;
-    r.pencil.rotation.set(-0.9, 0, -0.24);
-    const tip = temp.set(0, -0.117, 0).applyQuaternion(r.pencil.quaternion);
-    r.pencil.position.y = aboveDesk(r.upper, r.pencil.position.z + tip.z, 0.012) - tip.y;
+  setArm(r.left, le, lw, a, leftPosture);
+  setArm(r.right, re, rw, a, rightPosture);
+  if (held && !stand) {
+    held.visible = true;
+    holdAt(held, r.right, ...contact);
   }
+  if (writing) holdAt(r.pencil, r.right, 0, -0.013, 0);
   if (resting) {
     r.pencil.position.set(0.06, aboveDesk(r.upper, 0.65, 0.019), 0.65);
     r.pencil.rotation.set(0, 0, Math.PI / 2);
   }
-  if (pose === 'watch' || pose.endsWith('-watch')) {
+  if (watchPose) {
     const watch =
       pose === 'proof-watch'
         ? r.props.watchAnswers
@@ -700,29 +773,26 @@ export function updateStudent(group, { time = 0, pose = 'write', walking = false
           ? r.props.watchTime
           : r.props.watch;
     watch.visible = !stand;
-    const direction = temp.subVectors(r.left.wrist, r.left.elbow).normalize();
-    watch.position.copy(r.left.wrist).addScaledVector(direction, -0.035);
-    watch.position.y += 0.035;
-    watch.position.z += 0.025;
-    watch.rotation.set(pose === 'watch' ? -0.45 : -0.95, 0.1, -0.12);
+    watchAxis.subVectors(r.left.wrist, r.left.elbow).normalize();
+    dialUp.crossVectors(dialNormal.set(0.16, 0.83, 0.64), watchAxis).normalize();
+    dialNormal.crossVectors(watchAxis, dialUp);
+    watchBasis.makeBasis(watchAxis, dialUp, dialNormal);
+    watch.quaternion.setFromRotationMatrix(watchBasis);
+    if (pose === 'watch') watch.rotateX(-0.48);
+    watch.position.copy(r.left.wrist).addScaledVector(watchAxis, -0.077);
+    watch.translateZ(0.022);
   }
-  if (pose === 'pen' || pose.endsWith('-pen')) {
-    const pen =
-      pose === 'proof-pen' ? r.props.penCamera : pose === 'clear-pen' ? r.props.clearPen : r.props.pen;
-    pen.visible = !stand;
-    pen.position.copy(r.right.hand.position);
-    pen.position.x -= 0.025;
-    pen.position.z += 0.027;
-    pen.rotation.set(pose === 'proof-pen' ? -0.82 : -0.35, Math.sin(time * 1.6) * 0.08, -0.22);
-    if (pose === 'clear-pen') {
-      r.props.penCap.visible = !stand;
-      r.props.penCap.position.copy(r.left.hand.position);
-      r.props.penCap.position.x -= 0.024;
-      r.props.penCap.position.z += 0.045;
-      r.props.penCap.rotation.set(-0.35, 0.1, 0.28);
-    }
+  if (penPose && pose !== 'pen' && !stand) {
+    r.props.penCap.visible = true;
+    r.props.penCap.rotation.set(-0.46, 0.14, 0.24);
+    holdAt(r.props.penCap, r.left, -0.012, -0.015, 0);
   }
-  if (pose === 'wrist-rest') r.right.hand.rotation.z = -0.2 + Math.sin(time * 1.4) * 0.12;
+  if (pose === 'wrist-rest') {
+    r.left.hand.rotation.set(0.78, 0.2, -0.96);
+    r.right.hand.rotation.set(0.56, Math.sin(time * 1.4) * 0.45, 0.1 + Math.sin(time * 1.4) * 0.21);
+  } else if (pose === 'neck-stretch') {
+    r.right.hand.rotation.set(0.24, -0.15, 0.42);
+  }
   updateLegs(r, time, walking);
   syncInstances(r);
 }
@@ -741,7 +811,7 @@ export function updateProctor(group, { time = 0, walking = false, quiet = false,
   r.head.rotation.y = Math.sin(time * 0.4) * 0.025;
   setArm(r.left, v(-0.255, 0.2, -0.035), v(-0.26, -0.045, 0.065), 1);
   setArm(r.right, v(0.26, 0.2, swing), v(0.25, -0.05, swing * 1.7), 1);
-  if (reaching) setArm(r.right, v(0.29, 0.5, 0.12), v(0.25, 0.8, 0.4 + Math.sin(time * 3) * 0.08), 1, true);
+  if (reaching) setArm(r.right, v(0.29, 0.5, 0.12), v(0.25, 0.8, 0.4 + Math.sin(time * 3) * 0.08), 1, 'raised');
   for (const eye of r.head.userData.face.eyes) eye.scale.y = 0.016;
   r.clipboard.position.set(-0.283, 0.015, 0.088);
   r.clipboard.rotation.set(-0.08, -0.15, -0.08);
@@ -788,8 +858,8 @@ export function updateEnding(group, mood, time) {
   rig.upper.position.y += happy ? Math.max(0, Math.sin(time * 5)) * 0.07 : Math.sin(time * 9) * 0.012;
   if (happy) {
     rig.clipboard.visible = false;
-    setArm(rig.left, v(-0.32, 0.5, 0.03), v(-0.37, 0.8, 0.13), 1, true);
-    setArm(rig.right, v(0.32, 0.5, 0.03), v(0.37, 0.8, 0.13), 1, true);
+    setArm(rig.left, v(-0.32, 0.5, 0.03), v(-0.37, 0.8, 0.13), 1, 'raised');
+    setArm(rig.right, v(0.32, 0.5, 0.03), v(0.37, 0.8, 0.13), 1, 'raised');
     syncInstances(rig);
   }
 }

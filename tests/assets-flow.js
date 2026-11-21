@@ -21,7 +21,8 @@ try {
   });
   await page.clock.install({ time: new Date('2026-11-18T00:00:00Z') });
   const advance = async ms => { while (ms > 0) { await page.clock.fastForward(Math.min(ms, 100)); ms -= 100; } };
-  for (const pose of ['proof-watch', 'clear-watch', 'proof-pen', 'clear-pen', 'sleeve-adjust', 'wrist-rest', 'neck-stretch', 'reread']) {
+  for (const pose of [...['note', 'camera', 'glasses', 'ear', 'watch', 'pen'].flatMap(kind => ['proof-' + kind, 'clear-' + kind]),
+    'sleeve-adjust', 'wrist-rest', 'neck-stretch', 'reread']) {
     let chosen;
     for (let seed = 0; seed < 200 && !chosen; seed++) {
       const exam = new Exam(seed, 2);
@@ -51,7 +52,7 @@ try {
     }
     assert.ok(found, pose + ' must occur during normal play');
     await page.screenshot({ path: output + '/' + pose + '.png' });
-    if (pose === 'proof-watch' || pose === 'proof-pen') {
+    if (['proof-note', 'proof-camera', 'proof-watch', 'proof-pen'].includes(pose)) {
       await page.setViewportSize({width:320,height:568});
       await advance(600);
       await page.screenshot({ path: output + '/' + pose + '-320.png' });
